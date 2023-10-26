@@ -21,29 +21,26 @@ replace (
 require (
 	github.com/accuknox/accuknox-cli v0.0.0-00010101000000-000000000000
 	github.com/accuknox/auto-policy-discovery/src v0.0.0-20230605060121-abe7d0b9770d
-	github.com/accuknox/dev2/api v0.0.0-20231020055629-05eecfd136a0
-	github.com/accuknox/dev2/discover v0.0.0-20231020123852-00807df5b71c
-	github.com/cavaliergopher/grab/v3 v3.0.1
+	github.com/accuknox/dev2/api v0.0.0-20231018100833-8b6fe2cde9b1
+	github.com/accuknox/dev2/hardening v0.0.0-20231018100833-8b6fe2cde9b1
 	github.com/clarketm/json v1.17.1
 	github.com/docker/docker v23.0.6+incompatible
 	github.com/fatih/color v1.15.0
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/google/go-github v17.0.0+incompatible
-	github.com/kubearmor/KubeArmor/KubeArmor v0.0.0-20230918061249-1d5b51c449bd
-	github.com/kubearmor/KubeArmor/pkg/KubeArmorController v0.0.0-20230626060245-4f5b8ac4f298
-	github.com/kubearmor/kubearmor-client v0.14.1
-	github.com/kyverno/kyverno v1.9.2
+	github.com/kubearmor/KubeArmor/pkg/KubeArmorController v0.0.0-20230519075515-e8b45043a53d
+	github.com/kubearmor/kubearmor-client v0.13.7
+	github.com/kyverno/kyverno v1.10.3
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
-	github.com/moby/term v0.0.0-20221205130635-1aeaba878587
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/rs/zerolog v1.30.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
-	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
+	golang.org/x/exp v0.0.0-20230510235704-dd950f8aeaea
 	golang.org/x/text v0.11.0
-	google.golang.org/grpc v1.58.1
-	k8s.io/apimachinery v0.27.4
-	k8s.io/utils v0.0.0-20230505201702-9f6742963106
+	google.golang.org/grpc v1.57.0
+	k8s.io/api v0.28.0-alpha.1
+	k8s.io/apimachinery v0.28.0-alpha.1
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -53,7 +50,6 @@ require (
 	cuelang.org/go v0.5.0 // indirect
 	github.com/AliyunContainerService/ack-ram-tool/pkg/credentials/alibabacloudsdkgo/helper v0.2.0 // indirect
 	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible // indirect
-	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.29 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.9.23 // indirect
@@ -109,7 +105,7 @@ require (
 	github.com/chrismellard/docker-credential-acr-env v0.0.0-20230304212654-82a0ddb27589 // indirect
 	github.com/cilium/cilium v1.13.2 // indirect
 	github.com/clbanning/mxj/v2 v2.5.7 // indirect
-	github.com/cloudflare/circl v1.3.2 // indirect
+	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/cockroachdb/apd/v2 v2.0.2 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/containerd/console v1.0.3 // indirect
@@ -170,7 +166,7 @@ require (
 	github.com/google/go-github/v45 v45.2.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/s2a-go v0.1.4 // indirect
+	github.com/google/s2a-go v0.1.3 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/trillian v1.5.1 // indirect
 	github.com/google/uuid v1.3.1 // indirect
@@ -193,8 +189,9 @@ require (
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/kubearmor/KVMService/src/types v0.0.0-20220714130113-b0eba8c9ff34 // indirect
-	github.com/kubearmor/KubeArmor/deployments v0.0.0-20230918135729-00395f443fa0 // indirect
-	github.com/kubearmor/KubeArmor/protobuf v0.0.0-20230918061249-1d5b51c449bd // indirect
+	github.com/kubearmor/KubeArmor/KubeArmor v0.0.0-20230519075515-e8b45043a53d // indirect
+	github.com/kubearmor/KubeArmor/deployments v0.0.0-20230616113436-0f9e047493a0 // indirect
+	github.com/kubearmor/KubeArmor/protobuf v0.0.0-20230515155803-35434b6407a5 // indirect
 	github.com/leodido/go-urn v1.2.3 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20230426205424-1c7e0fd1d876 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
@@ -217,7 +214,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
-	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mozillazg/docker-credential-acr-helper v0.3.0 // indirect
 	github.com/mpvl/unique v0.0.0-20150818121801-cbe035fff7de // indirect
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
@@ -251,7 +247,7 @@ require (
 	github.com/rhysd/go-github-selfupdate v1.2.3 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
-	github.com/rogpeppe/go-internal v1.10.0 // indirect
+	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
 	github.com/sassoftware/relic v7.2.1+incompatible // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.4.0 // indirect
@@ -295,7 +291,7 @@ require (
 	github.com/yashtewari/glob-intersection v0.1.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	github.com/zeebo/errs v1.3.0 // indirect
-	go.mongodb.org/mongo-driver v1.11.4 // indirect
+	go.mongodb.org/mongo-driver v1.12.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.15.1 // indirect
 	go.opentelemetry.io/otel/trace v1.15.1 // indirect
@@ -304,17 +300,17 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
-	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/net v0.13.0 // indirect
-	golang.org/x/oauth2 v0.10.0 // indirect
+	golang.org/x/oauth2 v0.8.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/term v0.10.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.11.0 // indirect
-	google.golang.org/api v0.126.0 // indirect
+	golang.org/x/tools v0.9.1 // indirect
+	google.golang.org/api v0.122.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230711160842-782d3b101e98 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230525234030-28d5490b6b19 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -322,15 +318,15 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.27.4 // indirect
-	k8s.io/apiextensions-apiserver v0.27.1 // indirect
+	k8s.io/apiextensions-apiserver v0.27.2 // indirect
 	k8s.io/cli-runtime v0.27.1 // indirect
-	k8s.io/client-go v0.27.4 // indirect
-	k8s.io/component-base v0.27.1 // indirect
+	k8s.io/client-go v0.28.0-alpha.1 // indirect
+	k8s.io/component-base v0.27.2 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
+	k8s.io/kube-openapi v0.0.0-20230525220651-2546d827e515 // indirect
 	k8s.io/kubectl v0.27.1 // indirect
 	k8s.io/pod-security-admission v0.27.1 // indirect
+	k8s.io/utils v0.0.0-20230505201702-9f6742963106 // indirect
 	sigs.k8s.io/controller-runtime v0.15.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kustomize/api v0.13.2 // indirect
