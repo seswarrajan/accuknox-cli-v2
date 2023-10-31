@@ -14,6 +14,7 @@ out/
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+GIT-KEY
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
