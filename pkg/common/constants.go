@@ -32,7 +32,7 @@ const (
 	RabbitmqImage      = "rabbitmq:3.12.2-management"
 	Hardening          = "hardening"
 	HardeningImage     = "accuknox/dev2-hardening:latest"
-	ServiceAccountName = "dev2"
+	ServiceAccountName = "discovery-engine"
 
 	DiscoverConfMap  = "dev2-discover"
 	HardeningConfMap = "dev2-hardening"
