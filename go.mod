@@ -25,7 +25,7 @@ require (
 	github.com/jedib0t/go-pretty v4.3.0+incompatible
 	github.com/kubearmor/kubearmor-client v0.14.2
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/rivo/tview v0.0.0-20231102183219-1b91b8131c43
+	github.com/rivo/tview v0.0.0-20231115183240-7c9e464bac02
 	github.com/rs/zerolog v1.31.0
 	github.com/schollz/progressbar/v3 v3.14.1
 	github.com/sirupsen/logrus v1.9.3
