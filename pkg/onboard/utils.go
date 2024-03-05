@@ -107,9 +107,12 @@ func copyOrGenerateFile(userConfigDir, dirPath, filePath string, tempFuncs templ
 		return "", err
 	}
 
-	// fullFilePath contains the path to configDir - hard coding paths won't be efficient
+	// ignoring G304 - fullFilePath contains the path to configDir - hard coding
+	// paths won't be efficient
+	// ignoring G302 - if containers are run by the root user, members of the
+	// docker group should be able to read the files
 	// overwrite files if need
-	resultFile, err := os.OpenFile(fullFilePath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0600) // #nosec G304
+	resultFile, err := os.OpenFile(fullFilePath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644) // #nosec G304 G302
 	if err != nil {
 		return "", err
 	}
@@ -209,7 +212,7 @@ func ExecComposeCommand(setStdOut, dryRun bool, tryCmd string, args ...string) (
 
 		err := composeCmd.Run()
 		if err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
+			if exitErr, ok := err.(*exec.ExitError); ok && len(exitErr.Stderr) > 0 {
 				return "", errors.New(string(exitErr.Stderr))
 			}
 
@@ -238,7 +241,7 @@ func (cc *ClusterConfig) validateEnv() error {
 	serverVersionCmd := exec.Command("docker", "version", "-f", "{{.Server.Version}}")
 	serverVersion, err := serverVersionCmd.Output()
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		if exitErr, ok := err.(*exec.ExitError); ok && len(exitErr.Stderr) > 0 {
 			return errors.New(string(exitErr.Stderr))
 		}
 		return err

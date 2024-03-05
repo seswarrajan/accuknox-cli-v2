@@ -131,7 +131,8 @@ services:
       - "kubearmor-only"
       - "kubearmor"
     depends_on:
-      - kubearmor
+      kubearmor:
+        condition: service_started
     container_name: kubearmor-vm-adapter
     image: "{{.KubeArmorVMAdapterImage}}"
     command:
@@ -156,6 +157,8 @@ services:
       wait-for-it:
         condition: service_completed_successfully
       kubearmor:
+        condition: service_started
+      kubearmor-vm-adapter:
         condition: service_started
     container_name: shared-informer-agent
     image: "{{.SIAImage}}"
