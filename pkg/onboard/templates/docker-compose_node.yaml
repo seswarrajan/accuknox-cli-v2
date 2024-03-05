@@ -65,7 +65,8 @@ services:
       - "kubearmor-only"
       - "kubearmor"
     depends_on:
-      - kubearmor
+      kubearmor:
+        condition: service_started
     container_name: kubearmor-vm-adapter
     image: "{{.KubeArmorVMAdapterImage}}"
     command:
