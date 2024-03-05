@@ -209,7 +209,7 @@ func ExecComposeCommand(setStdOut, dryRun bool, tryCmd string, args ...string) (
 
 		err := composeCmd.Run()
 		if err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
+			if exitErr, ok := err.(*exec.ExitError); ok && len(exitErr.Stderr) > 0 {
 				return "", errors.New(string(exitErr.Stderr))
 			}
 
@@ -238,7 +238,7 @@ func (cc *ClusterConfig) validateEnv() error {
 	serverVersionCmd := exec.Command("docker", "version", "-f", "{{.Server.Version}}")
 	serverVersion, err := serverVersionCmd.Output()
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		if exitErr, ok := err.(*exec.ExitError); ok && len(exitErr.Stderr) > 0 {
 			return errors.New(string(exitErr.Stderr))
 		}
 		return err
