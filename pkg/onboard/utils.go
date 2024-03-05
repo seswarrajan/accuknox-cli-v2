@@ -109,7 +109,7 @@ func copyOrGenerateFile(userConfigDir, dirPath, filePath string, tempFuncs templ
 
 	// fullFilePath contains the path to configDir - hard coding paths won't be efficient
 	// overwrite files if need
-	resultFile, err := os.OpenFile(fullFilePath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0600) // #nosec G304
+	resultFile, err := os.OpenFile(fullFilePath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644) // #nosec G304
 	if err != nil {
 		return "", err
 	}
