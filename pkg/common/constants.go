@@ -63,6 +63,37 @@ const (
 	MinDockerVersion                  = "v19.0.3"
 	MinDockerComposeVersion           = "v1.27.0"
 	MinDockerComposeWithWaitSupported = "v2.17.0"
+
+	Download_dir string = "/tmp/accuknox-downloads/"
+
+	// agents names
+	KA_Vm_Adapter  string = "kubearmor-vm-adapter" // to identify service
+	Vm_adapter     string = "vm-adapter"           // for download package
+	Relay_server   string = "kubearmor-relay-server"
+	Spire_agent    string = "spire-agent"
+	Pea_agent      string = "accuknox-policy-enforcement-agent"
+	Sia_agent      string = "accuknox-shared-informer-agent"
+	Feeder_service string = "accuknox-feeder-service"
+
+	//config paths for systemd mode
+	KAconfigPath          string = "/opt/kubearmor/"
+	VmAdapterconfigPath   string = "/opt/kubearmor-vm-adapter/"
+	RelayServerconfigPath string = "/opt/kubearmor-relay-server/"
+	FSconfigPath          string = "/opt/accuknox-feeder-service/"
+	PEAconfigPath         string = "/opt/accuknox-policy-enforcement-agent/"
+	SIAconfigPath         string = "/opt/accuknox-shared-informer-agent/"
+	SpireconfigPath       string = "/opt/spire-agent/"
+
+	//TODO make configurable for policy dir in accuknox policy enforcementagent
+	PeaPolicyPath string = "/opt/pea/"
+
+	//systemd path
+	SystemdDir string = "/usr/lib/systemd/system/"
+
+	// color coding for logs
+	Red   = "\033[31m"
+	Reset = "\033[0m"
+	Green = "\033[32m"
 )
 
 var (

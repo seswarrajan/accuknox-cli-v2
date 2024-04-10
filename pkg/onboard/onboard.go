@@ -2,6 +2,7 @@ package onboard
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -10,7 +11,13 @@ import (
 	"github.com/accuknox/accuknox-cli-v2/pkg/common"
 )
 
-func CreateClusterConfig(clusterType ClusterType, userConfigPath, kubearmorVersion, releaseVersion, kubearmorImage, kubearmorInitImage, vmAdapterImage, relayServerImage, spireImage, siaImage, peaImage, feederImage, nodeAddress string, dryRun, workerNode bool, imagePullPolicy, visibility, hostVisibility, audit, block, cidr string) (*ClusterConfig, error) {
+func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode VMMode,
+	vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag, feederVersionTag string,
+	kubearmorVersion, releaseVersion, kubearmorImage, kubearmorInitImage,
+	vmAdapterImage, relayServerImage, siaImage, peaImage,
+	feederImage, spireImage, nodeAddress string, dryRun, workerNode bool,
+	imagePullPolicy, visibility, hostVisibility, audit,
+	block, cidr string, secureContainers bool) (*ClusterConfig, error) {
 
 	cc := new(ClusterConfig)
 
@@ -34,6 +41,10 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath, kubearmorVersi
 
 		cc.UserConfigPath = cleanUserConfigPath
 	}
+	// systemd or docker
+	cc.Mode = vmMode
+
+	cc.SecureContainers = secureContainers
 
 	cc.ClusterType = clusterType
 
@@ -66,46 +77,65 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath, kubearmorVersi
 		// on needing to build knoxctl again and again
 		return nil, fmt.Errorf("Unknown image tag %s", releaseVersion)
 	}
-
 	cc.AgentsVersion = releaseVersion
+	switch cc.Mode {
 
-	switch strings.ToLower(imagePullPolicy) {
-	case string(ImagePullPolicy_Always):
-		cc.ImagePullPolicy = ImagePullPolicy_Always
-	case string(ImagePullPolicy_IfNotPresent):
-		cc.ImagePullPolicy = ImagePullPolicy_IfNotPresent
-	case string(ImagePullPolicy_Never):
-		cc.ImagePullPolicy = ImagePullPolicy_Never
-	default:
-		return nil, fmt.Errorf("Image pull policy %s unrecognized", imagePullPolicy)
-	}
+	case VMMode_Docker:
 
-	if kubearmorImage != "" {
-		cc.KubeArmorImage = kubearmorImage
-	} else if kubearmorVersion != "" {
-		cc.KubeArmorImage = common.DefaultKubeArmorImage + kubearmorVersion
-	} else {
-		cc.KubeArmorImage = common.DefaultKubeArmorImage + releaseInfo.KubeArmorTag
-	}
+		switch strings.ToLower(imagePullPolicy) {
+		case string(ImagePullPolicy_Always):
+			cc.ImagePullPolicy = ImagePullPolicy_Always
+		case string(ImagePullPolicy_IfNotPresent):
+			cc.ImagePullPolicy = ImagePullPolicy_IfNotPresent
+		case string(ImagePullPolicy_Never):
+			cc.ImagePullPolicy = ImagePullPolicy_Never
+		default:
+			return nil, fmt.Errorf("Image pull policy %s unrecognized", imagePullPolicy)
+		}
 
-	if kubearmorInitImage != "" {
-		cc.KubeArmorInitImage = kubearmorInitImage
-	} else if kubearmorVersion != "" {
-		cc.KubeArmorInitImage = common.DefaultKubeArmorInitImage + kubearmorVersion
-	} else {
-		cc.KubeArmorInitImage = common.DefaultKubeArmorInitImage + releaseInfo.KubeArmorTag
-	}
+		if kubearmorImage != "" {
+			cc.KubeArmorImage = kubearmorImage
+		} else if kubearmorVersion != "" {
+			cc.KubeArmorImage = common.DefaultKubeArmorImage + kubearmorVersion
+		} else {
+			cc.KubeArmorImage = common.DefaultKubeArmorImage + releaseInfo.KubeArmorTag
+		}
 
-	if relayServerImage != "" {
-		cc.KubeArmorRelayServerImage = relayServerImage
-	} else {
-		cc.KubeArmorRelayServerImage = common.DefaultRelayServerImage + releaseInfo.KubeArmorRelayTag
-	}
+		if kubearmorInitImage != "" {
+			cc.KubeArmorInitImage = kubearmorInitImage
+		} else if kubearmorVersion != "" {
+			cc.KubeArmorInitImage = common.DefaultKubeArmorInitImage + kubearmorVersion
+		} else {
+			cc.KubeArmorInitImage = common.DefaultKubeArmorInitImage + releaseInfo.KubeArmorTag
+		}
 
-	if vmAdapterImage != "" {
-		cc.KubeArmorVMAdapterImage = vmAdapterImage
-	} else {
-		cc.KubeArmorVMAdapterImage = common.DefaultVMAdapterImage + releaseInfo.KubeArmorVMAdapterTag
+		if relayServerImage != "" {
+			cc.KubeArmorRelayServerImage = relayServerImage
+		} else {
+			cc.KubeArmorRelayServerImage = common.DefaultRelayServerImage + releaseInfo.KubeArmorRelayTag
+		}
+
+		if vmAdapterImage != "" {
+			cc.KubeArmorVMAdapterImage = vmAdapterImage
+		} else {
+			cc.KubeArmorVMAdapterImage = common.DefaultVMAdapterImage + releaseInfo.KubeArmorVMAdapterTag
+		}
+
+	case VMMode_Systemd:
+		if kubearmorVersion == "" {
+			cc.KubeArmorTag = releaseInfo.KubeArmorTag
+		} else if kubearmorVersion == "stable" || kubearmorVersion == "latest" {
+			log.Printf("%s tag not available for systemd package using values from release chart", kubearmorVersion)
+			cc.KubeArmorTag = releaseInfo.KubeArmorTag
+		} else {
+			if !strings.HasPrefix(kubearmorVersion, "v") {
+				kubearmorVersion = "v" + kubearmorVersion
+			}
+			cc.KubeArmorTag = kubearmorVersion
+		}
+		cc.VmAdapterTag = GetSystemdTag(vmAdapterTag, releaseInfo.KubeArmorVMAdapterTag)
+		cc.RelayServerTag = GetSystemdTag(kubeArmorRelayServerTag, releaseInfo.KubeArmorRelayTag)
+
 	}
 
 	cc.WorkerNode = workerNode
@@ -128,39 +158,48 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath, kubearmorVersi
 	if workerNode {
 		return cc, nil
 	}
+	switch cc.Mode {
+	case VMMode_Docker:
 
-	if spireImage != "" {
-		cc.SPIREAgentImage = spireImage
-	} else if releaseVersion != "" {
-		cc.SPIREAgentImage = "public.ecr.aws/k9v9d5v2/spire-agent:latest"
-		// TODO: once the image is pushed to dockerhub
-		//cc.SPIREAgentImage = "accuknox/spire-agent" + ":" + releaseInfo.SPIREAgentImageTag
-	} else {
-		return nil, fmt.Errorf("No tag found for spire-agent")
-	}
+		if siaImage != "" {
+			cc.SIAImage = siaImage
+		} else if releaseVersion != "" {
+			cc.SIAImage = releaseInfo.SIAImage + ":" + releaseInfo.SIATag
+		} else {
+			return nil, fmt.Errorf("No tag found for SIA")
+		}
 
-	if siaImage != "" {
-		cc.SIAImage = siaImage
-	} else if releaseVersion != "" {
-		cc.SIAImage = releaseInfo.SIAImage + ":" + releaseInfo.SIATag
-	} else {
-		return nil, fmt.Errorf("No tag found for SIA")
-	}
+		if peaImage != "" {
+			cc.PEAImage = peaImage
+		} else if releaseVersion != "" {
+			cc.PEAImage = releaseInfo.PEAImage + ":" + releaseInfo.PEATag
+		} else {
+			return nil, fmt.Errorf("No tag found for PEA")
+		}
 
-	if peaImage != "" {
-		cc.PEAImage = peaImage
-	} else if releaseVersion != "" {
-		cc.PEAImage = releaseInfo.PEAImage + ":" + releaseInfo.PEATag
-	} else {
-		return nil, fmt.Errorf("No tag found for PEA")
-	}
+		if feederImage != "" {
+			cc.FeederImage = feederImage
+		} else if releaseVersion != "" {
+			cc.FeederImage = releaseInfo.FeederServiceImage + ":" + releaseInfo.FeederServiceTag
+		} else {
+			return nil, fmt.Errorf("No tag found for feeder-service")
+		}
+		if spireImage != "" {
+			cc.SPIREAgentImage = spireImage
+		} else if releaseVersion != "" {
+			cc.SPIREAgentImage = "public.ecr.aws/k9v9d5v2/spire-agent:latest"
+			// TODO: once the image is pushed to dockerhub
+			//cc.SPIREAgentImage = "accuknox/spire-agent" + ":" + releaseInfo.SPIREAgentImageTag
+		} else {
+			return nil, fmt.Errorf("No tag found for spire-agent")
+		}
 
-	if feederImage != "" {
-		cc.FeederImage = feederImage
-	} else if releaseVersion != "" {
-		cc.FeederImage = releaseInfo.FeederServiceImage + ":" + releaseInfo.FeederServiceTag
-	} else {
-		return nil, fmt.Errorf("No tag found for feeder-service")
+	case VMMode_Systemd:
+		cc.PeaTag = GetSystemdTag(peaVersionTag, releaseInfo.PEATag)
+		cc.SiaTag = GetSystemdTag(siaVersionTag, releaseInfo.SIATag)
+		cc.FsTag = GetSystemdTag(feederVersionTag, releaseInfo.FeederServiceTag)
+		cc.SpireTag = GetSystemdTag("", releaseInfo.SPIREAgentImageTag)
+
 	}
 
 	return cc, nil
@@ -168,8 +207,15 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath, kubearmorVersi
 
 // prints join command - currently only with the default ports
 // TODO: handle complex configuration
-func (cc *ClusterConfig) PrintJoinCommand() {
-	command := fmt.Sprintf("knoxctl onboard vm node --cp-node-addr=%s", cc.CPNodeAddr)
+func (cc *ClusterConfig) PrintJoinCommand(vmmode VMMode) {
+	command := ""
+	switch vmmode {
+	case VMMode_Docker:
+		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"docker\" --cp-node-addr=%s", cc.CPNodeAddr)
+
+	case VMMode_Systemd:
+		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"systemd\"--cp-node-addr=%s", cc.CPNodeAddr)
+	}
 
 	fmt.Println(command)
 }

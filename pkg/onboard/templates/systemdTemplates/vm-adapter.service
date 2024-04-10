@@ -1,0 +1,14 @@
+[Unit]
+Description=kubearmor-vm-adapter
+After=kubearmor.service
+
+[Service]
+User=root
+KillMode=process
+WorkingDirectory=/opt/kubearmor-vm-adapter/
+ExecStart=/opt/kubearmor-vm-adapter/kubearmor-vm-adapter
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

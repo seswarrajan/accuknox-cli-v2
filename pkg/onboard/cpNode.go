@@ -22,25 +22,15 @@ func InitCPNodeConfig(cc ClusterConfig, joinToken, spireHost, ppsHost, knoxGatew
 		EnableLogs:          enableLogs,
 	}
 }
-
-func (ic *InitConfig) InitializeControlPlane() error {
-	// validate this environment
-	err := ic.validateEnv()
-	if err != nil {
-		return err
-	}
-
+func (ic *InitConfig) CreateBaseTemplateConfig() error {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return err
 	}
-
-	configPath, err := createDefaultConfigPath()
+	spireHost, spirePort, err := parseURL(ic.SpireHost)
 	if err != nil {
 		return err
 	}
-
-	spireHost, spirePort, err := parseURL(ic.SpireHost)
 	if spirePort == "80" {
 		// default spire port
 		spirePort = "8081"
@@ -61,7 +51,6 @@ func (ic *InitConfig) InitializeControlPlane() error {
 			spireTrustBundleURL = spireTrustBundleURLMap["xcitium"]
 		}
 	}
-
 	ic.TCArgs = TemplateConfigArgs{
 		ReleaseVersion: ic.AgentsVersion,
 
@@ -85,8 +74,9 @@ func (ic *InitConfig) InitializeControlPlane() error {
 
 		WorkerNode: ic.WorkerNode,
 
-		SIAAddr: "shared-informer-agent:32769",
-		PEAAddr: "policy-enforcement-agent:32770",
+		SIAAddr:    "shared-informer-agent:32769",
+		PEAAddr:    "policy-enforcement-agent:32770",
+		EnableLogs: ic.EnableLogs,
 
 		PPSHost: ic.PPSHost,
 
@@ -95,8 +85,6 @@ func (ic *InitConfig) InitializeControlPlane() error {
 		SpireHostPort: spirePort,
 
 		SpireTrustBundleURL: spireTrustBundleURL,
-		ImagePullPolicy:     string(ic.ImagePullPolicy),
-		EnableLogs:          ic.EnableLogs,
 
 		// kubearmor config
 		KubeArmorVisibility:     ic.Visibility,
@@ -110,10 +98,56 @@ func (ic *InitConfig) InitializeControlPlane() error {
 		KubeArmorHostNetworkPosture: ic.DefaultHostNetworkPosture,
 		KubeArmorHostCapPosture:     ic.DefaultHostCapPosture,
 
-		ConfigPath: configPath,
-
 		NetworkCIDR: ic.CIDR,
+
+		SecureContainers: ic.SecureContainers,
+
+		VmMode: ic.Mode,
 	}
+	return nil
+}
+
+func (ic *InitConfig) InitializeControlPlane() error {
+	// validate this environment
+	dockerStatus, err := ic.ValidateEnv()
+	if err != nil {
+		return err
+	}
+	fmt.Println(dockerStatus)
+
+	configPath, err := createDefaultConfigPath()
+	if err != nil {
+		return err
+	}
+	ic.TCArgs.KubeArmorImage = ic.KubeArmorImage
+	ic.TCArgs.KubeArmorInitImage = ic.KubeArmorInitImage
+	ic.TCArgs.KubeArmorRelayServerImage = ic.KubeArmorRelayServerImage
+	ic.TCArgs.KubeArmorVMAdapterImage = ic.KubeArmorVMAdapterImage
+
+	// agents
+	ic.TCArgs.SIAImage = ic.SIAImage
+	ic.TCArgs.PEAImage = ic.PEAImage
+	ic.TCArgs.FeederImage = ic.FeederImage
+
+	ic.TCArgs.KubeArmorURL = "kubearmor:32767"
+	ic.TCArgs.KubeArmorPort = "32767"
+
+	ic.TCArgs.RelayServerURL = "kubearmor-relay-server:32768"
+	ic.TCArgs.RelayServerAddr = "kubearmor-relay-server"
+	ic.TCArgs.RelayServerPort = "32768"
+
+	ic.TCArgs.WorkerNode = ic.WorkerNode
+
+	ic.TCArgs.SIAAddr = "shared-informer-agent:32769"
+	ic.TCArgs.PEAAddr = "policy-enforcement-agent:32770"
+	ic.TCArgs.ImagePullPolicy = string(ic.ImagePullPolicy)
+
+	ic.TCArgs.ConfigPath = configPath
+
+	// kmux config file paths
+	ic.TCArgs.KmuxConfigPathFS = "/opt/feeder-service/kmux-config.yaml"
+	ic.TCArgs.KmuxConfigPathSIA = "/opt/sia/kmux-config.yaml"
+	ic.TCArgs.KmuxConfigPathPEA = "/opt/pea/kmux-config.yaml"
 
 	// initialize sprig for templating
 	sprigFuncs := sprig.GenericFuncMap()

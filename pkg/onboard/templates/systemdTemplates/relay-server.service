@@ -1,0 +1,14 @@
+[Unit]
+Description=kubearmor-relay-server
+After=kubearmor.service
+
+[Service]
+User=root
+KillMode=process
+WorkingDirectory=/opt/kubearmor-relay-server/
+ExecStart=/opt/kubearmor-relay-server/kubearmor-relay-server
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

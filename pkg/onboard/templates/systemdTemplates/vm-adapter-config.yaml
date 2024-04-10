@@ -1,0 +1,7 @@
+kubearmor-addr: {{.KubeArmorURL}}
+
+relay-server-addr: {{.RelayServerURL}}
+
+sia-addr: {{.SIAAddr}}
+
+pea-addr: {{.PEAAddr}}

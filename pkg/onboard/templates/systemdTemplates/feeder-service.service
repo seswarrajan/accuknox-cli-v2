@@ -1,0 +1,15 @@
+[Unit]
+Description=accuknox-feeder-service
+After=kubearmor-vm-adapter.service kubearmor-relay.service spire-agent.service
+
+[Service]
+User=root
+KillMode=process
+WorkingDirectory=/opt/accuknox-feeder-service/
+EnvironmentFile=/opt/accuknox-feeder-service/conf/env
+ExecStart=/opt/accuknox-feeder-service/accuknox-feeder-service
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

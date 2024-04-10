@@ -6,21 +6,26 @@ import (
 )
 
 var (
-	clusterType      onboard.ClusterType
+	clusterType onboard.ClusterType
+	vmMode      onboard.VMMode
+
 	kubearmorVersion string
 	releaseVersion   string
+
+	// for systemd mode
+	vmAdapterTag string
 
 	kubeArmorImage          string
 	kubeArmorInitImage      string
 	kubeArmorVMAdapterImage string
 	imagePullPolicy         string
 
-	visibility     string
-	hostVisibility string
-	audit          string
-	block          string
-
-	cidr string
+	visibility      string
+	hostVisibility  string
+	audit           string
+	block           string
+	cidr            string
+	kubeArmorPolicy bool
 )
 
 // onboardVMCmd represents the sub-command to onboard VM clusters
@@ -40,6 +45,9 @@ var onboardVMCmd = &cobra.Command{
 
 func init() {
 	// all flags are optional
+	// add a mode flag here for systemd or docker
+	onboardVMCmd.PersistentFlags().StringVar((*string)(&vmMode), "vm-mode", "", "Mode of installation (systemd/docker)")
+	onboardVMCmd.PersistentFlags().StringVar(&vmAdapterTag, "vm-adapter-tag", "", "version tag for vm adapter")
 	onboardVMCmd.PersistentFlags().StringVar(&kubeArmorImage, "kubearmor-image", "", "KubeArmor image to use")
 	onboardVMCmd.PersistentFlags().StringVar(&kubeArmorInitImage, "kubearmor-init-image", "", "KubeArmor init image to use")
 	onboardVMCmd.PersistentFlags().StringVar(&kubeArmorVMAdapterImage, "kubearmor-vm-adapter-image", "", "KubeArmor vm-adapter image to use")

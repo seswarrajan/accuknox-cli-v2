@@ -1,0 +1,13 @@
+[Unit]
+Description=accuknox-policy-enforcement-agent
+After=kubearmor.service kubearmor-vm-adapter.service
+
+[Service]
+User=root
+KillMode=process
+WorkingDirectory=/opt/accuknox-policy-enforcement-agent/
+ExecStart=/opt/accuknox-policy-enforcement-agent/accuknox-policy-enforcement-agent
+Restart=always
+RestartSec=10
+[Install]
+WantedBy=multi-user.target

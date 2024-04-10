@@ -5,42 +5,54 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/accuknox/accuknox-cli-v2/pkg/common"
+	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
 	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
 )
 
-func Deboard(nodeType onboard.NodeType, dryRun bool) (string, error) {
-	configPath, err := common.GetDefaultConfigPath()
-	if err != nil {
+func Deboard(nodeType onboard.NodeType, vmMode onboard.VMMode, dryRun bool) (string, error) {
+
+	// check for systemd installation
+	switch vmMode {
+	case onboard.VMMode_Systemd:
+		fmt.Println("Deboarding VM....")
+		err := onboard.DeboardSystemd(nodeType)
 		return "", err
-	}
 
-	composeFilePath := filepath.Join(configPath, "docker-compose.yaml")
-	_, err = os.Stat(composeFilePath)
-	if err != nil {
-		return configPath, err
-	}
+	case onboard.VMMode_Docker:
+		configPath, err := cm.GetDefaultConfigPath()
+		if err != nil {
+			return "", err
+		}
 
-	composeCmd, composeVersion := onboard.GetComposeCommand()
-	fmt.Printf("Using %s version %s\n", composeCmd, composeVersion)
+		composeFilePath := filepath.Join(configPath, "docker-compose.yaml")
+		_, err = os.Stat(composeFilePath)
+		if err != nil {
+			return configPath, err
+		}
 
-	switch nodeType {
-	case onboard.NodeType_ControlPlane:
-		_, err = onboard.ExecComposeCommand(true, dryRun, composeCmd,
-			"-f", composeFilePath, "--profile", "spire-agent",
-			"--profile", "kubearmor", "--profile", "accuknox-agents", "down")
-	case onboard.NodeType_WorkerNode:
-		_, err = onboard.ExecComposeCommand(true, dryRun, composeCmd,
-			"-f", composeFilePath, "--profile", "kubearmor", "down")
-	}
-	if err != nil {
-		return configPath, fmt.Errorf("Error: %s", err.Error())
-	}
+		composeCmd, composeVersion := onboard.GetComposeCommand()
+		fmt.Printf("Using %s version %s\n", composeCmd, composeVersion)
 
-	err = os.RemoveAll(configPath)
-	if err != nil {
-		return configPath, err
-	}
+		switch nodeType {
+		case onboard.NodeType_ControlPlane:
+			_, err = onboard.ExecComposeCommand(true, dryRun, composeCmd,
+				"-f", composeFilePath, "--profile", "spire-agent",
+				"--profile", "kubearmor", "--profile", "accuknox-agents", "down")
+		case onboard.NodeType_WorkerNode:
+			_, err = onboard.ExecComposeCommand(true, dryRun, composeCmd,
+				"-f", composeFilePath, "--profile", "kubearmor", "down")
+		}
+		if err != nil {
+			return configPath, fmt.Errorf("error: %s", err.Error())
+		}
 
-	return configPath, nil
+		err = os.RemoveAll(configPath)
+		if err != nil {
+			return configPath, err
+		}
+
+		return configPath, nil
+
+	}
+	return "", nil
 }

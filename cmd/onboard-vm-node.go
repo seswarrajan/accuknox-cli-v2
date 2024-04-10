@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 
+	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
 	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
 	"github.com/spf13/cobra"
 )
@@ -25,20 +25,57 @@ var joinNodeCmd = &cobra.Command{
 		if nodeAddr == "" && (siaAddr == "" || relayServerAddr == "" || peaAddr == "") {
 			return fmt.Errorf("cp-node-addr (control-plane address) or address of each agent must be specified")
 		}
-
-		clusterConfig, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, kubearmorVersion, releaseVersion, kubeArmorImage, kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, spireAgentImage, siaImage, peaImage, feederImage, nodeAddr, dryRun, true, imagePullPolicy, visibility, hostVisibility, audit, block, cidr)
+		// validate environment for pre-requisites
+		var (
+			cc               onboard.ClusterConfig
+			secureContainers = true
+		)
+		_, err := cc.ValidateEnv()
+		if vmMode == "" {
+			if err == nil {
+				vmMode = onboard.VMMode_Docker
+			} else {
+				fmt.Printf("Warning: Docker requirements did not match: %s. Falling back to systemd mode for installation.\n", err.Error())
+				vmMode = onboard.VMMode_Systemd
+				secureContainers = false
+			}
+		}
+		vmConfigs, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, vmMode,
+			vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag,
+			feederVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
+			kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, siaImage,
+			peaImage, feederImage, spireAgentImage, nodeAddr, dryRun,
+			true, imagePullPolicy, visibility, hostVisibility,
+			audit, block, cidr, secureContainers)
 		if err != nil {
-			return fmt.Errorf("Failed to create cluster config: %s", err.Error())
+			return fmt.Errorf("failed to create VM config: %s", err.Error())
+		}
+		joinConfig := onboard.JoinClusterConfig(*vmConfigs, kubeArmorAddr, relayServerAddr, siaAddr, peaAddr)
+
+		err = joinConfig.CreateBaseNodeConfig()
+		if err != nil {
+			return fmt.Errorf("failed to create VM config: %s", err.Error())
 		}
 
-		joinConfig := onboard.JoinClusterConfig(*clusterConfig, kubeArmorAddr, relayServerAddr, siaAddr, peaAddr)
+		switch vmMode {
 
-		err = joinConfig.JoinWorkerNode()
-		if err != nil {
-			return fmt.Errorf("Failed to join worker node: %s", err.Error())
+		case onboard.VMMode_Systemd:
+
+			if err := joinConfig.JoinSystemdNode(); err != nil {
+				return fmt.Errorf("failed to join worker node: %s", err.Error())
+			}
+			fmt.Println(cm.Green + "VM successfully joined with control-plane!" + cm.Reset)
+
+		case onboard.VMMode_Docker:
+			err = joinConfig.JoinWorkerNode()
+			if err != nil {
+				return fmt.Errorf("failed to join worker node: %s", err.Error())
+			}
+			fmt.Println(cm.Green + "VM successfully joined with control-plane!" + cm.Reset)
+
+		default:
+			fmt.Printf("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
 		}
-
-		log.Println("VM successfully joined with control-plane!")
 
 		return nil
 	},

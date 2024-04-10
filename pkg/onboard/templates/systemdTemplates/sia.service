@@ -1,0 +1,13 @@
+[Unit]
+Description=accuknox-shared-informer-agent
+After=kubearmor-vm-adapter.service kubearmor.service
+
+[Service]
+User=root
+KillMode=process
+WorkingDirectory=/opt/accuknox-shared-informer-agent/
+ExecStart=/opt/accuknox-shared-informer-agent/shared-informer-agent
+Restart=always
+RestartSec=10
+[Install]
+WantedBy=multi-user.target
