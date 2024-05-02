@@ -14,8 +14,17 @@ var (
 	//go:embed templates/sia-config.yaml
 	siaConfig string
 
+	//go:embed templates/systemdTemplates/kubearmor-config.yaml
+	kubeArmorConfig string
+
+	//go:embed templates/systemdTemplates/vm-adapter-config.yaml
+	vmAdapterConfig string
+
 	//go:embed templates/spire-agent.conf
 	spireAgentConfig string
+
+	//go:embed templates/systemdTemplates/feeder-service-env
+	fsEnvVal string
 
 	spireTrustBundleURLMap = map[string]string{
 		"dev":     "https://accuknox-dev-cert-spire.s3.us-east-2.amazonaws.com/ca.crt",

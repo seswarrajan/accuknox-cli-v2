@@ -12,5 +12,6 @@ var deboardVMCmd = &cobra.Command{
 }
 
 func init() {
+	deboardCmd.PersistentFlags().StringVar((*string)(&vmMode), "vm-mode", "", "Mode of installation (systemd/docker)")
 	deboardCmd.AddCommand(deboardVMCmd)
 }

@@ -1,10 +1,14 @@
 package onboard
 
 type ClusterType string
+type VMMode string
 
 const (
 	ClusterType_VM  ClusterType = "vm"
 	ClusterType_ECS ClusterType = "ecs"
+
+	VMMode_Docker  VMMode = "docker"
+	VMMode_Systemd VMMode = "systemd"
 )
 
 var (
@@ -80,6 +84,19 @@ type ClusterConfig struct {
 	// internal
 	composeCmd     string
 	composeVersion string
+
+	//kubearmor systemd configs
+	Mode           VMMode
+	KubeArmorTag   string
+	VmAdapterTag   string
+	RelayServerTag string
+	PeaTag         string
+	SiaTag         string
+	SpireTag       string
+	FsTag          string
+
+	// container security
+	SecureContainers bool
 }
 
 type InitConfig struct {
@@ -147,6 +164,8 @@ type TemplateConfigArgs struct {
 	PEAAddr        string
 	WorkerNode     bool
 
+	VmMode VMMode
+
 	// generic agent configuration
 	ConfigPath string
 
@@ -166,6 +185,14 @@ type TemplateConfigArgs struct {
 
 	// docker config
 	NetworkCIDR string
+
+	// kmux config paths for agents
+	KmuxConfigPathFS  string
+	KmuxConfigPathSIA string
+	KmuxConfigPathPEA string
+
+	// container security
+	SecureContainers bool
 }
 
 type KmuxConfigTemplateArgs struct {

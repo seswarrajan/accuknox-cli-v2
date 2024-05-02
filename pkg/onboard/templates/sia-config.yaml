@@ -5,6 +5,7 @@ spire:
 {{- if trimPrefix "v" .ReleaseVersion | semverCompare "<0.5.0" }}
 # if <v0.5.0 add kmux-topic prefix for pulsar
 kmux-topic: shared-event
+
 kmux-topic-prefix: persistent://accuknox/cluster-entity/
 {{ else }}
 kmux-topic: cluster-entity/shared-event
@@ -13,7 +14,7 @@ kmux-topic: cluster-entity/shared-event
 heartbeat:
   interval: 5m
 
-kmux-config-file: "/opt/sia/kmux-config.yaml"
+kmux-config-file: {{.KmuxConfigPathSIA}}
 
 state-agent:
   port: 32769

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
 	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
 	"github.com/spf13/cobra"
 )
@@ -25,6 +26,12 @@ var (
 	peaImage                  string
 	feederImage               string
 	spireAgentImage           string
+
+	// cp-node systemd tags
+	kubeArmorRelayServerTag string
+	siaVersionTag           string
+	peaVersionTag           string
+	feederVersionTag        string
 )
 
 // cpNodeCmd represents the init command
@@ -33,26 +40,69 @@ var cpNodeCmd = &cobra.Command{
 	Short: "Initialize a control plane node for onboarding onto SaaS",
 	Long:  "Initialize a control plane node for onboarding onto SaaS",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		clusterConfig, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, kubearmorVersion, releaseVersion, kubeArmorImage, kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, spireAgentImage, siaImage, peaImage, feederImage, nodeAddr, dryRun, false, imagePullPolicy, visibility, hostVisibility, audit, block, cidr)
+		// validate environment for pre-requisites
+		var (
+			cc               onboard.ClusterConfig
+			secureContainers = true
+		)
+		_, err := cc.ValidateEnv()
+		if vmMode == "" {
+			if err == nil {
+				vmMode = onboard.VMMode_Docker
+			} else {
+				fmt.Printf("Warning: Docker requirements did not match: %s. Falling back to systemd mode for installation.\n", err.Error())
+				vmMode = onboard.VMMode_Systemd
+				secureContainers = false
+			}
+		}
+		vmConfig, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, vmMode,
+			vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag,
+			feederVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
+			kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, siaImage,
+			peaImage, feederImage, spireAgentImage, nodeAddr, dryRun,
+			false, imagePullPolicy, visibility, hostVisibility,
+			audit, block, cidr, secureContainers)
 		if err != nil {
-			return fmt.Errorf("Failed to create cluster config: %s", err.Error())
+			return fmt.Errorf("failed to create cluster config: %s", err.Error())
+		}
+		onboardConfig := onboard.InitCPNodeConfig(*vmConfig, joinToken, spireHost, ppsHost, knoxGateway, spireTrustBundle, enableLogs)
+
+		err = onboardConfig.CreateBaseTemplateConfig()
+		if err != nil {
+			return fmt.Errorf("failed to create base template config: %s", err.Error())
 		}
 
-		onboardConfig := onboard.InitCPNodeConfig(*clusterConfig, joinToken, spireHost, ppsHost, knoxGateway, spireTrustBundle, enableLogs)
+		switch vmMode {
 
-		err = onboardConfig.InitializeControlPlane()
-		if err != nil {
-			return fmt.Errorf("Failed to onboard control plane node: %s", err.Error())
-		}
-
-		fmt.Println(
-			`VM successfully onboarded!
+		case onboard.VMMode_Systemd:
+			err = onboardConfig.InitializeControlPlaneSD()
+			if err != nil {
+				return fmt.Errorf("failed to onboard control plane node: %s", err.Error())
+			}
+			fmt.Println(cm.Green +
+				`VM successfully onboarded!
 
 Now run the below command to onboard any worker nodes.
 Please assign appropriate IP address to --cp-node-addr to make sure
-that worker nodes can connect to this node`)
-		onboardConfig.PrintJoinCommand()
+that worker nodes can connect to this node` + cm.Reset)
+			onboardConfig.PrintJoinCommand(vmMode)
 
+		case onboard.VMMode_Docker:
+			err = onboardConfig.InitializeControlPlane()
+			if err != nil {
+				return fmt.Errorf("failed to onboard control plane node: %s", err.Error())
+			}
+			fmt.Println(cm.Green +
+				`VM successfully onboarded!
+
+Now run the below command to onboard any worker nodes.
+Please assign appropriate IP address to --cp-node-addr to make sure
+that worker nodes can connect to this node` + cm.Reset)
+			onboardConfig.PrintJoinCommand(vmMode)
+
+		default:
+			return fmt.Errorf("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
+		}
 		return nil
 	},
 }
@@ -76,6 +126,10 @@ func init() {
 	cpNodeCmd.PersistentFlags().StringVar(&siaImage, "sia-image", "", "sia image to use")
 	cpNodeCmd.PersistentFlags().StringVar(&peaImage, "pea-image", "", "pea image to use")
 	cpNodeCmd.PersistentFlags().StringVar(&feederImage, "feeder-image", "", "feeder-service image to use")
+	cpNodeCmd.PersistentFlags().StringVar(&kubeArmorRelayServerTag, "relayserver-version", "", "relay server version to use")
+	cpNodeCmd.PersistentFlags().StringVar(&siaVersionTag, "sia-version", "", "sia version to use")
+	cpNodeCmd.PersistentFlags().StringVar(&peaVersionTag, "pea-version", "", "pea version to use")
+	cpNodeCmd.PersistentFlags().StringVar(&feederVersionTag, "feeder-version", "", "feeder version to use")
 	cpNodeCmd.PersistentFlags().StringVar(&spireAgentImage, "spire-agent-image", "", "spire-agent image to use")
 
 	err := cpNodeCmd.MarkPersistentFlagRequired("join-token")

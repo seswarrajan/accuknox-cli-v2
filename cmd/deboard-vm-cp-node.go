@@ -15,14 +15,40 @@ var deboardCpNodeCmd = &cobra.Command{
 	Short: "Deboard control plane node",
 	Long:  "Deboard control plane node",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		configPath, err := deboard.Deboard(onboard.NodeType_ControlPlane, dryRun)
-		if err != nil && os.IsPermission(err) {
-			fmt.Println("Please remove any remaining resources at", configPath)
-		} else if err != nil {
-			return fmt.Errorf("Failed to deboard control plane node: %s", err.Error())
-		}
 
-		fmt.Println("Control plane node deboarded successfully.")
+		if vmMode == "" {
+			systemdInstallation, err := onboard.CheckSystemdInstallation()
+			if err != nil {
+				return fmt.Errorf("error checking systemd files")
+			}
+			if systemdInstallation {
+				vmMode = onboard.VMMode_Systemd
+			} else {
+				vmMode = onboard.VMMode_Docker
+			}
+
+		}
+		switch vmMode {
+		case onboard.VMMode_Systemd:
+			_, err := deboard.Deboard(onboard.NodeType_ControlPlane, vmMode, dryRun)
+			if err != nil {
+				return fmt.Errorf("Failed to deboard control plane node: %s", err.Error())
+			}
+			fmt.Println("Control plane node deboarded successfully.")
+			return nil
+		case onboard.VMMode_Docker:
+			configPath, err := deboard.Deboard(onboard.NodeType_ControlPlane, vmMode, dryRun)
+			if err != nil && os.IsPermission(err) {
+				fmt.Println("Please remove any remaining resources at", configPath)
+			} else if err != nil {
+				return fmt.Errorf("Failed to deboard control plane node: %s", err.Error())
+			}
+			fmt.Println("Control plane node deboarded successfully.")
+			return nil
+
+		default:
+			fmt.Printf("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
+		}
 		return nil
 	},
 }

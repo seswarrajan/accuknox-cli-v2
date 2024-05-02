@@ -9,6 +9,7 @@ knox-gateway:
 spire:
   spiffeID:
     format: "spiffe://<domainName>/<WSID>/<ClusterID>/<componentName>"
+  
   suffixSkipSet:
     - ".sock"
     - ".socket"

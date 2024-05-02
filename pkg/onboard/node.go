@@ -18,24 +18,11 @@ func JoinClusterConfig(cc ClusterConfig, kubeArmorAddr, relayServerAddr, siaAddr
 		PEAAddr:         peaAddr,
 	}
 }
-
-func (jc *JoinConfig) JoinWorkerNode() error {
-	// validate this environment
-	err := jc.validateEnv()
-	if err != nil {
-		return err
-	}
-
+func (jc *JoinConfig) CreateBaseNodeConfig() error {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return err
 	}
-
-	configPath, err := createDefaultConfigPath()
-	if err != nil {
-		return err
-	}
-
 	kubeArmorURL := "localhost:32767"
 	kubeArmorPort := "32767"
 	if jc.KubeArmorAddr != "" {
@@ -79,13 +66,7 @@ func (jc *JoinConfig) JoinWorkerNode() error {
 	} else {
 		return fmt.Errorf("PEA address cannot be empty")
 	}
-
 	jc.TCArgs = TemplateConfigArgs{
-		//KubeArmorVersion: kubeArmorVersion,
-		KubeArmorImage:          jc.KubeArmorImage,
-		KubeArmorInitImage:      jc.KubeArmorInitImage,
-		KubeArmorVMAdapterImage: jc.KubeArmorVMAdapterImage,
-
 		Hostname: hostname,
 
 		// for vm-adapter
@@ -99,9 +80,7 @@ func (jc *JoinConfig) JoinWorkerNode() error {
 		SIAAddr: siaAddr,
 		PEAAddr: peaAddr,
 
-		WorkerNode:      jc.WorkerNode,
-		ImagePullPolicy: string(jc.ImagePullPolicy),
-
+		WorkerNode: jc.WorkerNode,
 		// kubearmor config
 		KubeArmorVisibility:     jc.Visibility,
 		KubeArmorHostVisibility: jc.HostVisibility,
@@ -113,11 +92,32 @@ func (jc *JoinConfig) JoinWorkerNode() error {
 		KubeArmorHostFilePosture:    jc.DefaultHostFilePosture,
 		KubeArmorHostNetworkPosture: jc.DefaultHostNetworkPosture,
 		KubeArmorHostCapPosture:     jc.DefaultHostCapPosture,
-
-		ConfigPath: configPath,
-
-		NetworkCIDR: jc.CIDR,
+		NetworkCIDR:                 jc.CIDR,
+		VmMode:                      jc.Mode,
+		SecureContainers:            jc.SecureContainers,
 	}
+	return nil
+}
+
+func (jc *JoinConfig) JoinWorkerNode() error {
+	// validate this environment
+	dockerStatus, err := jc.ValidateEnv()
+	if err != nil {
+		return err
+	}
+	fmt.Println(dockerStatus)
+
+	configPath, err := createDefaultConfigPath()
+	if err != nil {
+		return err
+	}
+	// configs specific to docker mode of installation
+
+	jc.TCArgs.KubeArmorImage = jc.KubeArmorImage
+	jc.TCArgs.KubeArmorInitImage = jc.KubeArmorInitImage
+	jc.TCArgs.KubeArmorVMAdapterImage = jc.KubeArmorVMAdapterImage
+	jc.TCArgs.ImagePullPolicy = string(jc.ImagePullPolicy)
+	jc.TCArgs.ConfigPath = configPath
 
 	// initialize sprig for templating
 	sprigFuncs := sprig.GenericFuncMap()

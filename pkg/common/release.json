@@ -247,19 +247,6 @@
     "feeder_service_image": "accuknox/feeder-service"
   },
   "v0.5.4": {
-    "creation_time": "1714633097",
-    "kubearmor_tag": "v1.3.8",
-    "kubearmor_relay_tag": "v0.0.4",
-    "kubearmor_vm_adapter_tag": "v0.0.5",
-    "spire_agent_tag": "v1.9.4",
-    "sia_tag": "v0.3.3",
-    "sia_image": "accuknox/shared-informer-agent",
-    "pea_tag": "v0.3.3",
-    "pea_image": "accuknox/policy-enforcement-agent",
-    "feeder_service_tag": "v0.3.1",
-    "feeder_service_image": "accuknox/feeder-service"
-  },
-  "v0.5.4-dev": {
     "note": "TEMPORARY TAG. Agents pointed by v0.5.4 don't have kmux API changes",
     "creation_time": "1714633097",
     "kubearmor_tag": "v1.3.8",
