@@ -200,40 +200,40 @@ func compareVersionsAndGetComposeCommand(v1, v1Cmd, v2, v2Cmd string) (string, s
 
 // GetComposeCommand gets the compose command with perfect version
 // caller must check for empty
-func GetComposeCommand() (string, string) {
-	var err error
+func GetComposeCommand() (string, string, error) {
+	var (
+		err            error
+		tryComposeCMDs = []string{"docker-compose", "docker compose"}
+		minVersion     = cm.MinDockerComposeVersion
+		prevCommand    = ""
+	)
 
-	_, err = exec.LookPath("docker-compose")
-	if err != nil {
-		// docker-compose doesn't exist
-		// we'll use "docker compose"
-		composeDockerCLIVersion, err := ExecComposeCommand(false, false, "docker compose", "version", "--short")
-		if err != nil {
-			return "", ""
+	for _, command := range tryComposeCMDs {
+		version, execErr := ExecComposeCommand(false, false, command, "version", "--short")
+		if execErr != nil {
+			if err != nil {
+				err = fmt.Errorf("%s. while executing %s: %s", err.Error(), command, execErr.Error())
+			} else {
+				err = fmt.Errorf("while executing %s: %s", command, execErr.Error())
+			}
+
+			continue
 		}
 
-		return compareVersionsAndGetComposeCommand(composeDockerCLIVersion, "docker compose", cm.MinDockerComposeVersion, "")
+		composeCmd, finalVersion := compareVersionsAndGetComposeCommand(version, command, minVersion, prevCommand)
+		if composeCmd != "" {
+			return composeCmd, finalVersion, nil
+		}
+
+		// use command with latest version
+		prevCommand = command
 	}
 
-	// docker-compose exists, compare versions
-	composeCLIVersion, err := ExecComposeCommand(false, false, "docker-compose", "version", "--short")
 	if err != nil {
-		return "", ""
+		return "", "", fmt.Errorf("docker requirements not met: %s", err.Error())
 	}
 
-	// docker-compose didn't match requirements so
-	// check if "docker compose" meets version requirements
-	composeDockerCLIVersion, err := ExecComposeCommand(false, false, "docker compose", "version", "--short")
-	if err != nil {
-		return "", ""
-	}
-
-	composeCmd, finalVersion := compareVersionsAndGetComposeCommand(composeCLIVersion, "docker-compose", composeDockerCLIVersion, "docker compose")
-	if composeCmd != "" {
-		return composeCmd, finalVersion
-	}
-
-	return "", ""
+	return "", "", fmt.Errorf("docker requirements not met")
 }
 
 func ExecComposeCommand(setStdOut, dryRun bool, tryCmd string, args ...string) (string, error) {
@@ -349,9 +349,9 @@ func (cc *ClusterConfig) ValidateEnv() (string, error) {
 		}
 	}
 
-	composeCmd, composeVersion := GetComposeCommand()
-	if composeCmd == "" {
-		return "", fmt.Errorf("Please install docker-compose %s+", cm.MinDockerComposeVersion)
+	composeCmd, composeVersion, err := GetComposeCommand()
+	if err != nil {
+		return "", fmt.Errorf("Error: %s. Please install docker-compose %s+", err.Error(), cm.MinDockerComposeVersion)
 	}
 
 	cc.composeCmd = composeCmd

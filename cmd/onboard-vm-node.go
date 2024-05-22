@@ -36,7 +36,7 @@ var joinNodeCmd = &cobra.Command{
 			if err == nil {
 				vmMode = onboard.VMMode_Docker
 			} else {
-				fmt.Printf("Warning: Docker requirements did not match: %s. Falling back to systemd mode for installation.\n", err.Error())
+				fmt.Printf("Warning: Docker requirements did not match:\n%s.\nFalling back to systemd mode for installation.\n", err.Error())
 				vmMode = onboard.VMMode_Systemd
 				secureContainers = false
 			}
