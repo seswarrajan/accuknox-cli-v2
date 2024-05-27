@@ -62,6 +62,7 @@ func (ic *InitConfig) CreateBaseTemplateConfig() error {
 		SIAImage:                  ic.SIAImage,
 		PEAImage:                  ic.PEAImage,
 		FeederImage:               ic.FeederImage,
+		DiscoverImage:             ic.DiscoverImage,
 
 		Hostname: hostname,
 		// TODO: make configurable
@@ -128,6 +129,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	ic.TCArgs.SIAImage = ic.SIAImage
 	ic.TCArgs.PEAImage = ic.PEAImage
 	ic.TCArgs.FeederImage = ic.FeederImage
+	ic.TCArgs.DiscoverImage = ic.DiscoverImage
 
 	ic.TCArgs.KubeArmorURL = "kubearmor:32767"
 	ic.TCArgs.KubeArmorPort = "32767"
@@ -148,6 +150,9 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	ic.TCArgs.KmuxConfigPathFS = "/opt/feeder-service/kmux-config.yaml"
 	ic.TCArgs.KmuxConfigPathSIA = "/opt/sia/kmux-config.yaml"
 	ic.TCArgs.KmuxConfigPathPEA = "/opt/pea/kmux-config.yaml"
+	ic.TCArgs.KmuxConfigPathDiscover = "/opt/discover/kmux-config.yaml"
+
+	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
 
 	// initialize sprig for templating
 	sprigFuncs := sprig.GenericFuncMap()
@@ -173,6 +178,11 @@ func (ic *InitConfig) InitializeControlPlane() error {
 		return err
 	}
 
+	_, err = copyOrGenerateFile(ic.UserConfigPath, configPath, "discover/config.yaml", sprigFuncs, discoverConfig, ic.TCArgs)
+	if err != nil {
+		return err
+	}
+
 	kmuxConfigArgs := KmuxConfigTemplateArgs{
 		ReleaseVersion: ic.AgentsVersion,
 		StreamName:     "knox-gateway",
@@ -190,6 +200,11 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	}
 
 	_, err = copyOrGenerateFile(ic.UserConfigPath, configPath, "pea/kmux-config.yaml", sprigFuncs, kmuxConfig, kmuxConfigArgs)
+	if err != nil {
+		return err
+	}
+
+	_, err = copyOrGenerateFile(ic.UserConfigPath, configPath, "discover/kmux-config.yaml", sprigFuncs, discoverKmuxConfig, kmuxConfigArgs)
 	if err != nil {
 		return err
 	}
@@ -215,7 +230,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 		}
 
 		if diagnosis {
-			diagnosisResult, diagErr := diaganose(NodeType_ControlPlane)
+			diagnosisResult, diagErr := diagnose(NodeType_ControlPlane)
 			if diagErr != nil {
 				diagnosisResult = diagErr.Error()
 			}
@@ -226,4 +241,18 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	}
 
 	return nil
+}
+
+func combineVisibilities(visibility, hostVisibility string) string {
+	visibilities := make(map[string]struct{})
+	for _, vis := range strings.Split(visibility+","+hostVisibility, ",") {
+		visibilities[vis] = struct{}{}
+	}
+
+	combined := make([]string, 0, len(visibilities))
+	for vis := range visibilities {
+		combined = append(combined, vis)
+	}
+
+	return strings.Join(combined, ",")
 }

@@ -114,7 +114,7 @@ func getContainerDiagnosis(client *client.Client, knownContainerMap map[string]d
 	return diagnosis, nil
 }
 
-func diaganose(nodeType NodeType) (string, error) {
+func diagnose(nodeType NodeType) (string, error) {
 	var (
 		diagnosis string
 	)

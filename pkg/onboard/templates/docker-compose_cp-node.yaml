@@ -270,6 +270,30 @@ services:
       accuknox-net:
         aliases:
           - policy-enforcement-agent
+  discover:
+    profiles:
+      - "accuknox-agents"
+    depends_on:
+      rabbitmq:
+        condition: service_started
+      summary-engine:
+        condition: service_started
+    container_name: discover
+    image: "{{.DiscoverImage}}"
+    environment:
+      "ENABLE_GRPC": 'false'
+    pull_policy: "{{.ImagePullPolicy}}"
+    command: ["--config", "/opt/discover/config.yaml", "--kmux-config", "/opt/discover/kmux-config.yaml"]
+    labels:
+      app: discover
+    volumes:
+      - "{{.ConfigPath}}:/opt"
+    restart: always
+    pid: "host"
+    networks:
+      accuknox-net:
+        aliases:
+          - discover
 
 networks:
   accuknox-net:
