@@ -14,6 +14,12 @@ var (
 	//go:embed templates/sia-config.yaml
 	siaConfig string
 
+	//go:embed templates/sumengine-config.yaml
+	sumengineConfig string
+
+	//go:embed templates/sumengine-kmux-config.yaml
+	sumengineKmuxConfig string
+
 	//go:embed templates/systemdTemplates/kubearmor-config.yaml
 	kubeArmorConfig string
 

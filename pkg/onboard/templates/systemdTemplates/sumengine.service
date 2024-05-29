@@ -1,0 +1,14 @@
+[Unit]
+Description=accuknox-sumengine
+After=kubearmor-vm-adapter.service kubearmor-relay.service rabbitmq.service
+
+[Service]
+User=root
+KillMode=process
+WorkingDirectory=/opt/accuknox-sumengine/
+ExecStart=/opt/accuknox-sumengine/sumengine
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

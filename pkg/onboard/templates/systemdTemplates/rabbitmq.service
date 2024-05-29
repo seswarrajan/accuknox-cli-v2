@@ -1,0 +1,14 @@
+[Unit]
+Description=RabbitMQ Messaging Server
+After=network.target
+
+[Service]
+User=root
+Group=process
+ExecStart=/usr/sbin/rabbitmq-server
+ExecStop=/usr/sbin/rabbitmqctl stop
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

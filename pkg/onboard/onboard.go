@@ -12,10 +12,10 @@ import (
 )
 
 func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode VMMode,
-	vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag, feederVersionTag string,
+	vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag, feederVersionTag, sumengineVersionTag string,
 	kubearmorVersion, releaseVersion, kubearmorImage, kubearmorInitImage,
 	vmAdapterImage, relayServerImage, siaImage, peaImage,
-	feederImage, spireImage, nodeAddress string, dryRun, workerNode bool,
+	feederImage, sumengineImage, spireImage, nodeAddress string, dryRun, workerNode bool,
 	imagePullPolicy, visibility, hostVisibility, audit,
 	block, cidr string, secureContainers bool) (*ClusterConfig, error) {
 
@@ -199,7 +199,7 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 		cc.SiaTag = GetSystemdTag(siaVersionTag, releaseInfo.SIATag)
 		cc.FsTag = GetSystemdTag(feederVersionTag, releaseInfo.FeederServiceTag)
 		cc.SpireTag = GetSystemdTag("", releaseInfo.SPIREAgentImageTag)
-
+		cc.SumengineTag = GetSystemdTag("", releaseInfo.SumengineTag)
 	}
 
 	return cc, nil

@@ -94,6 +94,7 @@ type ClusterConfig struct {
 	SiaTag         string
 	SpireTag       string
 	FsTag          string
+	SumengineTag   string
 
 	// container security
 	SecureContainers bool
@@ -187,9 +188,10 @@ type TemplateConfigArgs struct {
 	NetworkCIDR string
 
 	// kmux config paths for agents
-	KmuxConfigPathFS  string
-	KmuxConfigPathSIA string
-	KmuxConfigPathPEA string
+	KmuxConfigPathFS        string
+	KmuxConfigPathSIA       string
+	KmuxConfigPathPEA       string
+	KmuxConfigPathSumengine string
 
 	// container security
 	SecureContainers bool
