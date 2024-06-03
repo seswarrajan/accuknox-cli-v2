@@ -208,7 +208,7 @@
     "feeder_service_image": "accuknox/feeder-service"
   },
   "v0.2.13": {
-    "note": "This version doesn't point to the right v0.2.13 but exists for systemd compatibility in demo",
+    "note": "For systemd compatbility of SIA, PEA and FS",
     "creation_time": "1712733026",
     "kubearmor_tag": "v1.3.8",
     "kubearmor_relay_tag": "v0.0.4",
@@ -218,7 +218,7 @@
     "sia_image": "accuknox/shared-informer-agent",
     "pea_tag": "v0.2.2",
     "pea_image": "accuknox/policy-enforcement-agent",
-    "feeder_service_tag": "v0.2.3",
+    "feeder_service_tag": "v0.2.4",
     "feeder_service_image": "accuknox/feeder-service"
   },
   "v0.2.13-real": {
@@ -245,19 +245,6 @@
     "pea_tag": "v0.2.1",
     "pea_image": "accuknox/policy-enforcement-agent",
     "feeder_service_tag": "v0.2.0",
-    "feeder_service_image": "accuknox/feeder-service"
-  },
-  "v0.2.15": {
-    "creation_time": "1714141433",
-    "kubearmor_tag": "v1.3.8",
-    "kubearmor_relay_tag": "v0.0.4",
-    "kubearmor_vm_adapter_tag": "v0.0.6",
-    "spire_agent_tag": "v1.9.4",
-    "sia_tag": "v0.3.3",
-    "sia_image": "accuknox/shared-informer-agent",
-    "pea_tag": "v0.3.3",
-    "pea_image": "accuknox/policy-enforcement-agent",
-    "feeder_service_tag": "v0.3.0",
     "feeder_service_image": "accuknox/feeder-service"
   },
   "v0.5.6": {
@@ -312,34 +299,7 @@
     "feeder_service_tag": "v0.5.0",
     "feeder_service_image": "accuknox/feeder-service"
   },
-  "v0.5.8": {
-    "creation_time": "1715857296",
-    "kubearmor_tag": "v1.3.8",
-    "kubearmor_relay_tag": "v0.0.4",
-    "kubearmor_vm_adapter_tag": "v0.0.6",
-    "spire_agent_tag": "v1.9.4",
-    "sia_tag": "v0.3.3",
-    "sia_image": "accuknox/shared-informer-agent",
-    "pea_tag": "v0.4.1",
-    "pea_image": "accuknox/policy-enforcement-agent",
-    "feeder_service_tag": "v0.5.0",
-    "feeder_service_image": "accuknox/feeder-service"
-  },
   "v0.5.5": {
-    "note": "This version doesn't point to the right v0.5.5 but exists for systemd compatibility in stage and dev",
-    "creation_time": "1716197804",
-    "kubearmor_tag": "v1.3.8",
-    "kubearmor_relay_tag": "v0.0.4",
-    "kubearmor_vm_adapter_tag": "v0.0.6",
-    "spire_agent_tag": "v1.9.4",
-    "sia_tag": "v0.4.0",
-    "sia_image": "accuknox/shared-informer-agent",
-    "pea_tag": "v0.4.0",
-    "pea_image": "accuknox/policy-enforcement-agent",
-    "feeder_service_tag": "v0.4.0",
-    "feeder_service_image": "accuknox/feeder-service"
-  },
-  "v0.5.5-real": {
     "creation_time": "1716197804",
     "kubearmor_tag": "v1.3.8",
     "kubearmor_relay_tag": "v0.0.4",
@@ -363,6 +323,98 @@
     "pea_tag": "v0.4.1",
     "pea_image": "accuknox/policy-enforcement-agent",
     "feeder_service_tag": "v0.5.0",
+    "feeder_service_image": "accuknox/feeder-service"
+  },
+  "v0.5.8": {
+    "creation_time": "1716458085",
+    "kubearmor_tag": "v1.3.8",
+    "kubearmor_relay_tag": "v0.0.4",
+    "kubearmor_vm_adapter_tag": "v0.0.6",
+    "spire_agent_tag": "v1.9.4",
+    "sia_tag": "v0.4.1",
+    "sia_image": "accuknox/shared-informer-agent",
+    "pea_tag": "v0.4.1",
+    "pea_image": "accuknox/policy-enforcement-agent",
+    "feeder_service_tag": "v0.5.0",
+    "feeder_service_image": "accuknox/feeder-service"
+  },
+  "v0.2.15": {
+    "creation_time": "1716462789",
+    "kubearmor_tag": "v1.3.8",
+    "kubearmor_relay_tag": "v0.0.4",
+    "kubearmor_vm_adapter_tag": "v0.0.6",
+    "spire_agent_tag": "v1.9.4",
+    "sia_tag": "v0.2.1",
+    "sia_image": "accuknox/shared-informer-agent",
+    "pea_tag": "v0.2.1",
+    "pea_image": "accuknox/policy-enforcement-agent",
+    "feeder_service_tag": "v0.2.0",
+    "feeder_service_image": "accuknox/feeder-service"
+  },
+  "v0.5.9": {
+    "creation_time": "1716524949",
+    "kubearmor_tag": "v1.3.8",
+    "kubearmor_relay_tag": "v0.0.4",
+    "kubearmor_vm_adapter_tag": "v0.0.6",
+    "spire_agent_tag": "v1.9.4",
+    "sia_tag": "v0.4.1",
+    "sia_image": "accuknox/shared-informer-agent",
+    "pea_tag": "v0.4.1",
+    "pea_image": "accuknox/policy-enforcement-agent",
+    "feeder_service_tag": "v0.5.0",
+    "feeder_service_image": "accuknox/feeder-service"
+  },
+  "v0.2.16": {
+    "creation_time": "1716962905",
+    "kubearmor_tag": "v1.3.8",
+    "kubearmor_relay_tag": "v0.0.4",
+    "kubearmor_vm_adapter_tag": "v0.0.6",
+    "spire_agent_tag": "v1.9.4",
+    "sia_tag": "v0.2.1",
+    "sia_image": "accuknox/shared-informer-agent",
+    "pea_tag": "v0.2.1",
+    "pea_image": "accuknox/policy-enforcement-agent",
+    "feeder_service_tag": "v0.2.0",
+    "feeder_service_image": "accuknox/feeder-service"
+  },
+  "v0.5.10": {
+    "creation_time": "1717353729",
+    "kubearmor_tag": "v1.3.8",
+    "kubearmor_relay_tag": "v0.0.4",
+    "kubearmor_vm_adapter_tag": "v0.0.6",
+    "spire_agent_tag": "v1.9.4",
+    "sia_tag": "v0.4.1",
+    "sia_image": "accuknox/shared-informer-agent",
+    "pea_tag": "v0.4.1",
+    "pea_image": "accuknox/policy-enforcement-agent",
+    "feeder_service_tag": "v0.5.1",
+    "feeder_service_image": "accuknox/feeder-service"
+  },
+  "v0.2.17": {
+    "note": "For systemd compatbility of SIA and PEA",
+    "creation_time": "1717354296",
+    "kubearmor_tag": "v1.3.8",
+    "kubearmor_relay_tag": "v0.0.4",
+    "kubearmor_vm_adapter_tag": "v0.0.6",
+    "spire_agent_tag": "v1.9.4",
+    "sia_tag": "v0.2.2",
+    "sia_image": "accuknox/shared-informer-agent",
+    "pea_tag": "v0.2.2",
+    "pea_image": "accuknox/policy-enforcement-agent",
+    "feeder_service_tag": "v0.2.4",
+    "feeder_service_image": "accuknox/feeder-service"
+  },
+  "v0.2.17-real": {
+    "creation_time": "1717354296",
+    "kubearmor_tag": "v1.3.8",
+    "kubearmor_relay_tag": "v0.0.4",
+    "kubearmor_vm_adapter_tag": "v0.0.6",
+    "spire_agent_tag": "v1.9.4",
+    "sia_tag": "v0.2.1",
+    "sia_image": "accuknox/shared-informer-agent",
+    "pea_tag": "v0.2.1",
+    "pea_image": "accuknox/policy-enforcement-agent",
+    "feeder_service_tag": "v0.2.4",
     "feeder_service_image": "accuknox/feeder-service"
   }
 }
