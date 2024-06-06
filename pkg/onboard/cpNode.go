@@ -207,13 +207,21 @@ func (ic *InitConfig) InitializeControlPlane() error {
 
 	// run compose command
 	_, err = ExecComposeCommand(true, ic.DryRun, ic.composeCmd, args...)
-	if err != nil && diagnosis {
-		diagnosis, diagErr := diaganose(NodeType_ControlPlane)
-		if diagErr != nil {
-			diagnosis = diagErr.Error()
+	if err != nil {
+		// cleanup volumes
+		_, volDelErr := ExecDockerCommand(true, false, "docker", "volume", "rm", "spire-vol", "kubearmor-init-vol")
+		if volDelErr != nil {
+			fmt.Println("Error while removing volumes:", volDelErr.Error())
 		}
-		return fmt.Errorf("Error: %s.\n\nDIAGNOSIS:\n%s", err.Error(), diagnosis)
-	} else if err != nil {
+
+		if diagnosis {
+			diagnosisResult, diagErr := diaganose(NodeType_ControlPlane)
+			if diagErr != nil {
+				diagnosisResult = diagErr.Error()
+			}
+			return fmt.Errorf("Error: %s.\n\nDIAGNOSIS:\n%s", err.Error(), diagnosisResult)
+		}
+
 		return err
 	}
 
