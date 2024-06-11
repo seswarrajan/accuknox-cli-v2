@@ -14,4 +14,4 @@ rabbitmq:
     auto-delete: true
     durable: true
     name: ""
-  server: rabbitmq:5672
+  server: {{.RMQServer}}

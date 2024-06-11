@@ -21,5 +21,8 @@ var (
 	vmAdapterServiceFile string
 
 	//go:embed templates/systemdTemplates/sumengine.service
-	sumengineFile string
+	sumEngineFile string
+
+	//go:embed templates/systemdTemplates/discover.service
+	discoverFile string
 )

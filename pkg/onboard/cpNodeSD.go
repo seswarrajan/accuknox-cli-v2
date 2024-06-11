@@ -34,67 +34,57 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 	ic.TCArgs.KmuxConfigPathSIA = "/opt/accuknox-shared-informer-agent/kmux-config.yaml"
 	ic.TCArgs.KmuxConfigPathPEA = "/opt/accuknox-policy-enforcement-agent/kmux-config.yaml"
 	ic.TCArgs.KmuxConfigPathSumengine = "/opt/accuknox-sumengine/kmux-config.yaml"
+	ic.TCArgs.KmuxConfigPathDiscover = "/opt/accuknox-discover/kmux-config.yaml"
+
 	// initialize sprig for templating
 	sprigFuncs := sprig.GenericFuncMap()
 
-	_, err = copyOrGenerateFile("", cm.KAconfigPath, "kubearmor.yaml", sprigFuncs, kubeArmorConfig, ic.TCArgs)
-	if err != nil {
-		return err
-	}
-	_, err = copyOrGenerateFile("", cm.VmAdapterconfigPath, "vm-adapter-config.yaml", sprigFuncs, vmAdapterConfig, ic.TCArgs)
-	if err != nil {
-		return err
-	}
-
-	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.PEAconfigPath, "conf/application.yaml", sprigFuncs, peaConfig, ic.TCArgs)
-	if err != nil {
-		return err
-	}
-	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.SIAconfigPath, "conf/app.yaml", sprigFuncs, siaConfig, ic.TCArgs)
-	if err != nil {
-		return err
+	configs := []struct {
+		userConfigDir  string
+		dirPath        string
+		filePath       string
+		templateString string
+	}{
+		{"", cm.KAconfigPath, "kubearmor.yaml", kubeArmorConfig},
+		{"", cm.VmAdapterconfigPath, "vm-adapter-config.yaml", vmAdapterConfig},
+		{ic.UserConfigPath, cm.PEAconfigPath, "conf/application.yaml", peaConfig},
+		{ic.UserConfigPath, cm.SIAconfigPath, "conf/app.yaml", siaConfig},
+		{ic.UserConfigPath, cm.SpireconfigPath, "conf/agent/agent.conf", spireAgentConfig},
+		{ic.UserConfigPath, cm.FSconfigPath, "conf/env", fsEnvVal},
+		{ic.UserConfigPath, cm.DiscoverConfigPath, "conf/config.yaml", discoverConfig},
+		{ic.UserConfigPath, cm.SumEngineConfigPath, "conf/config.yaml", sumEngineConfig},
 	}
 
-	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.SpireconfigPath, "conf/agent/agent.conf", sprigFuncs, spireAgentConfig, ic.TCArgs)
-	if err != nil {
-		return err
-	}
-
-	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.FSconfigPath, "conf/env", sprigFuncs, fsEnvVal, ic.TCArgs)
-	if err != nil {
-		return err
-	}
-
-	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.SumengineconfigPath, "conf/config.yaml", sprigFuncs, sumEngineConfig, ic.TCArgs)
-	if err != nil {
-		return err
+	for _, cfg := range configs {
+		_, err = copyOrGenerateFile(cfg.userConfigDir, cfg.dirPath, cfg.filePath, sprigFuncs, cfg.templateString, ic.TCArgs)
+		if err != nil {
+			return err
+		}
 	}
 
 	kmuxConfigArgs := KmuxConfigTemplateArgs{
 		ReleaseVersion: ic.AgentsVersion,
 		StreamName:     "knox-gateway",
 		ServerURL:      ic.KnoxGateway,
+		RMQServer:      "0.0.0.0:5672",
 	}
 
-	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.SIAconfigPath, "kmux-config.yaml", sprigFuncs, kmuxConfig, kmuxConfigArgs)
-	if err != nil {
-		return err
+	dirPathTemplateMap := map[string]string{
+		cm.SIAconfigPath:       kmuxConfig,
+		cm.FSconfigPath:        kmuxConfig,
+		cm.PEAconfigPath:       kmuxConfig,
+		cm.SumEngineConfigPath: sumEngineKmuxConfig,
+		cm.DiscoverConfigPath:  discoverKmuxConfig,
 	}
 
-	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.FSconfigPath, "kmux-config.yaml", sprigFuncs, kmuxConfig, kmuxConfigArgs)
-	if err != nil {
-		return err
-	}
-	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.PEAconfigPath, "kmux-config.yaml", sprigFuncs, kmuxConfig, kmuxConfigArgs)
-	if err != nil {
-		return err
-	}
-	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.SumengineconfigPath, "kmux-config.yaml", sprigFuncs, sumEnginekmuxConfig, kmuxConfigArgs)
-	if err != nil {
-		return err
+	for dirPath, templateString := range dirPathTemplateMap {
+		_, err = copyOrGenerateFile(ic.UserConfigPath, dirPath, "kmux-config.yaml", sprigFuncs, templateString, kmuxConfigArgs)
+		if err != nil {
+			return err
+		}
 	}
 
-	services := []string{"spire-agent.service", "kubearmor.service", "kubearmor-relay-server.service", "kubearmor-vm-adapter.service", "accuknox-policy-enforcement-agent.service", "accuknox-shared-informer-agent.service", "accuknox-feeder-service.service", "accuknox-sumengine.service"}
+	services := []string{"spire-agent.service", "kubearmor.service", "kubearmor-relay-server.service", "kubearmor-vm-adapter.service", "accuknox-policy-enforcement-agent.service", "accuknox-shared-informer-agent.service", "accuknox-feeder-service.service", "accuknox-sumengine.service", "accuknox-discover.service"}
 
 	for _, serviceName := range services {
 		err = StartSystemdService(serviceName)
@@ -122,25 +112,21 @@ func placeServiceFiles(workernode bool) error {
 		return nil
 	}
 
-	_, err = copyOrGenerateFile("", cm.SystemdDir, cm.Feeder_service+".service", sprigFuncs, feederServiceFile, interface{}(nil))
-	if err != nil {
-		return err
+	filePathTemplateMap := map[string]string{
+		cm.Feeder_service + ".service": feederServiceFile,
+		cm.Pea_agent + ".service":      peaServiceFile,
+		cm.Sia_agent + ".service":      siaServiceFile,
+		cm.Relay_server + ".service":   relayServerServiceFile,
+		cm.Summary_Engine + ".service": sumEngineFile,
+		cm.Discover_Agent + ".service": discoverFile,
 	}
-	_, err = copyOrGenerateFile("", cm.SystemdDir, cm.Pea_agent+".service", sprigFuncs, peaServiceFile, interface{}(nil))
-	if err != nil {
-		return err
+
+	for filePath, templateString := range filePathTemplateMap {
+		_, err = copyOrGenerateFile("", cm.SystemdDir, filePath, sprigFuncs, templateString, interface{}(nil))
+		if err != nil {
+			return err
+		}
 	}
-	_, err = copyOrGenerateFile("", cm.SystemdDir, cm.Sia_agent+".service", sprigFuncs, siaServiceFile, interface{}(nil))
-	if err != nil {
-		return err
-	}
-	_, err = copyOrGenerateFile("", cm.SystemdDir, cm.Relay_server+".service", sprigFuncs, relayServerServiceFile, interface{}(nil))
-	if err != nil {
-		return err
-	}
-	_, err = copyOrGenerateFile("", cm.SystemdDir, cm.Summary_Engine+".service", sprigFuncs, sumengineFile, interface{}(nil))
-	if err != nil {
-		return err
-	}
+
 	return nil
 }

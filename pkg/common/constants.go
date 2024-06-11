@@ -75,6 +75,7 @@ const (
 	Sia_agent      string = "accuknox-shared-informer-agent"
 	Feeder_service string = "accuknox-feeder-service"
 	Summary_Engine string = "accuknox-sumengine"
+	Discover_Agent string = "accuknox-discover"
 
 	//config paths for systemd mode
 	KAconfigPath          string = "/opt/kubearmor/"
@@ -84,7 +85,8 @@ const (
 	PEAconfigPath         string = "/opt/accuknox-policy-enforcement-agent/"
 	SIAconfigPath         string = "/opt/accuknox-shared-informer-agent/"
 	SpireconfigPath       string = "/opt/spire-agent/"
-	SumengineconfigPath   string = "/opt/accuknox-sumengine/"
+	SumEngineConfigPath   string = "/opt/accuknox-sumengine/"
+	DiscoverConfigPath    string = "/opt/accuknox-discover/"
 
 	//TODO make configurable for policy dir in accuknox policy enforcementagent
 	PeaPolicyPath string = "/opt/pea/"

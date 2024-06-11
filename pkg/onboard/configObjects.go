@@ -12,7 +12,7 @@ var (
 	discoverKmuxConfig string
 
 	//go:embed templates/sumengine-kmux-config.yaml
-	sumEnginekmuxConfig string
+	sumEngineKmuxConfig string
 
 	//go:embed templates/pea-config.yaml
 	peaConfig string

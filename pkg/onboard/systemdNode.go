@@ -78,6 +78,7 @@ func SystemdInstall(cc ClusterConfig) error {
 			{cm.Pea_agent, cc.PeaTag},
 			{cm.Feeder_service, cc.FsTag},
 			{cm.Summary_Engine, cc.SumEngineTag},
+			{cm.Discover_Agent, cc.DiscoverTag},
 		}
 
 		for _, agent := range agents {
