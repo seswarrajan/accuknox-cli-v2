@@ -1,0 +1,17 @@
+
+kmux:
+  sink:
+    stream: rabbitmq
+  source:
+    stream: rabbitmq
+rabbitmq:
+  exchange:
+    auto-delete: true
+    durable: true
+    name: dev2
+    type: direct
+  queue:
+    auto-delete: true
+    durable: true
+    name: ""
+  server: rabbitmq:5672

@@ -26,12 +26,14 @@ var (
 	peaImage                  string
 	feederImage               string
 	spireAgentImage           string
+	discoverImage             string
 
 	// cp-node systemd tags
 	kubeArmorRelayServerTag string
 	siaVersionTag           string
 	peaVersionTag           string
 	feederVersionTag        string
+	discoverVersionTag      string
 )
 
 // cpNodeCmd represents the init command
@@ -66,9 +68,9 @@ var cpNodeCmd = &cobra.Command{
 		}
 		vmConfig, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, vmMode,
 			vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag,
-			feederVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
+			feederVersionTag, discoverVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
 			kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, siaImage,
-			peaImage, feederImage, spireAgentImage, nodeAddr, dryRun,
+			peaImage, feederImage, spireAgentImage, discoverImage, nodeAddr, dryRun,
 			false, imagePullPolicy, visibility, hostVisibility,
 			audit, block, cidr, secureContainers)
 		if err != nil {
@@ -140,6 +142,8 @@ func init() {
 	cpNodeCmd.PersistentFlags().StringVar(&peaVersionTag, "pea-version", "", "pea version to use")
 	cpNodeCmd.PersistentFlags().StringVar(&feederVersionTag, "feeder-version", "", "feeder version to use")
 	cpNodeCmd.PersistentFlags().StringVar(&spireAgentImage, "spire-agent-image", "", "spire-agent image to use")
+	cpNodeCmd.PersistentFlags().StringVar(&discoverImage, "discover-image", "", "discover image to use")
+	cpNodeCmd.PersistentFlags().StringVar(&discoverVersionTag, "discover-version", "", "discover version to use")
 
 	err := cpNodeCmd.MarkPersistentFlagRequired("join-token")
 	if err != nil {

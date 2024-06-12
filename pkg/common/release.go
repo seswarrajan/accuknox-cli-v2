@@ -21,6 +21,8 @@ type ReleaseMetadata struct {
 	PEAImage              string `json:"pea_image"`
 	FeederServiceTag      string `json:"feeder_service_tag"`
 	FeederServiceImage    string `json:"feeder_service_image"`
+	DiscoverTag           string `json:"discover_tag"`
+	DiscoverImage         string `json:"discover_image"`
 }
 
 var (

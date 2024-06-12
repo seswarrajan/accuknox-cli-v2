@@ -12,10 +12,10 @@ import (
 )
 
 func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode VMMode,
-	vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag, feederVersionTag string,
+	vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag, feederVersionTag, discoverVersionTag string,
 	kubearmorVersion, releaseVersion, kubearmorImage, kubearmorInitImage,
 	vmAdapterImage, relayServerImage, siaImage, peaImage,
-	feederImage, spireImage, nodeAddress string, dryRun, workerNode bool,
+	feederImage, spireImage, discoverImage, nodeAddress string, dryRun, workerNode bool,
 	imagePullPolicy, visibility, hostVisibility, audit,
 	block, cidr string, secureContainers bool) (*ClusterConfig, error) {
 
@@ -192,6 +192,13 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 			//cc.SPIREAgentImage = "accuknox/spire-agent" + ":" + releaseInfo.SPIREAgentImageTag
 		} else {
 			return nil, fmt.Errorf("No tag found for spire-agent")
+		}
+		if discoverImage != "" {
+			cc.DiscoverImage = discoverImage
+		} else if releaseVersion != "" {
+			cc.DiscoverImage = releaseInfo.DiscoverImage + ":" + releaseInfo.DiscoverTag
+		} else {
+			return nil, fmt.Errorf("No tag found for discover")
 		}
 
 	case VMMode_Systemd:

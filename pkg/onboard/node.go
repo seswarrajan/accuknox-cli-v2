@@ -148,7 +148,7 @@ func (jc *JoinConfig) JoinWorkerNode() error {
 		}
 
 		if diagnosis {
-			diagnosisResult, diagErr := diaganose(NodeType_WorkerNode)
+			diagnosisResult, diagErr := diagnose(NodeType_WorkerNode)
 			if diagErr != nil {
 				diagnosisResult = diagErr.Error()
 			}
