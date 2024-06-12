@@ -63,6 +63,7 @@ func (ic *InitConfig) CreateBaseTemplateConfig() error {
 		PEAImage:                  ic.PEAImage,
 		FeederImage:               ic.FeederImage,
 		DiscoverImage:             ic.DiscoverImage,
+		SumEngineImage:            ic.SumEngineImage,
 
 		Hostname: hostname,
 		// TODO: make configurable
@@ -130,6 +131,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	ic.TCArgs.PEAImage = ic.PEAImage
 	ic.TCArgs.FeederImage = ic.FeederImage
 	ic.TCArgs.DiscoverImage = ic.DiscoverImage
+	ic.TCArgs.SumEngineImage = ic.SumEngineImage
 
 	ic.TCArgs.KubeArmorURL = "kubearmor:32767"
 	ic.TCArgs.KubeArmorPort = "32767"
@@ -151,8 +153,12 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	ic.TCArgs.KmuxConfigPathSIA = "/opt/sia/kmux-config.yaml"
 	ic.TCArgs.KmuxConfigPathPEA = "/opt/pea/kmux-config.yaml"
 	ic.TCArgs.KmuxConfigPathDiscover = "/opt/discover/kmux-config.yaml"
+	ic.TCArgs.KmuxConfigPathSumengine = "/opt/sumengine/kmux-config.yaml"
 
 	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
+	ic.TCArgs.ProcessOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "process")
+	ic.TCArgs.FileOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "file")
+	ic.TCArgs.NetworkOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "network")
 
 	// initialize sprig for templating
 	sprigFuncs := sprig.GenericFuncMap()
@@ -163,24 +169,20 @@ func (ic *InitConfig) InitializeControlPlane() error {
 		return err
 	}
 
-	_, err = copyOrGenerateFile(ic.UserConfigPath, configPath, "pea/application.yaml", sprigFuncs, peaConfig, ic.TCArgs)
-	if err != nil {
-		return err
+	// List of config files to be generated or copied
+	fileTemplateMap := map[string]string{
+		"spire/conf/agent.conf": spireAgentConfig,
+		"pea/application.yaml":  peaConfig,
+		"sia/app.yaml":          siaConfig,
+		"sumengine/config.yaml": sumEngineConfig,
+		"discover/config.yaml":  discoverConfig,
 	}
 
-	_, err = copyOrGenerateFile(ic.UserConfigPath, configPath, "sia/app.yaml", sprigFuncs, siaConfig, ic.TCArgs)
-	if err != nil {
-		return err
-	}
-
-	_, err = copyOrGenerateFile(ic.UserConfigPath, configPath, "spire/conf/agent.conf", sprigFuncs, spireAgentConfig, ic.TCArgs)
-	if err != nil {
-		return err
-	}
-
-	_, err = copyOrGenerateFile(ic.UserConfigPath, configPath, "discover/config.yaml", sprigFuncs, discoverConfig, ic.TCArgs)
-	if err != nil {
-		return err
+	// Generate or copy files
+	for filePath, templateString := range fileTemplateMap {
+		if _, err := copyOrGenerateFile(ic.UserConfigPath, configPath, filePath, sprigFuncs, templateString, ic.TCArgs); err != nil {
+			return err
+		}
 	}
 
 	kmuxConfigArgs := KmuxConfigTemplateArgs{
@@ -189,30 +191,33 @@ func (ic *InitConfig) InitializeControlPlane() error {
 		ServerURL:      ic.KnoxGateway,
 	}
 
-	_, err = copyOrGenerateFile(ic.UserConfigPath, configPath, "sia/kmux-config.yaml", sprigFuncs, kmuxConfig, kmuxConfigArgs)
-	if err != nil {
-		return err
+	// List of kmux config files to be generated or copied
+	kmuxConfigFileTemplateMap := map[string]string{
+		"pea/kmux-config.yaml":            kmuxConfig,
+		"sia/kmux-config.yaml":            kmuxConfig,
+		"feeder-service/kmux-config.yaml": kmuxConfig,
+		"sumengine/kmux-config.yaml":      sumEnginekmuxConfig,
+		"discover/kmux-config.yaml":       discoverKmuxConfig,
 	}
 
-	_, err = copyOrGenerateFile(ic.UserConfigPath, configPath, "feeder-service/kmux-config.yaml", sprigFuncs, kmuxConfig, kmuxConfigArgs)
-	if err != nil {
-		return err
+	// Generate or copy kmux config files
+	for filePath, templateString := range kmuxConfigFileTemplateMap {
+		if _, err := copyOrGenerateFile(ic.UserConfigPath, configPath, filePath, sprigFuncs, templateString, kmuxConfigArgs); err != nil {
+			return err
+		}
 	}
+	// Diagnose if necessary and run compose command
+	return ic.runComposeCommand(composeFilePath)
+}
 
-	_, err = copyOrGenerateFile(ic.UserConfigPath, configPath, "pea/kmux-config.yaml", sprigFuncs, kmuxConfig, kmuxConfigArgs)
-	if err != nil {
-		return err
-	}
-
-	_, err = copyOrGenerateFile(ic.UserConfigPath, configPath, "discover/kmux-config.yaml", sprigFuncs, discoverKmuxConfig, kmuxConfigArgs)
-	if err != nil {
-		return err
-	}
-
+// runComposeCommand runs the Docker Compose command with the necessary arguments
+func (ic *InitConfig) runComposeCommand(composeFilePath string) error {
 	diagnosis := true
-	args := []string{"-f", composeFilePath, "--profile",
-		"spire-agent", "--profile", "kubearmor", "--profile", "accuknox-agents",
-		"up", "-d"}
+	args := []string{
+		"-f", composeFilePath, "--profile", "spire-agent",
+		"--profile", "kubearmor", "--profile", "accuknox-agents",
+		"up", "-d",
+	}
 
 	if semver.Compare(ic.composeVersion, common.MinDockerComposeWithWaitSupported) >= 0 {
 		args = append(args, "--wait", "--wait-timeout", "60")
@@ -221,26 +226,28 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	}
 
 	// run compose command
-	_, err = ExecComposeCommand(true, ic.DryRun, ic.composeCmd, args...)
+	_, err := ExecComposeCommand(true, ic.DryRun, ic.composeCmd, args...)
 	if err != nil {
 		// cleanup volumes
 		_, volDelErr := ExecDockerCommand(true, false, "docker", "volume", "rm", "spire-vol", "kubearmor-init-vol")
 		if volDelErr != nil {
 			fmt.Println("Error while removing volumes:", volDelErr.Error())
 		}
-
-		if diagnosis {
-			diagnosisResult, diagErr := diagnose(NodeType_ControlPlane)
-			if diagErr != nil {
-				diagnosisResult = diagErr.Error()
-			}
-			return fmt.Errorf("Error: %s.\n\nDIAGNOSIS:\n%s", err.Error(), diagnosisResult)
-		}
-
-		return err
+		return ic.handleComposeError(err, diagnosis)
 	}
-
 	return nil
+}
+
+// handleComposeError handles errors from the Docker Compose command
+func (ic *InitConfig) handleComposeError(err error, diagnosis bool) error {
+	if diagnosis {
+		diagnosisResult, diagErr := diagnose(NodeType_ControlPlane)
+		if diagErr != nil {
+			diagnosisResult = diagErr.Error()
+		}
+		return fmt.Errorf("Error: %s.\n\nDIAGNOSIS:\n%s", err.Error(), diagnosisResult)
+	}
+	return err
 }
 
 func combineVisibilities(visibility, hostVisibility string) string {
@@ -255,4 +262,14 @@ func combineVisibilities(visibility, hostVisibility string) string {
 	}
 
 	return strings.Join(combined, ",")
+}
+
+// isOperationDisabled returns true if the operation is not included in the combined visibility settings.
+func isOperationDisabled(visibility, hostVisibility, operation string) bool {
+	visibilities := make(map[string]struct{})
+	for _, vis := range strings.Split(visibility+","+hostVisibility, ",") {
+		visibilities[vis] = struct{}{}
+	}
+	_, exists := visibilities[operation]
+	return !exists
 }
