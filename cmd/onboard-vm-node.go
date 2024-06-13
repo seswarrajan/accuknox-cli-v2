@@ -51,9 +51,9 @@ var joinNodeCmd = &cobra.Command{
 		}
 		vmConfigs, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, vmMode,
 			vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag,
-			feederVersionTag, discoverVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
+			feederVersionTag, sumEngineVersionTag, discoverVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
 			kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, siaImage,
-			peaImage, feederImage, spireAgentImage, discoverImage, nodeAddr, dryRun,
+			peaImage, feederImage, sumEngineImage, spireAgentImage, discoverImage, nodeAddr, dryRun,
 			true, imagePullPolicy, visibility, hostVisibility,
 			audit, block, cidr, secureContainers)
 		if err != nil {

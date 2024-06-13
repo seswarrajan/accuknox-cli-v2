@@ -225,6 +225,8 @@ services:
       - "CLUSTER_NAME=default"
       - "HUBBLE_ENABLED=false"
       - "KAFKA_ENABLED=false"
+      - "DISCOVERYENGINE_ENABLED=true"
+      - "DISCOVERYENGINE_VERSION=2"
 
       - "KUBEARMOR_ENABLED=true"
       - "KUBEARMOR_URL={{.RelayServerAddr}}"
@@ -294,7 +296,41 @@ services:
       accuknox-net:
         aliases:
           - discover
+  summary-engine:
+    profiles:
+      - "accuknox-agents"
+    depends_on:
+      rabbitmq:
+        condition: service_started
+      kubearmor-relay-server:
+        condition: service_started
+    container_name: summary-engine
+    image: "{{.SumEngineImage}}"
+    pull_policy: "{{.ImagePullPolicy}}"
+    command: ["--config", "/opt/sumengine/config.yaml", "--kmux-config", "/opt/sumengine/kmux-config.yaml"]
+    labels:
+      app: sumengine
+    volumes:
+      - "{{.ConfigPath}}:/opt"
+    restart: always
+    pid: "host"
+    networks:
+      accuknox-net:
+        aliases:
+          - sumengine
 
+  rabbitmq:
+    image: "rabbitmq:3.12.2-management"
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+    pid: "host"  
+    networks:
+      accuknox-net:
+        aliases:
+          - rabbitmq
 networks:
   accuknox-net:
     name: accuknox-net

@@ -12,10 +12,10 @@ import (
 )
 
 func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode VMMode,
-	vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag, feederVersionTag, discoverVersionTag string,
+	vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag, feederVersionTag, sumEngineTag, discoverVersionTag string,
 	kubearmorVersion, releaseVersion, kubearmorImage, kubearmorInitImage,
 	vmAdapterImage, relayServerImage, siaImage, peaImage,
-	feederImage, spireImage, discoverImage, nodeAddress string, dryRun, workerNode bool,
+	feederImage, sumEngineImage, spireImage, discoverImage, nodeAddress string, dryRun, workerNode bool,
 	imagePullPolicy, visibility, hostVisibility, audit,
 	block, cidr string, secureContainers bool) (*ClusterConfig, error) {
 
@@ -199,6 +199,13 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 			cc.DiscoverImage = releaseInfo.DiscoverImage + ":" + releaseInfo.DiscoverTag
 		} else {
 			return nil, fmt.Errorf("No tag found for discover")
+		}
+		if sumEngineImage != "" {
+			cc.SumEngineImage = sumEngineImage
+		} else if releaseVersion != "" {
+			cc.SumEngineImage = releaseInfo.SumEngineImage + ":" + releaseInfo.SumEngineTag
+		} else {
+			return nil, fmt.Errorf("No tag found for summary-engine")
 		}
 
 	case VMMode_Systemd:

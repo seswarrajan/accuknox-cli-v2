@@ -1,6 +1,8 @@
 kmux:
   sink:
     stream: {{.StreamName}}
+  source:
+    stream: rabbitmq  
   security: spire
 
 knox-gateway:
@@ -13,3 +15,16 @@ spire:
   suffixSkipSet:
     - ".sock"
     - ".socket"
+
+rabbitmq:
+  server: "rabbitmq:5672"
+  exchange:
+    name: "dev2" 
+    type: "direct"
+    durable: true
+    auto-delete: true
+  queue:
+    name: ""
+    durable: true
+    auto-delete: true
+  debug: false

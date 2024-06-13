@@ -62,6 +62,7 @@ type ClusterConfig struct {
 	PEAImage                  string
 	FeederImage               string
 	DiscoverImage             string
+	SumEngineImage            string
 
 	CPNodeAddr string
 
@@ -149,12 +150,13 @@ type TemplateConfigArgs struct {
 
 	SPIREAgentImage string
 
-	SIAImage      string
-	PEAImage      string
-	FeederImage   string
-	DiscoverImage string
-	DiscoverRules string
+	SIAImage       string
+	PEAImage       string
+	FeederImage    string
+	DiscoverImage  string
+	SumEngineImage string
 
+	DiscoverRules   string
 	ImagePullPolicy string
 
 	KubeArmorPort string
@@ -190,13 +192,19 @@ type TemplateConfigArgs struct {
 	NetworkCIDR string
 
 	// kmux config paths for agents
-	KmuxConfigPathFS       string
-	KmuxConfigPathSIA      string
-	KmuxConfigPathPEA      string
-	KmuxConfigPathDiscover string
+	KmuxConfigPathFS        string
+	KmuxConfigPathSIA       string
+	KmuxConfigPathPEA       string
+	KmuxConfigPathDiscover  string
+	KmuxConfigPathSumengine string
 
 	// container security
 	SecureContainers bool
+
+	//summary engine configuration
+	ProcessOperation bool
+	FileOperation    bool
+	NetworkOperation bool
 }
 
 type KmuxConfigTemplateArgs struct {

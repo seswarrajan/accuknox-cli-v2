@@ -23,6 +23,8 @@ type ReleaseMetadata struct {
 	FeederServiceImage    string `json:"feeder_service_image"`
 	DiscoverTag           string `json:"discover_tag"`
 	DiscoverImage         string `json:"discover_image"`
+	SumEngineTag          string `json:"sumengine_tag"`
+	SumEngineImage        string `json:"sumengine_image"`
 }
 
 var (
