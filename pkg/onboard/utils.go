@@ -37,6 +37,7 @@ var Agents_download = map[string]string{
 	cm.Sia_agent:      "docker.io/accuknox/accuknox-shared-informer-agent-systemd",
 	cm.Feeder_service: "docker.io/accuknox/accuknox-feeder-service-systemd",
 	cm.Spire_agent:    "docker.io/accuknox/spire-agent-systemd",
+	cm.Summary_Engine: "docker.io/accuknox/accuknox-sumengine-systemd",
 }
 
 // path for writing configuration files
@@ -706,7 +707,7 @@ func DeboardSystemd(nodeType NodeType) error {
 	}
 	if nodeType == NodeType_ControlPlane {
 
-		agents := []string{cm.Pea_agent, cm.Sia_agent, cm.Feeder_service, cm.Relay_server, cm.Spire_agent}
+		agents := []string{cm.Pea_agent, cm.Sia_agent, cm.Feeder_service, cm.Relay_server, cm.Spire_agent, cm.Summary_Engine}
 
 		for _, agent := range agents {
 			err := StopSystemdService(agent + ".service")
@@ -719,7 +720,7 @@ func DeboardSystemd(nodeType NodeType) error {
 	// delete directories
 	dirs := []string{cm.KAconfigPath, cm.PEAconfigPath,
 		cm.SIAconfigPath, cm.VmAdapterconfigPath,
-		cm.FSconfigPath, cm.RelayServerconfigPath, cm.SpireconfigPath, cm.PeaPolicyPath}
+		cm.FSconfigPath, cm.RelayServerconfigPath, cm.SpireconfigPath, cm.PeaPolicyPath, cm.SumengineconfigPath}
 
 	for _, dirName := range dirs {
 		Deletedir(dirName)

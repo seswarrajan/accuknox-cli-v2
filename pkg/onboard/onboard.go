@@ -213,7 +213,7 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 		cc.SiaTag = GetSystemdTag(siaVersionTag, releaseInfo.SIATag)
 		cc.FsTag = GetSystemdTag(feederVersionTag, releaseInfo.FeederServiceTag)
 		cc.SpireTag = GetSystemdTag("", releaseInfo.SPIREAgentImageTag)
-
+		cc.SumEngineTag = GetSystemdTag("", releaseInfo.SumEngineTag)
 	}
 
 	return cc, nil

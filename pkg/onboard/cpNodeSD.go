@@ -33,7 +33,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 	ic.TCArgs.KmuxConfigPathFS = "/opt/accuknox-feeder-service/kmux-config.yaml"
 	ic.TCArgs.KmuxConfigPathSIA = "/opt/accuknox-shared-informer-agent/kmux-config.yaml"
 	ic.TCArgs.KmuxConfigPathPEA = "/opt/accuknox-policy-enforcement-agent/kmux-config.yaml"
-
+	ic.TCArgs.KmuxConfigPathSumengine = "/opt/accuknox-sumengine/kmux-config.yaml"
 	// initialize sprig for templating
 	sprigFuncs := sprig.GenericFuncMap()
 
@@ -65,6 +65,11 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 		return err
 	}
 
+	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.SumengineconfigPath, "conf/config.yaml", sprigFuncs, sumEngineConfig, ic.TCArgs)
+	if err != nil {
+		return err
+	}
+
 	kmuxConfigArgs := KmuxConfigTemplateArgs{
 		ReleaseVersion: ic.AgentsVersion,
 		StreamName:     "knox-gateway",
@@ -84,8 +89,12 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 	if err != nil {
 		return err
 	}
+	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.SumengineconfigPath, "kmux-config.yaml", sprigFuncs, sumEnginekmuxConfig, kmuxConfigArgs)
+	if err != nil {
+		return err
+	}
 
-	services := []string{"spire-agent.service", "kubearmor.service", "kubearmor-relay-server.service", "kubearmor-vm-adapter.service", "accuknox-policy-enforcement-agent.service", "accuknox-shared-informer-agent.service", "accuknox-feeder-service.service"}
+	services := []string{"spire-agent.service", "kubearmor.service", "kubearmor-relay-server.service", "kubearmor-vm-adapter.service", "accuknox-policy-enforcement-agent.service", "accuknox-shared-informer-agent.service", "accuknox-feeder-service.service", "accuknox-sumengine.service"}
 
 	for _, serviceName := range services {
 		err = StartSystemdService(serviceName)
@@ -126,6 +135,10 @@ func placeServiceFiles(workernode bool) error {
 		return err
 	}
 	_, err = copyOrGenerateFile("", cm.SystemdDir, cm.Relay_server+".service", sprigFuncs, relayServerServiceFile, interface{}(nil))
+	if err != nil {
+		return err
+	}
+	_, err = copyOrGenerateFile("", cm.SystemdDir, cm.Summary_Engine+".service", sprigFuncs, sumengineFile, interface{}(nil))
 	if err != nil {
 		return err
 	}
