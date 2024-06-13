@@ -225,6 +225,8 @@ services:
       - "CLUSTER_NAME=default"
       - "HUBBLE_ENABLED=false"
       - "KAFKA_ENABLED=false"
+      - "DISCOVERYENGINE_ENABLED: true"
+      - "DISCOVERYENGINE_VERSION: 2"
 
       - "KUBEARMOR_ENABLED=true"
       - "KUBEARMOR_URL={{.RelayServerAddr}}"
