@@ -97,6 +97,7 @@ type ClusterConfig struct {
 	SpireTag       string
 	FsTag          string
 	SumEngineTag   string
+	DiscoverTag    string
 
 	// container security
 	SecureContainers bool
@@ -212,4 +213,5 @@ type KmuxConfigTemplateArgs struct {
 	ReleaseVersion string
 	StreamName     string
 	ServerURL      string
+	RMQServer      string
 }

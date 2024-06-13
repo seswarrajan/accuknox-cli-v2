@@ -189,6 +189,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 		ReleaseVersion: ic.AgentsVersion,
 		StreamName:     "knox-gateway",
 		ServerURL:      ic.KnoxGateway,
+		RMQServer:      "rabbitmq:5672",
 	}
 
 	// List of kmux config files to be generated or copied
@@ -196,7 +197,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 		"pea/kmux-config.yaml":            kmuxConfig,
 		"sia/kmux-config.yaml":            kmuxConfig,
 		"feeder-service/kmux-config.yaml": kmuxConfig,
-		"sumengine/kmux-config.yaml":      sumEnginekmuxConfig,
+		"sumengine/kmux-config.yaml":      sumEngineKmuxConfig,
 		"discover/kmux-config.yaml":       discoverKmuxConfig,
 	}
 

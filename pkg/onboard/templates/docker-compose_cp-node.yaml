@@ -211,6 +211,10 @@ services:
         condition: service_completed_successfully
       kubearmor-relay-server:
         condition: service_started
+      summary-engine:
+        condition: service_started
+      discover:
+        condition: service_started
     container_name: feeder-service
     image: "{{.FeederImage}}"
     pull_policy: "{{.ImagePullPolicy}}"

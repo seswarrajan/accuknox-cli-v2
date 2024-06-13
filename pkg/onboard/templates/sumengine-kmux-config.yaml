@@ -3,7 +3,7 @@ kmux:
     stream: rabbitmq
 
 rabbitmq:
-  server: "rabbitmq:5672"
+  server: {{.RMQServer}}
   exchange:
     name: "dev2" # exchange name
     type: "direct" # exchange type

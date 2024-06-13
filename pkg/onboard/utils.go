@@ -18,7 +18,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/accuknox/accuknox-cli-v2/pkg/common"
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
 	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/docker/docker/client"
@@ -38,11 +37,12 @@ var Agents_download = map[string]string{
 	cm.Feeder_service: "docker.io/accuknox/accuknox-feeder-service-systemd",
 	cm.Spire_agent:    "docker.io/accuknox/spire-agent-systemd",
 	cm.Summary_Engine: "docker.io/accuknox/accuknox-sumengine-systemd",
+	cm.Discover_Agent: "docker.io/accuknox/accuknox-discover-systemd",
 }
 
 // path for writing configuration files
 func createDefaultConfigPath() (string, error) {
-	configPath, err := common.GetDefaultConfigPath()
+	configPath, err := cm.GetDefaultConfigPath()
 	if err != nil {
 		return "", err
 	}
@@ -164,9 +164,9 @@ func compareVersionsAndGetComposeCommand(v1, v1Cmd, v2, v2Cmd string) (string, s
 			v2Clean = "v" + v2Clean
 		}
 
-		if semver.Compare(v1Clean, v2Clean) >= 0 && semver.Compare(v1Clean, common.MinDockerComposeVersion) >= 0 {
+		if semver.Compare(v1Clean, v2Clean) >= 0 && semver.Compare(v1Clean, cm.MinDockerComposeVersion) >= 0 {
 			return v1Cmd, v1Clean
-		} else if semver.Compare(v1Clean, v2Clean) <= 0 && semver.Compare(v2Clean, common.MinDockerComposeVersion) >= 0 {
+		} else if semver.Compare(v1Clean, v2Clean) <= 0 && semver.Compare(v2Clean, cm.MinDockerComposeVersion) >= 0 {
 			return v2Cmd, v2Clean
 		} else {
 			return "", ""
@@ -177,7 +177,7 @@ func compareVersionsAndGetComposeCommand(v1, v1Cmd, v2, v2Cmd string) (string, s
 			v1Clean = "v" + v1Clean
 		}
 
-		if semver.Compare(v1Clean, common.MinDockerComposeVersion) >= 0 {
+		if semver.Compare(v1Clean, cm.MinDockerComposeVersion) >= 0 {
 			return v1Cmd, v1Clean
 		} else {
 			return "", ""
@@ -187,7 +187,7 @@ func compareVersionsAndGetComposeCommand(v1, v1Cmd, v2, v2Cmd string) (string, s
 			v2Clean = "v" + v2Clean
 		}
 
-		if semver.Compare(v2Clean, common.MinDockerComposeVersion) >= 0 {
+		if semver.Compare(v2Clean, cm.MinDockerComposeVersion) >= 0 {
 			return v2Cmd, v2Clean
 		} else {
 			return "", ""
@@ -211,7 +211,7 @@ func GetComposeCommand() (string, string) {
 			return "", ""
 		}
 
-		return compareVersionsAndGetComposeCommand(composeDockerCLIVersion, "docker compose", common.MinDockerComposeVersion, "")
+		return compareVersionsAndGetComposeCommand(composeDockerCLIVersion, "docker compose", cm.MinDockerComposeVersion, "")
 	}
 
 	// docker-compose exists, compare versions
@@ -325,7 +325,7 @@ func (cc *ClusterConfig) ValidateEnv() (string, error) {
 	// check if docker exists
 	_, err := exec.LookPath("docker")
 	if err != nil {
-		return "", fmt.Errorf("Error while looking for docker. Err: %s. Please install docker %s+.", err.Error(), common.MinDockerVersion)
+		return "", fmt.Errorf("Error while looking for docker. Err: %s. Please install docker %s+.", err.Error(), cm.MinDockerVersion)
 	}
 
 	serverVersionCmd := exec.Command("docker", "version", "-f", "{{.Server.Version}}")
@@ -343,14 +343,14 @@ func (cc *ClusterConfig) ValidateEnv() (string, error) {
 			serverVersionStr = "v" + serverVersionStr
 		}
 
-		if semver.Compare(serverVersionStr, common.MinDockerVersion) < 0 {
+		if semver.Compare(serverVersionStr, cm.MinDockerVersion) < 0 {
 			return "", fmt.Errorf("docker version %s not supported", serverVersionStr)
 		}
 	}
 
 	composeCmd, composeVersion := GetComposeCommand()
 	if composeCmd == "" {
-		return "", fmt.Errorf("Please install docker-compose %s+", common.MinDockerComposeVersion)
+		return "", fmt.Errorf("Please install docker-compose %s+", cm.MinDockerComposeVersion)
 	}
 
 	cc.composeCmd = composeCmd
@@ -497,19 +497,19 @@ func VerifyBTF() (bool, error) {
 	}
 
 }
-func InstallAgent(agntName, agentTag string) error {
+func InstallAgent(agentName, agentTag string) error {
 
-	fileName, err := DownloadAccunkoxAgent(agntName, agentTag)
+	fileName, err := DownloadAccuknoxAgent(agentName, agentTag)
 	if err != nil {
 		return err
 	}
-	fmt.Println("Downloaded:", agntName)
+	fmt.Println("Downloaded:", agentName)
 
 	err = ExtractAndRun(fileName)
 	if err != nil {
 		return err
 	}
-	fmt.Println("Extracted:", agntName)
+	fmt.Println("Extracted:", agentName)
 	return nil
 }
 func GetLatestTag(owner_name, repo_name string) (string, error) {
@@ -526,7 +526,7 @@ func GetLatestTag(owner_name, repo_name string) (string, error) {
 	return release.GetTagName(), nil
 
 }
-func DownloadAccunkoxAgent(pkgName string, tag string) (string, error) {
+func DownloadAccuknoxAgent(pkgName string, tag string) (string, error) {
 
 	fs, err := file.New(cm.Download_dir)
 	if err != nil {
@@ -707,7 +707,7 @@ func DeboardSystemd(nodeType NodeType) error {
 	}
 	if nodeType == NodeType_ControlPlane {
 
-		agents := []string{cm.Pea_agent, cm.Sia_agent, cm.Feeder_service, cm.Relay_server, cm.Spire_agent, cm.Summary_Engine}
+		agents := []string{cm.Pea_agent, cm.Sia_agent, cm.Feeder_service, cm.Relay_server, cm.Spire_agent, cm.Summary_Engine, cm.Discover_Agent}
 
 		for _, agent := range agents {
 			err := StopSystemdService(agent + ".service")
@@ -720,7 +720,7 @@ func DeboardSystemd(nodeType NodeType) error {
 	// delete directories
 	dirs := []string{cm.KAconfigPath, cm.PEAconfigPath,
 		cm.SIAconfigPath, cm.VmAdapterconfigPath,
-		cm.FSconfigPath, cm.RelayServerconfigPath, cm.SpireconfigPath, cm.PeaPolicyPath, cm.SumengineconfigPath}
+		cm.FSconfigPath, cm.RelayServerconfigPath, cm.SpireconfigPath, cm.PeaPolicyPath, cm.SumEngineConfigPath, cm.DiscoverConfigPath}
 
 	for _, dirName := range dirs {
 		Deletedir(dirName)
