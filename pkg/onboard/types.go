@@ -96,7 +96,7 @@ type ClusterConfig struct {
 	SiaTag         string
 	SpireTag       string
 	FsTag          string
-	SumengineTag   string
+	SumEngineTag   string
 
 	// container security
 	SecureContainers bool

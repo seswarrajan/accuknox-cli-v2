@@ -65,7 +65,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 		return err
 	}
 
-	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.SumengineconfigPath, "conf/config.yaml", sprigFuncs, sumengineConfig, ic.TCArgs)
+	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.SumengineconfigPath, "conf/config.yaml", sprigFuncs, sumEngineConfig, ic.TCArgs)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 	if err != nil {
 		return err
 	}
-	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.SumengineconfigPath, "kmux-config.yaml", sprigFuncs, sumengineKmuxConfig, kmuxConfigArgs)
+	_, err = copyOrGenerateFile(ic.UserConfigPath, cm.SumengineconfigPath, "kmux-config.yaml", sprigFuncs, sumEnginekmuxConfig, kmuxConfigArgs)
 	if err != nil {
 		return err
 	}

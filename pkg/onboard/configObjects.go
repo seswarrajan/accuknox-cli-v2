@@ -26,7 +26,6 @@ var (
 	//go:embed templates/sumengine-config.yaml
 	sumEngineConfig string
 
-
 	//go:embed templates/systemdTemplates/kubearmor-config.yaml
 	kubeArmorConfig string
 

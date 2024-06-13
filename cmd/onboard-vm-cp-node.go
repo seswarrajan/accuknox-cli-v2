@@ -36,7 +36,6 @@ var (
 	feederVersionTag        string
 	discoverVersionTag      string
 	sumEngineVersionTag     string
-
 )
 
 // cpNodeCmd represents the init command
@@ -148,7 +147,7 @@ func init() {
 	cpNodeCmd.PersistentFlags().StringVar(&discoverImage, "discover-image", "", "discover image to use")
 	cpNodeCmd.PersistentFlags().StringVar(&discoverVersionTag, "discover-version", "", "discover version to use")
 	cpNodeCmd.PersistentFlags().StringVar(&sumEngineImage, "sumengine-image", "", "summary-engine image to use")
-  cpNodeCmd.PersistentFlags().StringVar(&sumEngineVersionTag, "sumengine-version", "", "summary-engine version to use")
+	cpNodeCmd.PersistentFlags().StringVar(&sumEngineVersionTag, "sumengine-version", "", "summary-engine version to use")
 
 	err := cpNodeCmd.MarkPersistentFlagRequired("join-token")
 	if err != nil {
