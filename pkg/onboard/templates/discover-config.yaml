@@ -1,0 +1,25 @@
+
+discover:
+  consumer:
+    buffer-limit:
+      network: 100
+      system: 1000
+    time-limit: 1
+    topic: summary-v2
+  policy-client:
+    server: 127.0.0.1:8090
+  processor:
+    cores: 50
+    cron-job-interval: 0h05m00s
+    delay-cron-job: 0h03m00s
+    npu: 1
+    spu: 1
+  ruleConfig:
+    rules: {{.DiscoverRules}}
+  sink:
+    channel-size: 100
+    topic: policy-v1
+  k8s:
+    enable: false
+logging:
+  level: info

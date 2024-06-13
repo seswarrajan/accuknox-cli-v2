@@ -12,10 +12,10 @@ import (
 )
 
 func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode VMMode,
-	vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag, feederVersionTag, sumengineVersionTag string,
+	vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag, feederVersionTag, sumEngineTag, discoverVersionTag string,
 	kubearmorVersion, releaseVersion, kubearmorImage, kubearmorInitImage,
 	vmAdapterImage, relayServerImage, siaImage, peaImage,
-	feederImage, sumengineImage, spireImage, nodeAddress string, dryRun, workerNode bool,
+	feederImage, sumEngineImage, spireImage, discoverImage, nodeAddress string, dryRun, workerNode bool,
 	imagePullPolicy, visibility, hostVisibility, audit,
 	block, cidr string, secureContainers bool) (*ClusterConfig, error) {
 
@@ -193,6 +193,20 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 		} else {
 			return nil, fmt.Errorf("No tag found for spire-agent")
 		}
+		if discoverImage != "" {
+			cc.DiscoverImage = discoverImage
+		} else if releaseVersion != "" {
+			cc.DiscoverImage = releaseInfo.DiscoverImage + ":" + releaseInfo.DiscoverTag
+		} else {
+			return nil, fmt.Errorf("No tag found for discover")
+		}
+		if sumEngineImage != "" {
+			cc.SumEngineImage = sumEngineImage
+		} else if releaseVersion != "" {
+			cc.SumEngineImage = releaseInfo.SumEngineImage + ":" + releaseInfo.SumEngineTag
+		} else {
+			return nil, fmt.Errorf("No tag found for summary-engine")
+		}
 
 	case VMMode_Systemd:
 		cc.PeaTag = GetSystemdTag(peaVersionTag, releaseInfo.PEATag)
@@ -214,7 +228,7 @@ func (cc *ClusterConfig) PrintJoinCommand(vmmode VMMode) {
 		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"docker\" --cp-node-addr=%s", cc.CPNodeAddr)
 
 	case VMMode_Systemd:
-		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"systemd\"--cp-node-addr=%s", cc.CPNodeAddr)
+		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"systemd\" --cp-node-addr=%s", cc.CPNodeAddr)
 	}
 
 	fmt.Println(command)
