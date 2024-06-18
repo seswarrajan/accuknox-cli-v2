@@ -64,6 +64,7 @@ func (ic *InitConfig) CreateBaseTemplateConfig() error {
 		FeederImage:               ic.FeederImage,
 		DiscoverImage:             ic.DiscoverImage,
 		SumEngineImage:            ic.SumEngineImage,
+		HardeningAgentImage:       ic.HardeningAgentImage,
 
 		Hostname: hostname,
 		// TODO: make configurable
@@ -78,6 +79,7 @@ func (ic *InitConfig) CreateBaseTemplateConfig() error {
 
 		SIAAddr:    "shared-informer-agent:32769",
 		PEAAddr:    "policy-enforcement-agent:32770",
+		HardenAddr: "hardening-agent:32771",
 		EnableLogs: ic.EnableLogs,
 
 		PPSHost: ic.PPSHost,
@@ -132,6 +134,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	ic.TCArgs.FeederImage = ic.FeederImage
 	ic.TCArgs.DiscoverImage = ic.DiscoverImage
 	ic.TCArgs.SumEngineImage = ic.SumEngineImage
+	ic.TCArgs.HardeningAgentImage = ic.HardeningAgentImage
 
 	ic.TCArgs.KubeArmorURL = "kubearmor:32767"
 	ic.TCArgs.KubeArmorPort = "32767"
@@ -144,6 +147,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 
 	ic.TCArgs.SIAAddr = "shared-informer-agent:32769"
 	ic.TCArgs.PEAAddr = "policy-enforcement-agent:32770"
+	ic.TCArgs.HardenAddr = "hardening-agent:32771"
 	ic.TCArgs.ImagePullPolicy = string(ic.ImagePullPolicy)
 
 	ic.TCArgs.ConfigPath = configPath
@@ -154,6 +158,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	ic.TCArgs.KmuxConfigPathPEA = "/opt/pea/kmux-config.yaml"
 	ic.TCArgs.KmuxConfigPathDiscover = "/opt/discover/kmux-config.yaml"
 	ic.TCArgs.KmuxConfigPathSumengine = "/opt/sumengine/kmux-config.yaml"
+	ic.TCArgs.KmuxConfigPathHardeningAgent = "/opt/hardening-agent/kmux-config.yaml"
 
 	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
 	ic.TCArgs.ProcessOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "process")
@@ -171,11 +176,12 @@ func (ic *InitConfig) InitializeControlPlane() error {
 
 	// List of config files to be generated or copied
 	fileTemplateMap := map[string]string{
-		"spire/conf/agent.conf": spireAgentConfig,
-		"pea/application.yaml":  peaConfig,
-		"sia/app.yaml":          siaConfig,
-		"sumengine/config.yaml": sumEngineConfig,
-		"discover/config.yaml":  discoverConfig,
+		"spire/conf/agent.conf":       spireAgentConfig,
+		"pea/application.yaml":        peaConfig,
+		"sia/app.yaml":                siaConfig,
+		"sumengine/config.yaml":       sumEngineConfig,
+		"discover/config.yaml":        discoverConfig,
+		"hardening-agent/config.yaml": hardeningAgentConfig,
 	}
 
 	// Generate or copy files
@@ -194,11 +200,12 @@ func (ic *InitConfig) InitializeControlPlane() error {
 
 	// List of kmux config files to be generated or copied
 	kmuxConfigFileTemplateMap := map[string]string{
-		"pea/kmux-config.yaml":            kmuxConfig,
-		"sia/kmux-config.yaml":            kmuxConfig,
-		"feeder-service/kmux-config.yaml": kmuxConfig,
-		"sumengine/kmux-config.yaml":      sumEngineKmuxConfig,
-		"discover/kmux-config.yaml":       discoverKmuxConfig,
+		"pea/kmux-config.yaml":             kmuxConfig,
+		"sia/kmux-config.yaml":             kmuxConfig,
+		"feeder-service/kmux-config.yaml":  kmuxConfig,
+		"sumengine/kmux-config.yaml":       sumEngineKmuxConfig,
+		"discover/kmux-config.yaml":        discoverKmuxConfig,
+		"hardening-agent/kmux-config.yaml": hardeningAgentKmuxConfig,
 	}
 
 	// Generate or copy kmux config files

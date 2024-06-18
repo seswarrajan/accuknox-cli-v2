@@ -13,6 +13,7 @@ var (
 	relayServerAddr string
 	siaAddr         string
 	peaAddr         string
+	hardenAddr      string
 )
 
 // joinNodeCmd represents the join command
@@ -22,7 +23,7 @@ var joinNodeCmd = &cobra.Command{
 	Long:  "Join this worker node with the control plane node for onboarding onto SaaS",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// need at least either one of the below flags
-		if nodeAddr == "" && (siaAddr == "" || relayServerAddr == "" || peaAddr == "") {
+		if nodeAddr == "" && (siaAddr == "" || relayServerAddr == "" || peaAddr == "" || hardenAddr == "") {
 			return fmt.Errorf("cp-node-addr (control-plane address) or address of each agent must be specified")
 		}
 		// validate environment for pre-requisites
@@ -51,15 +52,15 @@ var joinNodeCmd = &cobra.Command{
 		}
 		vmConfigs, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, vmMode,
 			vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag,
-			feederVersionTag, sumEngineVersionTag, discoverVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
+			feederVersionTag, sumEngineVersionTag, discoverVersionTag, hardeningAgentVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
 			kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, siaImage,
-			peaImage, feederImage, sumEngineImage, spireAgentImage, discoverImage, nodeAddr, dryRun,
+			peaImage, feederImage, sumEngineImage, hardeningAgentImage, spireAgentImage, discoverImage, nodeAddr, dryRun,
 			true, imagePullPolicy, visibility, hostVisibility,
 			audit, block, cidr, secureContainers)
 		if err != nil {
 			return fmt.Errorf("failed to create VM config: %s", err.Error())
 		}
-		joinConfig := onboard.JoinClusterConfig(*vmConfigs, kubeArmorAddr, relayServerAddr, siaAddr, peaAddr)
+		joinConfig := onboard.JoinClusterConfig(*vmConfigs, kubeArmorAddr, relayServerAddr, siaAddr, peaAddr, hardenAddr)
 
 		err = joinConfig.CreateBaseNodeConfig()
 		if err != nil {
@@ -96,7 +97,7 @@ func init() {
 	joinNodeCmd.PersistentFlags().StringVar(&relayServerAddr, "relay-server-addr", "", "address of relay-server on control plane to connect with for pushing telemetry events")
 	joinNodeCmd.PersistentFlags().StringVar(&siaAddr, "sia-addr", "", "address of shared-informer-agent on control plane to push state events")
 	joinNodeCmd.PersistentFlags().StringVar(&peaAddr, "pea-addr", "", "address of policy-enforcement-agent on control plane for receiving policy events")
-
+	joinNodeCmd.PersistentFlags().StringVar(&hardenAddr, "harden-addr", "", "address of hardening-agent on control plane for receiving state events")
 	joinNodeCmd.PersistentFlags().StringVar(&nodeAddr, "cp-node-addr", "", "address of control plane")
 
 	onboardVMCmd.AddCommand(joinNodeCmd)

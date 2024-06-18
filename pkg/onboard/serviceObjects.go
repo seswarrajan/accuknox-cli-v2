@@ -25,4 +25,7 @@ var (
 
 	//go:embed templates/systemdTemplates/discover.service
 	discoverFile string
+
+	//go:embed templates/systemdTemplates/hardening-agent.service
+	hardeningAgentFile string
 )

@@ -90,6 +90,7 @@ services:
       - "--relay-server-addr={{.RelayServerURL}}"
       - "--sia-addr={{.SIAAddr}}"
       - "--pea-addr={{.PEAAddr}}"
+      - "--harden-addr={{.HardenAddr}}"
     volumes:
       - "{{.ConfigPath}}:/opt"
     labels:

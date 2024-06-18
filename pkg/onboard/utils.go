@@ -30,14 +30,15 @@ import (
 
 var Agents_download = map[string]string{
 
-	cm.Vm_adapter:     "docker.io/accuknox/vm-adapter-systemd",
-	cm.Relay_server:   "docker.io/accuknox/kubearmor-relay-server-systemd",
-	cm.Pea_agent:      "docker.io/accuknox/accuknox-policy-enforcement-agent-systemd",
-	cm.Sia_agent:      "docker.io/accuknox/accuknox-shared-informer-agent-systemd",
-	cm.Feeder_service: "docker.io/accuknox/accuknox-feeder-service-systemd",
-	cm.Spire_agent:    "docker.io/accuknox/spire-agent-systemd",
-	cm.Summary_Engine: "docker.io/accuknox/accuknox-sumengine-systemd",
-	cm.Discover_Agent: "docker.io/accuknox/accuknox-discover-systemd",
+	cm.Vm_adapter:      "docker.io/accuknox/vm-adapter-systemd",
+	cm.Relay_server:    "docker.io/accuknox/kubearmor-relay-server-systemd",
+	cm.Pea_agent:       "docker.io/accuknox/accuknox-policy-enforcement-agent-systemd",
+	cm.Sia_agent:       "docker.io/accuknox/accuknox-shared-informer-agent-systemd",
+	cm.Feeder_service:  "docker.io/accuknox/accuknox-feeder-service-systemd",
+	cm.Spire_agent:     "docker.io/accuknox/spire-agent-systemd",
+	cm.Summary_Engine:  "docker.io/accuknox/accuknox-sumengine-systemd",
+	cm.Discover_Agent:  "docker.io/accuknox/accuknox-discover-systemd",
+	cm.Hardening_Agent: "docker.io/accuknox/accuknox-hardening-agent-systemd",
 }
 
 // path for writing configuration files
@@ -498,7 +499,6 @@ func VerifyBTF() (bool, error) {
 
 }
 func InstallAgent(agentName, agentTag string) error {
-
 	fileName, err := DownloadAccuknoxAgent(agentName, agentTag)
 	if err != nil {
 		return err
@@ -707,7 +707,7 @@ func DeboardSystemd(nodeType NodeType) error {
 	}
 	if nodeType == NodeType_ControlPlane {
 
-		agents := []string{cm.Pea_agent, cm.Sia_agent, cm.Feeder_service, cm.Relay_server, cm.Spire_agent, cm.Summary_Engine, cm.Discover_Agent}
+		agents := []string{cm.Pea_agent, cm.Sia_agent, cm.Feeder_service, cm.Relay_server, cm.Spire_agent, cm.Summary_Engine, cm.Discover_Agent, cm.Hardening_Agent}
 
 		for _, agent := range agents {
 			err := StopSystemdService(agent + ".service")
@@ -720,7 +720,7 @@ func DeboardSystemd(nodeType NodeType) error {
 	// delete directories
 	dirs := []string{cm.KAconfigPath, cm.PEAconfigPath,
 		cm.SIAconfigPath, cm.VmAdapterconfigPath,
-		cm.FSconfigPath, cm.RelayServerconfigPath, cm.SpireconfigPath, cm.PeaPolicyPath, cm.SumEngineConfigPath, cm.DiscoverConfigPath}
+		cm.FSconfigPath, cm.RelayServerconfigPath, cm.SpireconfigPath, cm.PeaPolicyPath, cm.SumEngineConfigPath, cm.DiscoverConfigPath, cm.HardeningAgentConfigPath}
 
 	for _, dirName := range dirs {
 		Deletedir(dirName)
