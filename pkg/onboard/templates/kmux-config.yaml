@@ -17,7 +17,7 @@ spire:
     - ".socket"
 
 rabbitmq:
-  server: "rabbitmq:5672"
+  server: {{.RMQServer}}
   exchange:
     name: "dev2" 
     type: "direct"

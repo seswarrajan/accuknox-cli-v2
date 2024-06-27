@@ -1,0 +1,16 @@
+hardening:
+  cron-job-time-interval: "1h00m00s"
+  download-templates: false
+  enabled: true
+  recommend-host-policy: true
+  template-version: "0.2.6"
+  topic: "policy-v1"
+  delay-cron-job: "0h05m00s"
+  filter-enabled: false
+  exclude-namespaces:
+    kubearmor: true
+    kube-system: true 
+  k8s:
+    enable: false
+  state-agent:
+    port: "32771"

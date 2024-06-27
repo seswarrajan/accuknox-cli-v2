@@ -1,0 +1,17 @@
+kmux:
+  sink:
+    stream: rabbitmq
+
+rabbitmq:
+  server: {{.RMQServer}}
+  username: ""
+  password: ""
+  exchange:
+    name: "dev2"
+    type: "direct"
+    durable: true
+    auto-delete: true
+  queue:
+    name: ""
+    durable: true
+    auto-delete: true

@@ -20,6 +20,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 
 	ic.TCArgs.SIAAddr = "0.0.0.0:32769"
 	ic.TCArgs.PEAAddr = "0.0.0.0:32770"
+	ic.TCArgs.HardenAddr = "0.0.0.0:32771"
 	ic.TCArgs.VmMode = ic.Mode
 
 	err := SystemdInstall(ic.ClusterConfig)
@@ -35,6 +36,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 	ic.TCArgs.KmuxConfigPathPEA = "/opt/accuknox-policy-enforcement-agent/kmux-config.yaml"
 	ic.TCArgs.KmuxConfigPathSumengine = "/opt/accuknox-sumengine/kmux-config.yaml"
 	ic.TCArgs.KmuxConfigPathDiscover = "/opt/accuknox-discover/kmux-config.yaml"
+	ic.TCArgs.KmuxConfigPathHardeningAgent = "/opt/accuknox-hardening-agent/kmux-config.yaml"
 
 	// initialize sprig for templating
 	sprigFuncs := sprig.GenericFuncMap()
@@ -53,6 +55,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 		{ic.UserConfigPath, cm.FSconfigPath, "conf/env", fsEnvVal},
 		{ic.UserConfigPath, cm.DiscoverConfigPath, "conf/config.yaml", discoverConfig},
 		{ic.UserConfigPath, cm.SumEngineConfigPath, "conf/config.yaml", sumEngineConfig},
+		{ic.UserConfigPath, cm.HardeningAgentConfigPath, "conf/config.yaml", hardeningAgentConfig},
 	}
 
 	for _, cfg := range configs {
@@ -70,11 +73,12 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 	}
 
 	dirPathTemplateMap := map[string]string{
-		cm.SIAconfigPath:       kmuxConfig,
-		cm.FSconfigPath:        kmuxConfig,
-		cm.PEAconfigPath:       kmuxConfig,
-		cm.SumEngineConfigPath: sumEngineKmuxConfig,
-		cm.DiscoverConfigPath:  discoverKmuxConfig,
+		cm.SIAconfigPath:            kmuxConfig,
+		cm.FSconfigPath:             kmuxConfig,
+		cm.PEAconfigPath:            kmuxConfig,
+		cm.SumEngineConfigPath:      sumEngineKmuxConfig,
+		cm.DiscoverConfigPath:       discoverKmuxConfig,
+		cm.HardeningAgentConfigPath: hardeningAgentKmuxConfig,
 	}
 
 	for dirPath, templateString := range dirPathTemplateMap {
@@ -84,7 +88,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 		}
 	}
 
-	services := []string{"spire-agent.service", "kubearmor.service", "kubearmor-relay-server.service", "kubearmor-vm-adapter.service", "accuknox-policy-enforcement-agent.service", "accuknox-shared-informer-agent.service", "accuknox-feeder-service.service", "accuknox-sumengine.service", "accuknox-discover.service"}
+	services := []string{"spire-agent.service", "kubearmor.service", "kubearmor-relay-server.service", "kubearmor-vm-adapter.service", "accuknox-policy-enforcement-agent.service", "accuknox-shared-informer-agent.service", "accuknox-feeder-service.service", "accuknox-sumengine.service", "accuknox-discover.service", "accuknox-hardening-agent.service"}
 
 	for _, serviceName := range services {
 		err = StartSystemdService(serviceName)
@@ -113,12 +117,13 @@ func placeServiceFiles(workernode bool) error {
 	}
 
 	filePathTemplateMap := map[string]string{
-		cm.Feeder_service + ".service": feederServiceFile,
-		cm.Pea_agent + ".service":      peaServiceFile,
-		cm.Sia_agent + ".service":      siaServiceFile,
-		cm.Relay_server + ".service":   relayServerServiceFile,
-		cm.Summary_Engine + ".service": sumEngineFile,
-		cm.Discover_Agent + ".service": discoverFile,
+		cm.Feeder_service + ".service":  feederServiceFile,
+		cm.Pea_agent + ".service":       peaServiceFile,
+		cm.Sia_agent + ".service":       siaServiceFile,
+		cm.Relay_server + ".service":    relayServerServiceFile,
+		cm.Summary_Engine + ".service":  sumEngineFile,
+		cm.Discover_Agent + ".service":  discoverFile,
+		cm.Hardening_Agent + ".service": hardeningAgentFile,
 	}
 
 	for filePath, templateString := range filePathTemplateMap {

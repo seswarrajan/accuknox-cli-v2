@@ -9,13 +9,14 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-func JoinClusterConfig(cc ClusterConfig, kubeArmorAddr, relayServerAddr, siaAddr, peaAddr string) *JoinConfig {
+func JoinClusterConfig(cc ClusterConfig, kubeArmorAddr, relayServerAddr, siaAddr, peaAddr, hardenAddr string) *JoinConfig {
 	return &JoinConfig{
 		ClusterConfig:   cc,
 		KubeArmorAddr:   kubeArmorAddr,
 		RelayServerAddr: relayServerAddr,
 		SIAAddr:         siaAddr,
 		PEAAddr:         peaAddr,
+		HardenAddr:      hardenAddr,
 	}
 }
 func (jc *JoinConfig) CreateBaseNodeConfig() error {
@@ -66,6 +67,15 @@ func (jc *JoinConfig) CreateBaseNodeConfig() error {
 	} else {
 		return fmt.Errorf("PEA address cannot be empty")
 	}
+
+	var hardenAddr string
+	if jc.HardenAddr != "" {
+		hardenAddr = jc.HardenAddr
+	} else if hardenAddr == "" && jc.CPNodeAddr != "" {
+		hardenAddr = jc.CPNodeAddr + ":" + "32771"
+	} else {
+		return fmt.Errorf("Hardening Agent address cannot be empty")
+	}
 	jc.TCArgs = TemplateConfigArgs{
 		Hostname: hostname,
 
@@ -77,8 +87,9 @@ func (jc *JoinConfig) CreateBaseNodeConfig() error {
 		RelayServerAddr: relayHost,
 		RelayServerPort: relayPort,
 
-		SIAAddr: siaAddr,
-		PEAAddr: peaAddr,
+		SIAAddr:    siaAddr,
+		PEAAddr:    peaAddr,
+		HardenAddr: hardenAddr,
 
 		WorkerNode: jc.WorkerNode,
 		// kubearmor config

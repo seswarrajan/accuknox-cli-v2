@@ -14,6 +14,9 @@ var (
 	//go:embed templates/sumengine-kmux-config.yaml
 	sumEngineKmuxConfig string
 
+	//go:embed templates/hardening-agent-kmux-config.yaml
+	hardeningAgentKmuxConfig string
+
 	//go:embed templates/pea-config.yaml
 	peaConfig string
 
@@ -25,6 +28,9 @@ var (
 
 	//go:embed templates/sumengine-config.yaml
 	sumEngineConfig string
+
+	//go:embed templates/hardening-agent-config.yaml
+	hardeningAgentConfig string
 
 	//go:embed templates/systemdTemplates/kubearmor-config.yaml
 	kubeArmorConfig string

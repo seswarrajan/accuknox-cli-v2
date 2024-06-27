@@ -28,14 +28,16 @@ var (
 	spireAgentImage           string
 	discoverImage             string
 	sumEngineImage            string
+	hardeningAgentImage       string
 
 	// cp-node systemd tags
-	kubeArmorRelayServerTag string
-	siaVersionTag           string
-	peaVersionTag           string
-	feederVersionTag        string
-	discoverVersionTag      string
-	sumEngineVersionTag     string
+	kubeArmorRelayServerTag  string
+	siaVersionTag            string
+	peaVersionTag            string
+	feederVersionTag         string
+	discoverVersionTag       string
+	sumEngineVersionTag      string
+	hardeningAgentVersionTag string
 )
 
 // cpNodeCmd represents the init command
@@ -54,7 +56,7 @@ var cpNodeCmd = &cobra.Command{
 			if err == nil {
 				vmMode = onboard.VMMode_Docker
 			} else {
-				fmt.Printf("Warning: Docker requirements did not match: %s. Falling back to systemd mode for installation.\n", err.Error())
+				fmt.Printf("warning: Docker requirements did not match: %s. Falling back to systemd mode for installation.\n", err.Error())
 				vmMode = onboard.VMMode_Systemd
 				secureContainers = false
 			}
@@ -70,9 +72,9 @@ var cpNodeCmd = &cobra.Command{
 		}
 		vmConfig, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, vmMode,
 			vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag,
-			feederVersionTag, sumEngineVersionTag, discoverVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
+			feederVersionTag, sumEngineVersionTag, discoverVersionTag, hardeningAgentVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
 			kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, siaImage,
-			peaImage, feederImage, sumEngineImage, spireAgentImage, discoverImage, nodeAddr, dryRun,
+			peaImage, feederImage, sumEngineImage, hardeningAgentImage, spireAgentImage, discoverImage, nodeAddr, dryRun,
 			false, imagePullPolicy, visibility, hostVisibility,
 			audit, block, cidr, secureContainers)
 		if err != nil {
@@ -84,7 +86,6 @@ var cpNodeCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to create base template config: %s", err.Error())
 		}
-
 		switch vmMode {
 
 		case onboard.VMMode_Systemd:
@@ -148,6 +149,8 @@ func init() {
 	cpNodeCmd.PersistentFlags().StringVar(&discoverVersionTag, "discover-version", "", "discover version to use")
 	cpNodeCmd.PersistentFlags().StringVar(&sumEngineImage, "sumengine-image", "", "summary-engine image to use")
 	cpNodeCmd.PersistentFlags().StringVar(&sumEngineVersionTag, "sumengine-version", "", "summary-engine version to use")
+	cpNodeCmd.PersistentFlags().StringVar(&hardeningAgentImage, "hardening-agent-image", "", "hardening-agent image to use")
+	cpNodeCmd.PersistentFlags().StringVar(&hardeningAgentVersionTag, "hardening-agent-version", "", "hardening-agent version to use")
 
 	err := cpNodeCmd.MarkPersistentFlagRequired("join-token")
 	if err != nil {

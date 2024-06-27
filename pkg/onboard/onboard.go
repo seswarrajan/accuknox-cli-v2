@@ -12,10 +12,10 @@ import (
 )
 
 func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode VMMode,
-	vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag, feederVersionTag, sumEngineTag, discoverVersionTag string,
+	vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag, feederVersionTag, sumEngineTag, discoverVersionTag, hardeningAgentVersionTag string,
 	kubearmorVersion, releaseVersion, kubearmorImage, kubearmorInitImage,
 	vmAdapterImage, relayServerImage, siaImage, peaImage,
-	feederImage, sumEngineImage, spireImage, discoverImage, nodeAddress string, dryRun, workerNode bool,
+	feederImage, sumEngineImage, hardeningAgentImage, spireImage, discoverImage, nodeAddress string, dryRun, workerNode bool,
 	imagePullPolicy, visibility, hostVisibility, audit,
 	block, cidr string, secureContainers bool) (*ClusterConfig, error) {
 
@@ -207,6 +207,13 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 		} else {
 			return nil, fmt.Errorf("No tag found for summary-engine")
 		}
+		if hardeningAgentImage != "" {
+			cc.HardeningAgentImage = hardeningAgentImage
+		} else if releaseVersion != "" {
+			cc.HardeningAgentImage = releaseInfo.HardeningAgentImage + ":" + releaseInfo.HardeningAgentTag
+		} else {
+			return nil, fmt.Errorf("No tag found for hardening-agent")
+		}
 
 	case VMMode_Systemd:
 		cc.PeaTag = GetSystemdTag(peaVersionTag, releaseInfo.PEATag)
@@ -215,6 +222,7 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 		cc.SpireTag = GetSystemdTag("", releaseInfo.SPIREAgentImageTag)
 		cc.SumEngineTag = GetSystemdTag("", releaseInfo.SumEngineTag)
 		cc.DiscoverTag = GetSystemdTag("", releaseInfo.DiscoverTag)
+		cc.HardeningAgentTag = GetSystemdTag("", releaseInfo.HardeningAgentTag)
 	}
 
 	return cc, nil

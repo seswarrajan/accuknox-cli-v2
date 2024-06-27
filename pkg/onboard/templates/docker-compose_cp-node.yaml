@@ -165,6 +165,7 @@ services:
       - "--relay-server-addr={{.RelayServerURL}}"
       - "--sia-addr={{.SIAAddr}}"
       - "--pea-addr={{.PEAAddr}}"
+      - "--harden-addr={{.HardenAddr}}"
     labels:
       app: kubearmor-vm-adapter
     restart: always
@@ -214,6 +215,8 @@ services:
       summary-engine:
         condition: service_started
       discover:
+        condition: service_started
+      hardening-agent:
         condition: service_started
     container_name: feeder-service
     image: "{{.FeederImage}}"
@@ -322,6 +325,30 @@ services:
       accuknox-net:
         aliases:
           - sumengine
+  hardening-agent:
+    profiles:
+      - "accuknox-agents"
+    depends_on:
+      rabbitmq:
+        condition: service_started
+      kubearmor-relay-server:
+        condition: service_started
+    container_name: hardening-agent
+    image: "{{.HardeningAgentImage}}"
+    pull_policy: "{{.ImagePullPolicy}}"
+    command: ["start", "--config", "/opt/hardening-agent/config.yaml", "--kmux-config", "/opt/hardening-agent/kmux-config.yaml"]
+    labels:
+      app: hardening-agent
+    volumes:
+      - "{{.ConfigPath}}:/opt"
+    restart: always
+    ports:
+      - "32771:32771"
+    pid: "host"
+    networks:
+      accuknox-net:
+        aliases:
+          - hardening-agent
 
   rabbitmq:
     image: "rabbitmq:3.12.2-management"

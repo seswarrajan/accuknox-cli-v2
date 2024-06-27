@@ -63,6 +63,7 @@ type ClusterConfig struct {
 	FeederImage               string
 	DiscoverImage             string
 	SumEngineImage            string
+	HardeningAgentImage       string
 
 	CPNodeAddr string
 
@@ -88,16 +89,17 @@ type ClusterConfig struct {
 	composeVersion string
 
 	//kubearmor systemd configs
-	Mode           VMMode
-	KubeArmorTag   string
-	VmAdapterTag   string
-	RelayServerTag string
-	PeaTag         string
-	SiaTag         string
-	SpireTag       string
-	FsTag          string
-	SumEngineTag   string
-	DiscoverTag    string
+	Mode              VMMode
+	KubeArmorTag      string
+	VmAdapterTag      string
+	RelayServerTag    string
+	PeaTag            string
+	SiaTag            string
+	SpireTag          string
+	FsTag             string
+	SumEngineTag      string
+	DiscoverTag       string
+	HardeningAgentTag string
 
 	// container security
 	SecureContainers bool
@@ -125,6 +127,7 @@ type JoinConfig struct {
 	RelayServerAddr string
 	SIAAddr         string
 	PEAAddr         string
+	HardenAddr      string
 
 	// internal
 	TCArgs TemplateConfigArgs
@@ -152,11 +155,12 @@ type TemplateConfigArgs struct {
 
 	SPIREAgentImage string
 
-	SIAImage       string
-	PEAImage       string
-	FeederImage    string
-	DiscoverImage  string
-	SumEngineImage string
+	SIAImage            string
+	PEAImage            string
+	FeederImage         string
+	DiscoverImage       string
+	SumEngineImage      string
+	HardeningAgentImage string
 
 	DiscoverRules   string
 	ImagePullPolicy string
@@ -169,6 +173,7 @@ type TemplateConfigArgs struct {
 	RelayServerURL string
 	SIAAddr        string
 	PEAAddr        string
+	HardenAddr     string
 	WorkerNode     bool
 
 	VmMode VMMode
@@ -194,11 +199,12 @@ type TemplateConfigArgs struct {
 	NetworkCIDR string
 
 	// kmux config paths for agents
-	KmuxConfigPathFS        string
-	KmuxConfigPathSIA       string
-	KmuxConfigPathPEA       string
-	KmuxConfigPathDiscover  string
-	KmuxConfigPathSumengine string
+	KmuxConfigPathFS             string
+	KmuxConfigPathSIA            string
+	KmuxConfigPathPEA            string
+	KmuxConfigPathDiscover       string
+	KmuxConfigPathSumengine      string
+	KmuxConfigPathHardeningAgent string
 
 	// container security
 	SecureContainers bool
