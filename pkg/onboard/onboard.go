@@ -234,10 +234,10 @@ func (cc *ClusterConfig) PrintJoinCommand(vmmode VMMode) {
 	command := ""
 	switch vmmode {
 	case VMMode_Docker:
-		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"docker\" --cp-node-addr=%s", cc.CPNodeAddr)
+		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"docker\" --version=%s --cp-node-addr=%s", cc.AgentsVersion, cc.CPNodeAddr)
 
 	case VMMode_Systemd:
-		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"systemd\" --cp-node-addr=%s", cc.CPNodeAddr)
+		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"systemd\" --version=%s --cp-node-addr=%s", cc.AgentsVersion, cc.CPNodeAddr)
 	}
 
 	fmt.Println(command)
