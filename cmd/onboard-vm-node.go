@@ -100,5 +100,7 @@ func init() {
 	joinNodeCmd.PersistentFlags().StringVar(&hardenAddr, "harden-addr", "", "address of hardening-agent on control plane for receiving state events")
 	joinNodeCmd.PersistentFlags().StringVar(&nodeAddr, "cp-node-addr", "", "address of control plane")
 
+	joinNodeCmd.PersistentFlags().StringVarP(&releaseVersion, "version", "v", "", "version to use - recommended to keep same as control plane node version")
+
 	onboardVMCmd.AddCommand(joinNodeCmd)
 }
