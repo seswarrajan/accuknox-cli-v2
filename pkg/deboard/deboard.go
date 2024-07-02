@@ -30,7 +30,10 @@ func Deboard(nodeType onboard.NodeType, vmMode onboard.VMMode, dryRun bool) (str
 			return configPath, err
 		}
 
-		composeCmd, composeVersion := onboard.GetComposeCommand()
+		composeCmd, composeVersion, err := onboard.GetComposeCommand()
+		if err != nil {
+			return configPath, err
+		}
 		fmt.Printf("Using %s version %s\n", composeCmd, composeVersion)
 
 		switch nodeType {
