@@ -1,5 +1,7 @@
 package onboard
 
+import "errors"
+
 type ClusterType string
 type VMMode string
 
@@ -221,3 +223,19 @@ type KmuxConfigTemplateArgs struct {
 	ServerURL      string
 	RMQServer      string
 }
+
+type TokenResponse struct {
+	// if success join_token and message will be populated
+	JoinToken string `json:"join_token"`
+	Message   string `json:"message"`
+
+	// if failure error_code and error_message will be populated
+	ErrorCode    string `json:"error_code"`
+	ErrorMessage string `json:"error_message"`
+}
+
+var (
+	ErrInvalidToken = errors.New("invalid JWT format")
+)
+
+const AccessKeyEndpoint = "/access-token/api/v1/process"

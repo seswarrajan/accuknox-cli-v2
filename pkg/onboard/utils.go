@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -21,6 +22,7 @@ import (
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
 	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/docker/docker/client"
+	"github.com/golang-jwt/jwt"
 	"github.com/google/go-github/github"
 	"golang.org/x/mod/semver"
 	"oras.land/oras-go/v2"
@@ -726,4 +728,101 @@ func DeboardSystemd(nodeType NodeType) error {
 		Deletedir(dirName)
 	}
 	return nil
+}
+
+func GetJoinTokenFromAccessKey(accessKey, vmName, url string) (string, error) {
+	if accessKey == "" || vmName == "" || url == "" {
+		return "", fmt.Errorf("invalid accessKey, vmName or url")
+	}
+
+	if !strings.HasPrefix(url, "https://") {
+		url = "https://" + url
+	}
+
+	url = url + AccessKeyEndpoint
+
+	payload, err := createPayload(accessKey, vmName)
+	if err != nil {
+		fmt.Printf("createPayload failed: %v\n", err)
+		return "", err
+	}
+	return getJoinToken(payload, url, accessKey)
+
+}
+
+func createPayload(onboardingToken, clusterName string) ([]byte, error) {
+	payload := map[string]interface{}{
+		"cluster_name": clusterName,
+		"token":        onboardingToken,
+		"type":         "vm",
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		fmt.Printf("json marshal failed: %v\n", err)
+		return nil, err
+	}
+
+	return jsonPayload, nil
+}
+
+func getJoinToken(payload []byte, apiURL, token string) (string, error) {
+
+	// create a new request using http [method; POST]
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(payload))
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return "", err
+	}
+	tenantID, err := getTenantID(token)
+	if err != nil {
+		fmt.Println("Error getting tenant ID:", err)
+		return "", err
+	}
+
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Authorization", "Bearer "+token)
+	req.Header.Add("X-Tenant-Id", tenantID)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println("Error sending request:", err)
+		return "", err
+	}
+	defer resp.Body.Close()
+	var response TokenResponse
+
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		fmt.Println("Error decoding response:", err)
+		return "", err
+	}
+
+	if resp.StatusCode != http.StatusOK || response.Message != "success" {
+		return "", fmt.Errorf("received error code: %s message: %s", response.ErrorCode, response.ErrorMessage)
+	}
+
+	return response.JoinToken, nil
+}
+
+func getTenantID(onboardingToken string) (string, error) {
+
+	parts := strings.Split(onboardingToken, ".")
+	if len(parts) != 3 {
+		return "", ErrInvalidToken
+	}
+
+	var claims jwt.MapClaims
+
+	decodedClaims, err := jwt.DecodeSegment(parts[1])
+	if err != nil {
+		return "", err
+	}
+	err = json.Unmarshal(decodedClaims, &claims)
+	if err != nil {
+		return "", err
+	}
+
+	tid := fmt.Sprintf("%v", claims["tenant-id"])
+	return tid, nil
 }
