@@ -27,6 +27,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/gdamore/tcell/v2 v2.6.0
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/jedib0t/go-pretty v4.3.0+incompatible
 	github.com/kubearmor/kubearmor-client v0.14.2

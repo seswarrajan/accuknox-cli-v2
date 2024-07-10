@@ -20,6 +20,11 @@ var (
 	spireTrustBundle string
 	enableLogs       bool
 
+	// access-key flags
+	accessKey string
+	vmName    string
+	tokenURL  string
+
 	// cp-node only images
 	kubeArmorRelayServerImage string
 	siaImage                  string
@@ -50,8 +55,18 @@ var cpNodeCmd = &cobra.Command{
 		var (
 			cc               onboard.ClusterConfig
 			secureContainers = true
+			err              error
 		)
-		_, err := cc.ValidateEnv()
+
+		if accessKey != "" {
+			joinToken, err = onboard.GetJoinTokenFromAccessKey(accessKey, vmName, tokenURL)
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = cc.ValidateEnv()
+
 		if vmMode == "" {
 			if err == nil {
 				vmMode = onboard.VMMode_Docker
@@ -152,12 +167,12 @@ func init() {
 	cpNodeCmd.PersistentFlags().StringVar(&hardeningAgentImage, "hardening-agent-image", "", "hardening-agent image to use")
 	cpNodeCmd.PersistentFlags().StringVar(&hardeningAgentVersionTag, "hardening-agent-version", "", "hardening-agent version to use")
 
-	err := cpNodeCmd.MarkPersistentFlagRequired("join-token")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	err = cpNodeCmd.MarkPersistentFlagRequired("spire-host")
+	// Access Key configurations
+	cpNodeCmd.PersistentFlags().StringVar(&accessKey, "access-key", "", "access-key for onboarding")
+	cpNodeCmd.PersistentFlags().StringVar(&vmName, "vm-name", "", "vm name for onboarding")
+	cpNodeCmd.PersistentFlags().StringVar(&tokenURL, "access-key-url", "", "access-key-url for onboarding")
+
+	err := cpNodeCmd.MarkPersistentFlagRequired("spire-host")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -177,6 +192,9 @@ func init() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	cpNodeCmd.MarkFlagsRequiredTogether("access-key", "vm-name", "access-key-url")
+	cpNodeCmd.MarkFlagsMutuallyExclusive("access-key", "join-token")
 
 	onboardVMCmd.AddCommand(cpNodeCmd)
 }
