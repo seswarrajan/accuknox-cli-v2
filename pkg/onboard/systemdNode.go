@@ -2,104 +2,78 @@ package onboard
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/Masterminds/sprig"
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
+	"github.com/fatih/color"
 )
 
 func (jc *JoinConfig) JoinSystemdNode() error {
+	// initialize template funcs
+	jc.TemplateFuncs = sprig.GenericFuncMap()
 
-	// Install packages
-
-	err := SystemdInstall(jc.ClusterConfig)
+	// Download and intall agents
+	fmt.Println(color.MagentaString("Downloading agents..."))
+	err := jc.SystemdInstall()
 	if err != nil {
-		fmt.Println("Installation failed!! Cleaning up downloaded assets", err)
-		Deletedir(cm.Download_dir)
+		fmt.Println(color.RedString("Installation failed!! Error: %s.\nCleaning up downloaded assets...", err.Error()))
+		Deletedir(cm.DownloadDir)
 		DeboardSystemd(NodeType_WorkerNode) // #nosec G104
 		return err
 	}
-	sprigFuncs := sprig.GenericFuncMap()
 
-	// write config file and copy it to /opt/kubearmor/kubearmor
-	_, err = copyOrGenerateFile("", cm.KAconfigPath, "kubearmor.yaml", sprigFuncs, kubeArmorConfig, jc.TCArgs)
-	if err != nil {
-		return err
-	}
-
-	_, err = copyOrGenerateFile("", cm.VmAdapterconfigPath, "vm-adapter-config.yaml", sprigFuncs, vmAdapterConfig, jc.TCArgs)
-	if err != nil {
-		return err
-	}
-	// start kubearmor
-	err = StartSystemdService("kubearmor.service")
-	if err != nil {
-		fmt.Println("Failed to start kubearmor.service", err)
-	}
-	err = StartSystemdService("kubearmor-vm-adapter.service")
-	if err != nil {
-		fmt.Println("Failed to start kubearmor-vm-adapter.service", err)
-	}
-	fmt.Println("Cleaning up downloaded assets")
-	Deletedir(cm.Download_dir)
-	return nil
-}
-func SystemdInstall(cc ClusterConfig) error {
-	// initialize sprig for templating
-
-	// Installing KubeArmor
-
-	fmt.Println("Installing Kubearmor...")
-	err := InstallKa(cc.KubeArmorTag)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	fmt.Println("Kubearmor downloaded successfully")
-
-	//install vm-adapter
-	fmt.Println("Installing kubearmor-vm-adapter...")
-	err = InstallAgent(cm.Vm_adapter, cc.VmAdapterTag)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	fmt.Printf("vm-adapter version: %s downloaded successfully\n", cc.VmAdapterTag)
-
-	if !cc.WorkerNode {
-		// Install other agents on cp node
-		agents := []struct {
-			name    string
-			version string
-		}{
-
-			{cm.Spire_agent, cc.SpireTag},
-			{cm.Relay_server, cc.RelayServerTag},
-			{cm.Sia_agent, cc.SiaTag},
-			{cm.Pea_agent, cc.PeaTag},
-			{cm.Feeder_service, cc.FsTag},
-			{cm.Summary_Engine, cc.SumEngineTag},
-			{cm.Discover_Agent, cc.DiscoverTag},
-			{cm.Hardening_Agent, cc.HardeningAgentTag},
+	// config services
+	fmt.Println(color.MagentaString("\nConfiguring services..."))
+	for _, obj := range jc.SystemdServiceObjects {
+		if !obj.InstallOnWorkerNode {
+			continue
 		}
-
-		for _, agent := range agents {
-			fmt.Printf("Installing %s...\n", agent.name)
-			err := InstallAgent(agent.name, agent.version)
+		if obj.ConfigFilePath != "" {
+			// copy generic config files
+			_, err = copyOrGenerateFile(jc.UserConfigPath, obj.AgentDir, obj.ConfigFilePath, jc.TemplateFuncs, obj.ConfigTemplateString, jc.TCArgs)
 			if err != nil {
-				fmt.Println(err)
 				return err
 			}
-			fmt.Printf("%s version %s downloaded successfully\n", agent.name, agent.version)
 		}
 
-	}
-	err = placeServiceFiles(cc.WorkerNode)
-	if err != nil {
-		fmt.Println(err)
-		return err
+		for filename, srcPath := range obj.ExtraFilePathSrc {
+			if srcPath == "" {
+				continue
+			}
+
+			destPath, ok := obj.ExtraFilePathDest[filename]
+			if !ok {
+				fmt.Println(color.YellowString("Warning! No destination for extra file %s", filename))
+				continue
+			}
+
+			srcPathDir := filepath.Dir(srcPath)
+			destPathDir := filepath.Dir(destPath)
+
+			_, err = copyOrGenerateFile(srcPathDir, destPathDir, filename, nil, "", nil)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	fmt.Println("All agents downloaded successfully")
+	// Start services
+	fmt.Println(color.MagentaString("\nEnabling services..."))
+	for _, obj := range jc.SystemdServiceObjects {
+		if !obj.InstallOnWorkerNode {
+			continue
+		}
 
+		err = StartSystemdService(obj.ServiceName)
+		if err != nil {
+			fmt.Printf("failed to start service %s: %s\n", obj.ServiceName, err.Error())
+			return err
+		}
+	}
+	fmt.Println(color.GreenString("\nAll services enabled successfully."))
+
+	fmt.Println(color.BlueString("\nCleaning up downloaded assets..."))
+	Deletedir(cm.DownloadDir)
 	return nil
 }

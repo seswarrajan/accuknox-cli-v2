@@ -17,7 +17,7 @@ heartbeat:
 resource-refresh:
   interval: 5m
 
-kmux-config-file: {{.KmuxConfigPathSIA}}
+kmux-config-file: {{.KmuxConfigPath}}
 
 state-agent:
   port: 32769

@@ -1,6 +1,10 @@
 package onboard
 
-import "errors"
+import (
+	"errors"
+
+	"oras.land/oras-go/v2/registry/remote/auth"
+)
 
 type ClusterType string
 type VMMode string
@@ -86,25 +90,24 @@ type ClusterConfig struct {
 
 	CIDR string
 
+	TemplateFuncs map[string]interface{}
+
 	// internal
 	composeCmd     string
 	composeVersion string
 
 	//kubearmor systemd configs
-	Mode              VMMode
-	KubeArmorTag      string
-	VmAdapterTag      string
-	RelayServerTag    string
-	PeaTag            string
-	SiaTag            string
-	SpireTag          string
-	FsTag             string
-	SumEngineTag      string
-	DiscoverTag       string
-	HardeningAgentTag string
+	Mode VMMode
 
 	// container security
 	SecureContainers bool
+
+	SkipBTFCheck      bool
+	SystemMonitorPath string
+
+	SystemdServiceObjects []SystemdServiceObject
+
+	CredentialFunc auth.CredentialFunc
 }
 
 type InitConfig struct {
@@ -201,12 +204,7 @@ type TemplateConfigArgs struct {
 	NetworkCIDR string
 
 	// kmux config paths for agents
-	KmuxConfigPathFS             string
-	KmuxConfigPathSIA            string
-	KmuxConfigPathPEA            string
-	KmuxConfigPathDiscover       string
-	KmuxConfigPathSumengine      string
-	KmuxConfigPathHardeningAgent string
+	KmuxConfigPath string
 
 	// container security
 	SecureContainers bool
@@ -232,6 +230,30 @@ type TokenResponse struct {
 	// if failure error_code and error_message will be populated
 	ErrorCode    string `json:"error_code"`
 	ErrorMessage string `json:"error_message"`
+}
+
+type SystemdServiceObject struct {
+	// generic
+	AgentName   string
+	PackageName string
+	ServiceName string
+
+	AgentDir              string
+	ConfigFilePath        string
+	ServiceTemplateString string
+	ConfigTemplateString  string
+
+	// TODO: Package instead of just tag
+	AgentImage string
+	//AgentPackage string
+	InstallOnWorkerNode bool
+
+	KmuxConfigPath           string
+	KmuxConfigTemplateString string
+
+	// map of file name and path
+	ExtraFilePathSrc  map[string]string
+	ExtraFilePathDest map[string]string
 }
 
 var (

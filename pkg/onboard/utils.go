@@ -1,47 +1,23 @@
 package onboard
 
 import (
-	"archive/tar"
 	"bytes"
-	"compress/gzip"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"text/template"
 
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
-	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/docker/docker/client"
 	"github.com/golang-jwt/jwt"
-	"github.com/google/go-github/github"
 	"golang.org/x/mod/semver"
-	"oras.land/oras-go/v2"
-	"oras.land/oras-go/v2/content/file"
-	"oras.land/oras-go/v2/registry/remote"
 )
-
-var Agents_download = map[string]string{
-
-	cm.Vm_adapter:      "docker.io/accuknox/vm-adapter-systemd",
-	cm.Relay_server:    "docker.io/accuknox/kubearmor-relay-server-systemd",
-	cm.Pea_agent:       "docker.io/accuknox/accuknox-policy-enforcement-agent-systemd",
-	cm.Sia_agent:       "docker.io/accuknox/accuknox-shared-informer-agent-systemd",
-	cm.Feeder_service:  "docker.io/accuknox/accuknox-feeder-service-systemd",
-	cm.Spire_agent:     "docker.io/accuknox/spire-agent-systemd",
-	cm.Summary_Engine:  "docker.io/accuknox/accuknox-sumengine-systemd",
-	cm.Discover_Agent:  "docker.io/accuknox/accuknox-discover-systemd",
-	cm.Hardening_Agent: "docker.io/accuknox/accuknox-hardening-agent-systemd",
-}
 
 // path for writing configuration files
 func createDefaultConfigPath() (string, error) {
@@ -109,7 +85,7 @@ func copyOrGenerateFile(userConfigDir, dirPath, filePath string, tempFuncs templ
 
 		dataFile = bytes.NewBuffer(userFileBytes)
 
-	} else {
+	} else if tempFuncs != nil {
 		// generate the file with the template
 		templateFile, err := template.New(filePath).Funcs(tempFuncs).Parse(templateString)
 		if err != nil {
@@ -122,7 +98,7 @@ func copyOrGenerateFile(userConfigDir, dirPath, filePath string, tempFuncs templ
 		}
 	}
 
-	if dataFile == nil {
+	if dataFile == nil || len(dataFile.Bytes()) == 0 {
 		return "", fmt.Errorf("Failed to read config file for %s: Empty file", filePath)
 	}
 
@@ -371,122 +347,7 @@ func CreateDockerClient() (*client.Client, error) {
 	return dockerClient, nil
 }
 
-// for Systemd mode
-func ExtractAndRun(fileName string) error {
-
-	file, err := os.Open(filepath.Clean(fileName))
-	if err != nil {
-		fmt.Println("Error opening file:", fileName, err)
-		return err
-	}
-	defer file.Close()
-
-	gzipReader, err := gzip.NewReader(file)
-	if err != nil {
-		fmt.Println("Error creating gzip reader:", err)
-		return err
-	}
-	defer gzipReader.Close()
-
-	tarReader := tar.NewReader(gzipReader)
-
-	for {
-		header, err := tarReader.Next()
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			fmt.Println("Error reading tar header:", err)
-			return err
-		}
-		if header.Typeflag == tar.TypeDir {
-			continue
-		}
-		rootDir := "/"
-
-		// Extract the file
-		filename := filepath.Join(rootDir, header.Name) // #nosec G305
-
-		// Create parent directories if not exist
-
-		err = os.MkdirAll(filepath.Dir(filename), 0755) // #nosec G301
-		if err != nil {
-			return err
-		}
-		file, err := os.Create(filepath.Clean(filename))
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-
-		_, err = io.Copy(file, tarReader) // #nosec G110
-		if err != nil {
-			return err
-		}
-
-		// Set execute permissions for the binaries
-
-		if header.Mode&0111 != 0 {
-			err := os.Chmod(filename, 0755) // #nosec G302
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-
-}
-
-func DownloadPackage(owner, repo, tag string, folderName string) (string, error) {
-
-	ctx := context.Background()
-	client := github.NewClient(nil)
-	release, _, err := client.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
-	if err != nil {
-		fmt.Printf("Error getting release: %v\n", err)
-		return "", err
-	}
-	arch := runtime.GOARCH
-
-	// Download .tar.gz assets
-	filename := ""
-	for _, asset := range release.Assets {
-
-		if filepath.Ext(asset.GetName()) == ".gz" && strings.Contains(asset.GetName(), arch) {
-
-			filename = filepath.Join(folderName, asset.GetName())
-			fmt.Printf("Downloading asset: %s\n", filename)
-
-			output, err := os.Create(filename)
-			if err != nil {
-				fmt.Printf("Error creating file: %v\n", err)
-				return "", err
-			}
-			defer output.Close()
-
-			resp, err := http.Get(asset.GetBrowserDownloadURL())
-			if err != nil {
-				fmt.Printf("Error downloading asset: %v\n", err)
-				return "", err
-			}
-			defer resp.Body.Close()
-
-			// Write downloaded content to file
-			_, err = io.Copy(output, resp.Body)
-			if err != nil {
-				fmt.Printf("Error writing to file: %v\n", err)
-				return "", err
-			}
-		}
-	}
-	return filename, nil
-
-}
-
-func VerifyBTF() (bool, error) {
-
+func verifyBTF() (bool, error) {
 	btfPath := "/sys/kernel/btf/vmlinux"
 
 	// Check if the file exists
@@ -498,236 +359,6 @@ func VerifyBTF() (bool, error) {
 	} else {
 		return false, err
 	}
-
-}
-func InstallAgent(agentName, agentTag string) error {
-	fileName, err := DownloadAccuknoxAgent(agentName, agentTag)
-	if err != nil {
-		return err
-	}
-	fmt.Println("Downloaded:", agentName)
-
-	err = ExtractAndRun(fileName)
-	if err != nil {
-		return err
-	}
-	fmt.Println("Extracted:", agentName)
-	return nil
-}
-func GetLatestTag(owner_name, repo_name string) (string, error) {
-
-	ctx := context.Background()
-	client := github.NewClient(nil)
-
-	// Get the latest release
-	release, _, err := client.Repositories.GetLatestRelease(ctx, owner_name, repo_name)
-	if err != nil {
-
-		return "", fmt.Errorf("failed to get latest release: %v", err)
-	}
-	return release.GetTagName(), nil
-
-}
-func DownloadAccuknoxAgent(pkgName string, tag string) (string, error) {
-
-	fs, err := file.New(cm.Download_dir)
-	if err != nil {
-		return "", err
-	}
-	defer fs.Close()
-
-	// 1. Connect to a remote repository
-	ctx := context.Background()
-	repo, err := remote.NewRepository(Agents_download[pkgName])
-	if err != nil {
-		return "", err
-	}
-	_, err = oras.Copy(ctx, repo, tag, fs, tag, oras.DefaultCopyOptions)
-	if err != nil {
-		return "", err
-	}
-	filepath := path.Join(cm.Download_dir, pkgName+"_"+tag+".tar.gz")
-	return filepath, nil
-}
-func InstallKa(kaVersionTag string) error {
-
-	// Verify BTF installation
-	btfPresent, _ := VerifyBTF()
-	if !btfPresent {
-		return fmt.Errorf("installation failed: BTF not found ")
-	} else {
-		fmt.Println("BTF installation found ")
-	}
-
-	err := os.MkdirAll(cm.Download_dir, 0755) // #nosec G301
-	if err != nil {
-		if !os.IsExist(err) {
-			return fmt.Errorf("error creating folder: %s", err.Error())
-		}
-	}
-	fmt.Println("Folder created:", cm.Download_dir)
-	owner := "kubearmor"
-	repo := "KubeArmor"
-	tag := kaVersionTag
-
-	filename, err := DownloadPackage(owner, repo, tag, cm.Download_dir)
-
-	if err != nil {
-		return err
-	}
-
-	err = ExtractAndRun(filename)
-
-	if err != nil {
-		return err
-	}
-	return nil
-
-}
-
-func GetSystemdTag(userTag, releaseTag string) string {
-	tagSuffix := "_" + runtime.GOOS + "-" + runtime.GOARCH
-	tag := ""
-	if userTag != "" {
-		tag = strings.TrimPrefix(userTag, "v") + tagSuffix
-	} else {
-		tag = strings.TrimPrefix(releaseTag, "v") + tagSuffix
-	}
-	return tag
-}
-func CheckSystemdInstallation() (bool, error) {
-	agents := []string{"kubearmor", cm.KA_Vm_Adapter, cm.Relay_server, cm.Pea_agent, cm.Sia_agent, cm.Feeder_service, cm.Spire_agent}
-	systemdPath := "/usr/lib/systemd/system/"
-	for _, agent := range agents {
-		filePath := systemdPath + agent + ".service"
-		if _, err := os.Stat(filePath); err == nil {
-			// found service file means we have agents as systemd service
-			return true, nil
-		} else if !os.IsNotExist(err) {
-			return false, fmt.Errorf("Error checking service file for %s: %v\n", agent, err)
-		}
-	}
-	return false, nil
-}
-func StartSystemdService(serviceName string) error {
-	ctx := context.Background()
-	// Connect to systemd dbus
-	conn, err := dbus.NewWithContext(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to connect to systemd: %v", err)
-	}
-	defer conn.Close()
-
-	// reload systemd config, equivalent to systemctl daemon-reload
-	if err := conn.ReloadContext(ctx); err != nil {
-		return fmt.Errorf("failed to reload systemd configuration: %v", err)
-	}
-
-	// enable service
-	_, _, err = conn.EnableUnitFilesContext(ctx, []string{serviceName}, false, true)
-	if err != nil {
-		return fmt.Errorf("failed to enable %s: %v", serviceName, err)
-	}
-	fmt.Println("Enabled service:", serviceName)
-
-	// Start the service
-	ch := make(chan string)
-	fmt.Printf("Starting %s...\n", serviceName)
-	if _, err := conn.RestartUnitContext(ctx, serviceName, "replace", ch); err != nil {
-		return fmt.Errorf("failed to start %s: %v", serviceName, err)
-	}
-	return nil
-}
-func StopSystemdService(serviceName string) error {
-
-	ctx := context.Background()
-	conn, err := dbus.NewWithContext(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to connect to systemd: %v", err)
-	}
-	defer conn.Close()
-	stopChan := make(chan string)
-
-	if _, err := conn.StopUnitContext(ctx, serviceName, "replace", stopChan); err != nil {
-		if !strings.Contains(err.Error(), "not loaded") {
-			fmt.Printf("Failed to stop %s: %v\n", serviceName, err)
-			return err
-		}
-	} else {
-		fmt.Printf("Stopping %s .\n", serviceName)
-		<-stopChan
-		fmt.Printf("%s service stopped successfully.\n", serviceName)
-	}
-
-	if _, err := conn.DisableUnitFilesContext(ctx, []string{serviceName}, false); err != nil {
-		if !strings.Contains(err.Error(), "does not exist") {
-			fmt.Printf("Failed to disable %s : %v\n", serviceName, err)
-			return err
-		}
-	} else {
-		fmt.Printf("Disabled %s .\n", serviceName)
-	}
-
-	svcfilePath := cm.SystemdDir + serviceName
-	if err := os.Remove(svcfilePath); err != nil {
-		if !os.IsNotExist(err) {
-			fmt.Printf("Failed to delete %s file: %v\n", serviceName, err)
-			return err
-		}
-	} else {
-		fmt.Printf("Deleted %s file.\n", serviceName)
-	}
-	// reload systemd config, equivalent to systemctl daemon-reload
-	if err := conn.ReloadContext(ctx); err != nil {
-
-		return fmt.Errorf("failed to reload systemd configuration: %v", err)
-	}
-
-	return err
-}
-func Deletedir(dirName string) {
-	//	Clean Up
-	err := os.RemoveAll(dirName)
-	if err != nil && !os.IsNotExist(err) {
-		// Check if the error is due to the directory not existing
-		fmt.Printf("error deleting %s : %v\n", dirName, err)
-	}
-
-}
-func DeboardSystemd(nodeType NodeType) error {
-
-	// stop services
-	err := StopSystemdService("kubearmor.service")
-	if err != nil {
-		fmt.Println("error stopping service kubearmor.service:", err)
-		return err
-	}
-	err = StopSystemdService("kubearmor-vm-adapter.service")
-	if err != nil {
-		fmt.Println("error stopping service kubearmor-vm-adapter.service:", err)
-		return err
-	}
-	if nodeType == NodeType_ControlPlane {
-
-		agents := []string{cm.Pea_agent, cm.Sia_agent, cm.Feeder_service, cm.Relay_server, cm.Spire_agent, cm.Summary_Engine, cm.Discover_Agent, cm.Hardening_Agent}
-
-		for _, agent := range agents {
-			err := StopSystemdService(agent + ".service")
-			if err != nil {
-				fmt.Printf("error stopping service %s.service:%s\n", agent, err)
-				return err
-			}
-		}
-	}
-	// delete directories
-	dirs := []string{cm.KAconfigPath, cm.PEAconfigPath,
-		cm.SIAconfigPath, cm.VmAdapterconfigPath,
-		cm.FSconfigPath, cm.RelayServerconfigPath, cm.SpireconfigPath, cm.PeaPolicyPath, cm.SumEngineConfigPath, cm.DiscoverConfigPath, cm.HardeningAgentConfigPath}
-
-	for _, dirName := range dirs {
-		Deletedir(dirName)
-	}
-	return nil
 }
 
 func GetJoinTokenFromAccessKey(accessKey, vmName, url string) (string, error) {

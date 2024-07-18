@@ -10,6 +10,14 @@ import (
 	"golang.org/x/mod/semver"
 )
 
+type agentConfigMeta struct {
+	agentName                string
+	configPath               string
+	configTemplateString     string
+	kmuxConfigPath           string
+	kmuxConfigTemplateString string
+}
+
 func InitCPNodeConfig(cc ClusterConfig, joinToken, spireHost, ppsHost, knoxGateway, spireTrustBundle string, enableLogs bool) *InitConfig {
 	return &InitConfig{
 		ClusterConfig: cc,
@@ -152,14 +160,6 @@ func (ic *InitConfig) InitializeControlPlane() error {
 
 	ic.TCArgs.ConfigPath = configPath
 
-	// kmux config file paths
-	ic.TCArgs.KmuxConfigPathFS = "/opt/feeder-service/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathSIA = "/opt/sia/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathPEA = "/opt/pea/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathDiscover = "/opt/discover/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathSumengine = "/opt/sumengine/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathHardeningAgent = "/opt/hardening-agent/kmux-config.yaml"
-
 	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
 	ic.TCArgs.ProcessOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "process")
 	ic.TCArgs.FileOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "file")
@@ -175,21 +175,8 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	}
 
 	// List of config files to be generated or copied
-	fileTemplateMap := map[string]string{
-		"spire/conf/agent.conf":       spireAgentConfig,
-		"pea/application.yaml":        peaConfig,
-		"sia/app.yaml":                siaConfig,
-		"sumengine/config.yaml":       sumEngineConfig,
-		"discover/config.yaml":        discoverConfig,
-		"hardening-agent/config.yaml": hardeningAgentConfig,
-	}
-
-	// Generate or copy files
-	for filePath, templateString := range fileTemplateMap {
-		if _, err := copyOrGenerateFile(ic.UserConfigPath, configPath, filePath, sprigFuncs, templateString, ic.TCArgs); err != nil {
-			return err
-		}
-	}
+	// TODO: Refactor later
+	agentMeta := getAgentConfigMeta()
 
 	kmuxConfigArgs := KmuxConfigTemplateArgs{
 		ReleaseVersion: ic.AgentsVersion,
@@ -198,22 +185,26 @@ func (ic *InitConfig) InitializeControlPlane() error {
 		RMQServer:      "rabbitmq:5672",
 	}
 
-	// List of kmux config files to be generated or copied
-	kmuxConfigFileTemplateMap := map[string]string{
-		"pea/kmux-config.yaml":             kmuxConfig,
-		"sia/kmux-config.yaml":             kmuxConfig,
-		"feeder-service/kmux-config.yaml":  kmuxConfig,
-		"sumengine/kmux-config.yaml":       sumEngineKmuxConfig,
-		"discover/kmux-config.yaml":        discoverKmuxConfig,
-		"hardening-agent/kmux-config.yaml": hardeningAgentKmuxConfig,
-	}
+	// Generate or copy config files
+	for _, agentObj := range agentMeta {
+		tcArgs := ic.TCArgs
+		tcArgs.KmuxConfigPath = agentObj.kmuxConfigPath
 
-	// Generate or copy kmux config files
-	for filePath, templateString := range kmuxConfigFileTemplateMap {
-		if _, err := copyOrGenerateFile(ic.UserConfigPath, configPath, filePath, sprigFuncs, templateString, kmuxConfigArgs); err != nil {
-			return err
+		// generate config file if not empty
+		if agentObj.configPath != "" {
+			if _, err := copyOrGenerateFile(ic.UserConfigPath, configPath, agentObj.configPath, sprigFuncs, agentObj.configTemplateString, tcArgs); err != nil {
+				return err
+			}
+		}
+
+		// generate kmux config only if it exists for this agent
+		if agentObj.kmuxConfigPath != "" {
+			if _, err := copyOrGenerateFile(ic.UserConfigPath, configPath, agentObj.kmuxConfigPath, sprigFuncs, agentObj.kmuxConfigTemplateString, kmuxConfigArgs); err != nil {
+				return err
+			}
 		}
 	}
+
 	// Diagnose if necessary and run compose command
 	return ic.runComposeCommand(composeFilePath)
 }
@@ -280,4 +271,55 @@ func isOperationDisabled(visibility, hostVisibility, operation string) bool {
 	}
 	_, exists := visibilities[operation]
 	return !exists
+}
+
+func getAgentConfigMeta() []agentConfigMeta {
+	agentMeta := []agentConfigMeta{
+		{
+			agentName:            "spire",
+			configPath:           "spire/conf/agent.conf",
+			configTemplateString: spireAgentConfig,
+		},
+		{
+			agentName:                "sia",
+			configPath:               "sia/app.yaml",
+			configTemplateString:     siaConfig,
+			kmuxConfigPath:           "/opt/sia/kmux-config.yaml",
+			kmuxConfigTemplateString: kmuxConfig,
+		},
+		{
+			agentName:                "pea",
+			configPath:               "pea/application.yaml",
+			configTemplateString:     peaConfig,
+			kmuxConfigPath:           "/opt/pea/kmux-config.yaml",
+			kmuxConfigTemplateString: kmuxConfig},
+		{
+			agentName:                "feeder-service",
+			kmuxConfigPath:           "/opt/feeder-service/kmux-config.yaml",
+			kmuxConfigTemplateString: kmuxConfig,
+		},
+		{
+			agentName:                "sumengine",
+			configPath:               "sumengine/config.yaml",
+			configTemplateString:     sumEngineConfig,
+			kmuxConfigPath:           "/opt/sumengine/kmux-config.yaml",
+			kmuxConfigTemplateString: sumEngineKmuxConfig,
+		},
+		{
+			agentName:                "discover",
+			configPath:               "discover/config.yaml",
+			configTemplateString:     discoverConfig,
+			kmuxConfigPath:           "/opt/discover/kmux-config.yaml",
+			kmuxConfigTemplateString: discoverKmuxConfig,
+		},
+		{
+			agentName:                "hardening-agent",
+			configPath:               "hardening-agent/config.yaml",
+			configTemplateString:     hardeningAgentConfig,
+			kmuxConfigPath:           "/opt/hardening-agent/kmux-config.yaml",
+			kmuxConfigTemplateString: hardeningAgentKmuxConfig,
+		},
+	}
+
+	return agentMeta
 }

@@ -26,6 +26,7 @@ require (
 	github.com/clarketm/json v1.17.1
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/docker/docker v24.0.7+incompatible
+	github.com/fatih/color v1.15.0
 	github.com/gdamore/tcell/v2 v2.6.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-github v17.0.0+incompatible
@@ -140,7 +141,6 @@ require (
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/evertras/bubble-table v0.15.2 // indirect
-	github.com/fatih/color v1.15.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32 // indirect

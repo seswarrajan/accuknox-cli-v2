@@ -240,7 +240,7 @@ services:
       - "KUBEARMOR_PORT={{.RelayServerPort}}"
 
       - "KMUX_LOGS_ENABLED={{.EnableLogs}}"
-      - "KMUX_CONFIG_PATH={{.KmuxConfigPathFS}}"
+      - "KMUX_CONFIG_PATH={{.KmuxConfigPath}}"
 
       - "SPIRE_AGENT_URL=unix:///var/run/spire/agent.sock"
       - "SPIRE_ENABLED=true"
