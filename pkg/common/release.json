@@ -754,11 +754,11 @@
     "pea_image": "accuknox/policy-enforcement-agent",
     "feeder_service_tag": "v0.5.3",
     "feeder_service_image": "accuknox/feeder-service",
-    "discover_tag": "v0.1.28",
+    "discover_tag": "v0.1.29",
     "discover_image": "accuknox/discovery-engine-discover",
-    "sumengine_tag": "v0.1.28",
+    "sumengine_tag": "v0.1.29",
     "sumengine_image": "accuknox/discovery-engine-sumengine",
-    "hardening_agent_tag": "v0.1.28",
+    "hardening_agent_tag": "v0.1.29",
     "hardening_agent_image": "accuknox/discovery-engine-hardening"
   }
 }
