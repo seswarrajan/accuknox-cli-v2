@@ -23,6 +23,8 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 	ic.TCArgs.HardenAddr = "0.0.0.0:32771"
 	ic.TCArgs.VmMode = ic.Mode
 
+	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
+
 	err := SystemdInstall(ic.ClusterConfig)
 	if err != nil {
 		fmt.Println(cm.Red + "Installation failed!! Cleaning up downloaded assets:" + cm.Reset)
