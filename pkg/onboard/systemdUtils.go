@@ -152,6 +152,10 @@ func (cc *ClusterConfig) createSystemdServiceObjects() {
 		if slices.Contains(workerNodeAgents, obj.AgentName) {
 			systemdObjects[i].InstallOnWorkerNode = true
 		}
+
+		if obj.AgentName == cm.SummaryEngine && cc.WorkerNode && cc.DeploySumengine {
+			systemdObjects[i].InstallOnWorkerNode = true
+		}
 	}
 
 	cc.SystemdServiceObjects = systemdObjects

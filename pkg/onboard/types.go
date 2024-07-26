@@ -106,6 +106,8 @@ type ClusterConfig struct {
 	SystemMonitorPath string
 
 	SystemdServiceObjects []SystemdServiceObject
+	DeploySumengine       bool
+	RMQServer             string
 
 	CredentialFunc auth.CredentialFunc
 }
@@ -170,6 +172,7 @@ type TemplateConfigArgs struct {
 	DiscoverRules   string
 	ImagePullPolicy string
 
+	KubeArmorAddr string
 	KubeArmorPort string
 	Hostname      string
 
@@ -179,7 +182,8 @@ type TemplateConfigArgs struct {
 	SIAAddr        string
 	PEAAddr        string
 	HardenAddr     string
-	WorkerNode     bool
+
+	WorkerNode bool
 
 	VmMode VMMode
 

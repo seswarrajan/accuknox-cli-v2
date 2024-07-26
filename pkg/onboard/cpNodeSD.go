@@ -22,6 +22,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 	ic.TCArgs.SIAAddr = "0.0.0.0:32769"
 	ic.TCArgs.PEAAddr = "0.0.0.0:32770"
 	ic.TCArgs.HardenAddr = "0.0.0.0:32771"
+
 	ic.TCArgs.VmMode = ic.Mode
 
 	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
@@ -46,7 +47,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 		ReleaseVersion: ic.AgentsVersion,
 		StreamName:     "knox-gateway",
 		ServerURL:      ic.KnoxGateway,
-		RMQServer:      "0.0.0.0:5672",
+		RMQServer:      ic.RMQServer,
 	}
 
 	fmt.Println(color.MagentaString("\nConfiguring services..."))
@@ -75,6 +76,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 			}
 		}
 
+		// copy additional files
 		for filename, srcPath := range obj.ExtraFilePathSrc {
 			if srcPath == "" {
 				continue

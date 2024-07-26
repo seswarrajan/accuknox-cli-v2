@@ -9,7 +9,6 @@ import (
 
 var (
 	dryRun         bool
-	nodeAddr       string
 	userConfigPath string
 )
 

@@ -24,19 +24,42 @@ func (jc *JoinConfig) JoinSystemdNode() error {
 	}
 
 	// config services
+	kmuxConfigArgs := KmuxConfigTemplateArgs{
+		ReleaseVersion: jc.AgentsVersion,
+		RMQServer:      jc.RMQServer,
+	}
+
 	fmt.Println(color.MagentaString("\nConfiguring services..."))
 	for _, obj := range jc.SystemdServiceObjects {
 		if !obj.InstallOnWorkerNode {
 			continue
 		}
 		if obj.ConfigFilePath != "" {
+			// copy template args
+			tcArgs := jc.TCArgs
+
+			// copy kmux config path for specifying in agent config
+			if obj.KmuxConfigPath != "" {
+				tcArgs.KmuxConfigPath = obj.KmuxConfigPath
+			}
+
 			// copy generic config files
-			_, err = copyOrGenerateFile(jc.UserConfigPath, obj.AgentDir, obj.ConfigFilePath, jc.TemplateFuncs, obj.ConfigTemplateString, jc.TCArgs)
+			_, err = copyOrGenerateFile(jc.UserConfigPath, obj.AgentDir, obj.ConfigFilePath, jc.TemplateFuncs, obj.ConfigTemplateString, tcArgs)
 			if err != nil {
 				return err
 			}
 		}
 
+		// copy kmux config
+		if obj.KmuxConfigPath != "" {
+			// copy generic config files
+			_, err = copyOrGenerateFile(jc.UserConfigPath, obj.AgentDir, cm.KmuxConfigFileName, jc.TemplateFuncs, obj.KmuxConfigTemplateString, kmuxConfigArgs)
+			if err != nil {
+				return err
+			}
+		}
+
+		// copy additional files
 		for filename, srcPath := range obj.ExtraFilePathSrc {
 			if srcPath == "" {
 				continue

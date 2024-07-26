@@ -16,7 +16,8 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 	vmAdapterImage, relayServerImage, siaImage, peaImage,
 	feederImage, sumEngineImage, hardeningAgentImage, spireImage, discoverImage, nodeAddress string, dryRun, workerNode bool,
 	imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
-	cidr string, secureContainers, skipBTF bool, systemMonitorPath string) (*ClusterConfig, error) {
+	cidr string, secureContainers, skipBTF bool, systemMonitorPath string,
+	rmqAddr string, deploySumengine bool) (*ClusterConfig, error) {
 
 	cc := new(ClusterConfig)
 
@@ -86,6 +87,16 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 		return nil, fmt.Errorf("Unknown image tag %s", releaseVersion)
 	}
 	cc.AgentsVersion = releaseVersion
+
+	if rmqAddr != "" {
+		rmqHost, rmqPort, err := parseURL(rmqAddr)
+		if err != nil {
+			return nil, fmt.Errorf("parsing RMQ Address: %s", err.Error())
+		}
+
+		cc.RMQServer = rmqHost + ":" + rmqPort
+	}
+
 	switch cc.Mode {
 
 	case VMMode_Docker:

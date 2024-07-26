@@ -88,6 +88,7 @@ func (ic *InitConfig) CreateBaseTemplateConfig() error {
 		SIAAddr:    "shared-informer-agent:32769",
 		PEAAddr:    "policy-enforcement-agent:32770",
 		HardenAddr: "hardening-agent:32771",
+
 		EnableLogs: ic.EnableLogs,
 
 		PPSHost: ic.PPSHost,

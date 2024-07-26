@@ -14,6 +14,8 @@ var (
 	siaAddr         string
 	peaAddr         string
 	hardenAddr      string
+
+	deploySumegine bool
 )
 
 // joinNodeCmd represents the join command
@@ -23,8 +25,14 @@ var joinNodeCmd = &cobra.Command{
 	Long:  "Join this worker node with the control plane node for onboarding onto SaaS",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// need at least either one of the below flags
-		if nodeAddr == "" && (siaAddr == "" || relayServerAddr == "" || peaAddr == "" || hardenAddr == "") {
-			return fmt.Errorf(color.RedString("cp-node-addr (control-plane address) or address of each agent must be specified"))
+		if nodeAddr == "" {
+			if siaAddr == "" || relayServerAddr == "" || peaAddr == "" || hardenAddr == "" {
+				return fmt.Errorf(color.RedString("cp-node-addr (control-plane address) or address of each agent must be specified"))
+			}
+
+			if deploySumegine && rmqAddress == "" {
+				return fmt.Errorf(color.RedString("cp-node-addr (control-plane address) or address of control plane RabbitMQ server must be specified"))
+			}
 		}
 		// validate environment for pre-requisites
 		var cc onboard.ClusterConfig
@@ -48,7 +56,7 @@ var joinNodeCmd = &cobra.Command{
 			kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, siaImage,
 			peaImage, feederImage, sumEngineImage, hardeningAgentImage, spireAgentImage, discoverImage, nodeAddr, dryRun,
 			true, imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
-			cidr, secureContainers, skipBTF, systemMonitorPath)
+			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine)
 		if err != nil {
 			return fmt.Errorf(color.RedString("failed to create VM config: %s", err.Error()))
 		}
@@ -91,6 +99,9 @@ func init() {
 	joinNodeCmd.PersistentFlags().StringVar(&nodeAddr, "cp-node-addr", "", "address of control plane")
 
 	joinNodeCmd.PersistentFlags().StringVarP(&releaseVersion, "version", "v", "", "version to use - recommended to keep same as control plane node version")
+
+	joinNodeCmd.PersistentFlags().BoolVar(&deploySumegine, "deploy-summary-engine", false, "to deploy summary engine in worker node")
+	joinNodeCmd.PersistentFlags().StringVar(&rmqAddress, "rmq-addr", "", "address of remote RabbitMQ server")
 
 	onboardVMCmd.AddCommand(joinNodeCmd)
 }

@@ -32,6 +32,11 @@ var (
 
 	skipBTF           bool
 	systemMonitorPath string
+
+	// different meaning for both worker node but
+	// declared here as common global variables
+	rmqAddress string
+	nodeAddr   string
 )
 
 // onboardVMCmd represents the sub-command to onboard VM clusters
