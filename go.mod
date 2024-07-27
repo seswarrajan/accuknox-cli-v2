@@ -1,6 +1,6 @@
 module github.com/accuknox/accuknox-cli-v2
 
-go 1.22.0
+go 1.21.0
 
 replace (
 	github.com/etcd-io/bbolt => go.etcd.io/bbolt v1.3.6
@@ -34,6 +34,7 @@ require (
 	github.com/kubearmor/KubeArmor/protobuf v0.0.0-20231019102803-e4e0e68a457b
 	github.com/kubearmor/kubearmor-client v0.14.2
 	github.com/mholt/archiver/v3 v3.5.1
+	github.com/nothinux/certify v1.8.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/rivo/tview v0.0.0-20231115183240-7c9e464bac02
 	github.com/rs/zerolog v1.31.0
@@ -46,6 +47,7 @@ require (
 	golang.org/x/term v0.20.0
 	google.golang.org/grpc v1.59.0
 	gopkg.in/yaml.v2 v2.4.0
+	hermannm.dev/ipfinder v0.2.0
 	k8s.io/api v0.29.0
 	k8s.io/apiextensions-apiserver v0.29.0
 	k8s.io/apimachinery v0.29.0
@@ -334,6 +336,7 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	hermannm.dev/wrap v0.2.0 // indirect
 	k8s.io/component-base v0.28.3 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect

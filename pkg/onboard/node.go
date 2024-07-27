@@ -3,6 +3,7 @@ package onboard
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/Masterminds/sprig"
 	"github.com/accuknox/accuknox-cli-v2/pkg/common"
@@ -20,6 +21,7 @@ func JoinClusterConfig(cc ClusterConfig, kubeArmorAddr, relayServerAddr, siaAddr
 	}
 }
 func (jc *JoinConfig) CreateBaseNodeConfig() error {
+
 	hostname, err := os.Hostname()
 	if err != nil {
 		return err
@@ -118,6 +120,14 @@ func (jc *JoinConfig) CreateBaseNodeConfig() error {
 		NetworkCIDR:                 jc.CIDR,
 		VmMode:                      jc.Mode,
 		SecureContainers:            jc.SecureContainers,
+		TlsEnabled:                  jc.Tls.Enabled,
+		ContainerPolicyTopic:        getTopicName(jc.RMQTopicPrefix, "container-policy"),
+		HostPolicyTopic:             getTopicName(jc.RMQTopicPrefix, "host-policy"),
+		LogsTopic:                   getTopicName(jc.RMQTopicPrefix, "logs"),
+		AlertsTopic:                 getTopicName(jc.RMQTopicPrefix, "alerts"),
+		StateEventTopic:             getTopicName(jc.RMQTopicPrefix, "state-event"),
+		PolicyV1Topic:               getTopicName(jc.RMQTopicPrefix, "policy-v1"),
+		SummaryV2Topic:              getTopicName(jc.RMQTopicPrefix, "summary-v2"),
 	}
 	return nil
 }
@@ -141,9 +151,30 @@ func (jc *JoinConfig) JoinWorkerNode() error {
 	jc.TCArgs.KubeArmorVMAdapterImage = jc.KubeArmorVMAdapterImage
 	jc.TCArgs.ImagePullPolicy = string(jc.ImagePullPolicy)
 	jc.TCArgs.ConfigPath = configPath
+	jc.TCArgs.SumEngineImage = jc.SumEngineImage
+	jc.TCArgs.TlsEnabled = jc.Tls.Enabled
+
+	if jc.Tls.RMQCredentials != "" {
+		rmqData := strings.Split(Decode(jc.Tls.RMQCredentials), ":")
+		if len(rmqData) != 2 {
+			return fmt.Errorf("invalid RMQ credentials")
+		}
+		jc.TCArgs.RMQUsername = rmqData[0]
+		jc.TCArgs.RMQPassword = rmqData[1]
+	}
 
 	// initialize sprig for templating
 	sprigFuncs := sprig.GenericFuncMap()
+
+	if jc.Tls.Enabled {
+		jc.TCArgs.TlsCertFile = fmt.Sprintf("%s%s%s/%s", jc.UserConfigPath, configPath, common.DefaultCACertDir, common.DefaultEncodedFileName)
+		caPath := configPath + "/cert/encoded.pem"
+		if err := StoreCert(map[string]string{
+			caPath: jc.Tls.CaCert,
+		}); err != nil {
+			return err
+		}
+	}
 
 	// write compose file
 	composeFilePath, err := copyOrGenerateFile(jc.UserConfigPath, configPath, "docker-compose.yaml", sprigFuncs, workerNodeComposeFileTemplate, jc.TCArgs)
@@ -151,8 +182,37 @@ func (jc *JoinConfig) JoinWorkerNode() error {
 		return err
 	}
 
+	kmuxConfigArgs := KmuxConfigTemplateArgs{
+		ReleaseVersion: jc.AgentsVersion,
+		RMQServer:      jc.CPNodeAddr + ":5672",
+		RMQUsername:    jc.TCArgs.RMQUsername,
+		RMQPassword:    jc.TCArgs.RMQPassword,
+		TlsEnabled:     jc.TCArgs.TlsEnabled,
+		TlsCertFile:    jc.TCArgs.TlsCertFile,
+	}
+
+	if _, err := copyOrGenerateFile(jc.UserConfigPath, configPath, "sumengine/config.yaml", sprigFuncs, sumEngineConfig, jc.TCArgs); err != nil {
+		return err
+	}
+
+	kmuxConfigFileTemplateMap := map[string]string{
+		"sumengine/kmux-config.yaml":  sumEngineKmuxConfig,
+		"vm-adapter/kmux-config.yaml": sumEngineKmuxConfig,
+	}
+	// Generate or copy kmux config files
+	for filePath, templateString := range kmuxConfigFileTemplateMap {
+		if _, err := copyOrGenerateFile(jc.UserConfigPath, configPath, filePath, sprigFuncs, templateString, kmuxConfigArgs); err != nil {
+			return err
+		}
+	}
+
 	diagnosis := true
-	args := []string{"-f", composeFilePath, "--profile", "kubearmor-only", "up", "-d"}
+
+	args := []string{"-f", composeFilePath, "--profile", "kubearmor-only"}
+	if jc.Tls.Enabled {
+		args = append(args, "--profile", "accuknox-agents")
+	}
+	args = append(args, "up", "-d")
 
 	// need these flags for diagnosis
 	if semver.Compare(jc.composeVersion, common.MinDockerComposeWithWaitSupported) >= 0 {

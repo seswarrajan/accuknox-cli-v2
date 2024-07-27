@@ -25,6 +25,14 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 
 	ic.TCArgs.VmMode = ic.Mode
 
+	if ic.Tls.Enabled {
+		ic.TCArgs.TlsEnabled = ic.Tls.Enabled
+		ic.TCArgs.TlsCertFile = fmt.Sprintf("%s%s%s/%s", ic.UserConfigPath, "/opt", cm.DefaultCACertDir, cm.DefaultEncodedFileName)
+		if err := ic.handleTLS(); err != nil {
+			return err
+		}
+	}
+
 	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
 
 	// initialize sprig for templating
@@ -47,6 +55,11 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 		ReleaseVersion: ic.AgentsVersion,
 		StreamName:     "knox-gateway",
 		ServerURL:      ic.KnoxGateway,
+		RMQServer:      "rabbitmq:5672",
+		RMQUsername:    ic.TCArgs.RMQUsername,
+		RMQPassword:    ic.TCArgs.RMQPassword,
+		TlsEnabled:     ic.TCArgs.TlsEnabled,
+		TlsCertFile:    ic.TCArgs.TlsCertFile,
 	}
 
 	if ic.RMQServer != "" {
@@ -117,6 +130,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 			fmt.Printf("failed to start service %s: %s\n", obj.ServiceName, err.Error())
 			return err
 		}
+
 	}
 
 	// Clean Up

@@ -2,8 +2,18 @@ kubearmor-addr: {{.KubeArmorURL}}
 
 relay-server-addr: {{.RelayServerURL}}
 
+{{- if .TlsEnabled }}
+tls: {{.TlsEnabled}}
+host-policy-topic: {{.HostPolicyTopic}}
+container-policy-topic: {{.ContainerPolicyTopic}}
+state-topic: {{.StateEventTopic}}
+alert-topic: {{.AlertsTopic}}
+logs-topic: {{.LogsTopic}}
+kmux-config: /opt/kubearmor-vm-adapter/kmux-config.yaml
+{{- else }}
 sia-addr: {{.SIAAddr}}
 
 pea-addr: {{.PEAAddr}}
 
 harden-addr: {{.HardenAddr}}
+{{- end }}

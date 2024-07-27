@@ -1,15 +1,22 @@
 kmux:
   sink:
     stream: rabbitmq
-  source:
-    stream: rabbitmq
+  security: spire
+
+spire:
+  spiffeID:
+    format: "spiffe://<domainName>/<WSID>/<ClusterID>/<componentName>"
+  
+  suffixSkipSet:
+    - ".sock"
+    - ".socket"
 
 rabbitmq:
   server: {{.RMQServer}}
   username: {{.RMQUsername}}
   password: {{.RMQPassword}}
   exchange:
-    name: "agents"
+    name: "agents" 
     type: "direct"
     durable: true
     auto-delete: true
@@ -17,6 +24,7 @@ rabbitmq:
     name: ""
     durable: true
     auto-delete: true
+  debug: false
   tls: 
     enabled: {{.TlsEnabled}}
     cert-file: "/opt/cert/encoded.pem"

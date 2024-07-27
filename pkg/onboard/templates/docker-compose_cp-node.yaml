@@ -157,15 +157,32 @@ services:
     depends_on:
       kubearmor:
         condition: service_started
+      summary-engine:
+        condition: service_started
+      discover:
+        condition: service_started
+      {{- if .TlsEnabled }}
+      shared-informer-agent:
+        condition: service_started
+      {{- end }}
     container_name: kubearmor-vm-adapter
     image: "{{.KubeArmorVMAdapterImage}}"
     pull_policy: "{{.ImagePullPolicy}}"
     command:
       - "--kubearmor-addr={{.KubeArmorURL}}"
+      {{- if .TlsEnabled }}
+      - "--tls"
+      - "--host-policy-topic={{.HostPolicyTopic}}"
+      - "--container-policy-topic={{.ContainerPolicyTopic}}"
+      - "--state-topic={{.StateEventTopic}}"
+      - "--alert-topic={{.AlertsTopic}}"
+      - "--logs-topic={{.LogsTopic}}"
+      {{- else }}
       - "--relay-server-addr={{.RelayServerURL}}"
       - "--sia-addr={{.SIAAddr}}"
       - "--pea-addr={{.PEAAddr}}"
       - "--harden-addr={{.HardenAddr}}"
+      {{- end }}
     labels:
       app: kubearmor-vm-adapter
     restart: always
@@ -184,8 +201,10 @@ services:
         condition: service_completed_successfully
       kubearmor:
         condition: service_started
+      {{- if not .TlsEnabled }}
       kubearmor-vm-adapter:
         condition: service_started
+      {{- end }}
     container_name: shared-informer-agent
     image: "{{.SIAImage}}"
     pull_policy: "{{.ImagePullPolicy}}"
@@ -246,6 +265,14 @@ services:
 
       - "SPIRE_AGENT_URL=unix:///var/run/spire/agent.sock"
       - "SPIRE_ENABLED=true"
+      - "TLS_ENABLED=true"
+      - "TLS_CERT_FILE=/opt/cert/encoded.pem"
+      - "RABBITMQ_ENABLED=true"
+      - "RABBITMQ_ALERTS_TOPIC={{.AlertsTopic}}"
+      - "RABBITMQ_LOGS_TOPIC={{.LogsTopic}}"
+      - "POLICY_TOPIC={{.PolicyV1Topic}}"
+      - "SUMMARY_TOPIC={{.SummaryV2Topic}}"
+      - DEPLOY_MODE="vm"
 
     pid: "host"
     networks:
@@ -364,6 +391,7 @@ services:
     container_name: rabbitmq
     ports:
       - "5672:5672"
+      - "5671:5671"
       - "15672:15672"
     restart: always
     pid: "host"  
@@ -371,6 +399,12 @@ services:
       accuknox-net:
         aliases:
           - rabbitmq
+    volumes:
+      - "{{.ConfigPath}}/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf"
+      - "{{.ConfigPath}}/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json"
+      - "{{.ConfigPath}}/rabbitmq/ca_certificate.pem:/etc/ssl/ca_certificate.pem"
+      - "{{.ConfigPath}}/rabbitmq/certificate.pem:/etc/ssl/server_certificate.pem"
+      - "{{.ConfigPath}}/rabbitmq/key.pem:/etc/ssl/server_key.pem"
   {{- end }}
 
 networks:

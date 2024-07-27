@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	workerNodeAgents = []string{cm.KubeArmor, cm.VMAdapter}
+	workerNodeAgents = []string{cm.KubeArmor, cm.VMAdapter, cm.SummaryEngine}
 	cpNodeAgents     = []string{cm.SpireAgent, cm.SIAAgent, cm.PEAAgent, cm.FeederService, cm.SummaryEngine, cm.DiscoverAgent, cm.HardeningAgent}
 )
 
@@ -44,20 +44,22 @@ func (cc *ClusterConfig) createSystemdServiceObjects() {
 			},
 		},
 		{
-			AgentName:             cm.VMAdapter,
-			PackageName:           cm.KubeArmorVMAdapter,
-			ServiceName:           cm.KubeArmorVMAdapter + ".service",
-			AgentDir:              cm.VmAdapterconfigPath,
-			ServiceTemplateString: vmAdapterServiceFile,
-			ConfigFilePath:        "vm-adapter-config.yaml",
-			ConfigTemplateString:  vmAdapterConfig,
-			AgentImage:            cc.KubeArmorVMAdapterImage,
+			AgentName:                cm.VMAdapter,
+			PackageName:              cm.KubeArmorVMAdapter,
+			ServiceName:              cm.KubeArmorVMAdapter + ".service",
+			AgentDir:                 cm.VmAdapterConfigPath,
+			ServiceTemplateString:    vmAdapterServiceFile,
+			ConfigFilePath:           "vm-adapter-config.yaml",
+			ConfigTemplateString:     vmAdapterConfig,
+			AgentImage:               cc.KubeArmorVMAdapterImage,
+			KmuxConfigPath:           filepath.Join(cm.VmAdapterConfigPath, cm.KmuxConfigFileName),
+			KmuxConfigTemplateString: sumEngineKmuxConfig,
 		},
 		{
 			AgentName:             cm.RelayServer,
 			PackageName:           cm.RelayServer,
 			ServiceName:           cm.RelayServer + ".service",
-			AgentDir:              cm.RelayServerconfigPath,
+			AgentDir:              cm.RelayServerConfigPath,
 			ServiceTemplateString: relayServerServiceFile,
 			AgentImage:            cc.KubeArmorRelayServerImage,
 		},
@@ -65,7 +67,7 @@ func (cc *ClusterConfig) createSystemdServiceObjects() {
 			AgentName:            cm.SpireAgent,
 			PackageName:          cm.SpireAgent,
 			ServiceName:          cm.SpireAgent + ".service",
-			AgentDir:             cm.SpireconfigPath,
+			AgentDir:             cm.SpireConfigPath,
 			ConfigFilePath:       "conf/agent/agent.conf",
 			ConfigTemplateString: spireAgentConfig,
 			AgentImage:           cc.SPIREAgentImage,
@@ -354,6 +356,9 @@ func (cc *ClusterConfig) SystemdInstall() error {
 }
 
 func StartSystemdService(serviceName string) error {
+	if serviceName == "" {
+		return nil
+	}
 	ctx := context.Background()
 	// Connect to systemd dbus
 	conn, err := dbus.NewWithContext(ctx)

@@ -14,3 +14,5 @@ hardening:
     enable: false
   state-agent:
     port: "32771"
+  state-topic: {{.StateEventTopic}}
+  tls-enabled: {{.TlsEnabled}}
