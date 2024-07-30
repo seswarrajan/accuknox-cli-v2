@@ -25,13 +25,14 @@ func (jc *JoinConfig) CreateBaseNodeConfig() error {
 		return err
 	}
 	kubeArmorURL := "localhost:32767"
+	kubeArmorAddr := ""
 	kubeArmorPort := "32767"
 	if jc.KubeArmorAddr != "" {
 		kubeArmorURL = jc.KubeArmorAddr
-		_, kubeArmorPort, err = parseURL(kubeArmorURL)
-		if err != nil {
-			return err
-		}
+	}
+	kubeArmorAddr, kubeArmorPort, err = parseURL(kubeArmorURL)
+	if err != nil {
+		return err
 	}
 
 	// parse URL and assign default values as needed
@@ -76,10 +77,21 @@ func (jc *JoinConfig) CreateBaseNodeConfig() error {
 	} else {
 		return fmt.Errorf("Hardening Agent address cannot be empty")
 	}
+
+	// RMQServer that would be used by summary engine
+	if jc.DeploySumengine {
+		if jc.RMQServer == "" && jc.CPNodeAddr != "" {
+			jc.RMQServer = jc.CPNodeAddr + ":" + "5672"
+		} else {
+			return fmt.Errorf("RMQ address cannot be empty")
+		}
+	}
+
 	jc.TCArgs = TemplateConfigArgs{
 		Hostname: hostname,
 
 		// for vm-adapter
+		KubeArmorAddr: kubeArmorAddr,
 		KubeArmorURL:  kubeArmorURL,
 		KubeArmorPort: kubeArmorPort,
 

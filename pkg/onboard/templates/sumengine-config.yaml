@@ -4,10 +4,16 @@ watcher:
     logs: true
     alerts: true
   kubearmor-relay:
-    name: relay-1
     enabled: true
+{{- if .WorkerNode }}
+    name: kubearmor
+    url: {{.KubeArmorAddr}}
+    port: {{.KubeArmorPort}}
+{{- else }}
+    name: relay-1
     url: {{.RelayServerAddr}}
     port: {{.RelayServerPort}}
+{{- end }}
 
 summary-engine:
   enabled: true

@@ -1,6 +1,9 @@
 package common
 
-import "time"
+import (
+	"path/filepath"
+	"time"
+)
 
 const (
 	SpecialRegexChars = `.*+?()|[]{}^$`
@@ -66,19 +69,20 @@ const (
 	MinDockerComposeVersion           = "v1.27.0"
 	MinDockerComposeWithWaitSupported = "v2.17.0"
 
-	Download_dir string = "/tmp/accuknox-downloads/"
+	DownloadDir string = "/tmp/accuknox-downloads/"
 
 	// agents names
-	KA_Vm_Adapter   string = "kubearmor-vm-adapter" // to identify service
-	Vm_adapter      string = "vm-adapter"           // for download package
-	Relay_server    string = "kubearmor-relay-server"
-	Spire_agent     string = "spire-agent"
-	Pea_agent       string = "accuknox-policy-enforcement-agent"
-	Sia_agent       string = "accuknox-shared-informer-agent"
-	Feeder_service  string = "accuknox-feeder-service"
-	Summary_Engine  string = "accuknox-sumengine"
-	Discover_Agent  string = "accuknox-discover"
-	Hardening_Agent string = "accuknox-hardening-agent"
+	KubeArmor          string = "kubearmor"
+	KubeArmorVMAdapter string = "kubearmor-vm-adapter" // to identify service
+	VMAdapter          string = "vm-adapter"           // for download package
+	RelayServer        string = "kubearmor-relay-server"
+	SpireAgent         string = "spire-agent"
+	PEAAgent           string = "accuknox-policy-enforcement-agent"
+	SIAAgent           string = "accuknox-shared-informer-agent"
+	FeederService      string = "accuknox-feeder-service"
+	SummaryEngine      string = "accuknox-sumengine"
+	DiscoverAgent      string = "accuknox-discover"
+	HardeningAgent     string = "accuknox-hardening-agent"
 
 	//config paths for systemd mode
 	KAconfigPath             string = "/opt/kubearmor/"
@@ -96,12 +100,8 @@ const (
 	PeaPolicyPath string = "/opt/pea/"
 
 	//systemd path
-	SystemdDir string = "/usr/lib/systemd/system/"
-
-	// color coding for logs
-	Red   = "\033[31m"
-	Reset = "\033[0m"
-	Green = "\033[32m"
+	SystemdDir         string = "/usr/lib/systemd/system/"
+	KmuxConfigFileName string = "kmux-config.yaml"
 
 	// KubeArmor gRPC service port
 	KubeArmorGRPCAddress string = "localhost:32767"
@@ -123,6 +123,21 @@ var (
 	SysNwHeader = []string{"Protocol", "Command", "POD/SVC/IP", "Port", "Count", "Last Updated Time"}
 	// SysBindNwHeader variable contains protocol, command, Bind Port, Bind Address, count and timestamp
 	SysBindNwHeader = []string{"Protocol", "Command", "Bind Port", "Bind Address", "Count", "Last Updated Time"}
+
+	AgentRepos = map[string]string{
+		KubeArmor:      "docker.io/kubearmor/kubearmor-systemd",
+		VMAdapter:      "docker.io/accuknox/vm-adapter-systemd",
+		RelayServer:    "docker.io/accuknox/kubearmor-relay-server-systemd",
+		PEAAgent:       "docker.io/accuknox/accuknox-policy-enforcement-agent-systemd",
+		SIAAgent:       "docker.io/accuknox/accuknox-shared-informer-agent-systemd",
+		FeederService:  "docker.io/accuknox/accuknox-feeder-service-systemd",
+		SpireAgent:     "docker.io/accuknox/spire-agent-systemd",
+		SummaryEngine:  "docker.io/accuknox/accuknox-sumengine-systemd",
+		DiscoverAgent:  "docker.io/accuknox/accuknox-discover-systemd",
+		HardeningAgent: "docker.io/accuknox/accuknox-hardening-agent-systemd",
+	}
+
+	KASystemMonitorPath string = filepath.Join(KAconfigPath, "BPF", "system_monitor.bpf.o")
 )
 
 // Timeoutes

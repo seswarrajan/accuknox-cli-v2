@@ -1,6 +1,6 @@
 [Unit]
 Description=accuknox-policy-enforcement-agent
-After=kubearmor.service kubearmor-vm-adapter.service
+After=kubearmor.service kubearmor-vm-adapter.service spire-agent.service
 
 [Service]
 User=root

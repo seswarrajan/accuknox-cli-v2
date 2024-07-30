@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
 	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -14,6 +14,8 @@ var (
 	siaAddr         string
 	peaAddr         string
 	hardenAddr      string
+
+	deploySumegine bool
 )
 
 // joinNodeCmd represents the join command
@@ -23,70 +25,66 @@ var joinNodeCmd = &cobra.Command{
 	Long:  "Join this worker node with the control plane node for onboarding onto SaaS",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// need at least either one of the below flags
-		if nodeAddr == "" && (siaAddr == "" || relayServerAddr == "" || peaAddr == "" || hardenAddr == "") {
-			return fmt.Errorf("cp-node-addr (control-plane address) or address of each agent must be specified")
+		if nodeAddr == "" {
+			if siaAddr == "" || relayServerAddr == "" || peaAddr == "" || hardenAddr == "" {
+				return fmt.Errorf(color.RedString("cp-node-addr (control-plane address) or address of each agent must be specified"))
+			}
+
+			if deploySumegine && rmqAddress == "" {
+				return fmt.Errorf(color.RedString("cp-node-addr (control-plane address) or address of control plane RabbitMQ server must be specified"))
+			}
 		}
 		// validate environment for pre-requisites
-		var (
-			cc               onboard.ClusterConfig
-			secureContainers = true
-		)
+		var cc onboard.ClusterConfig
 		_, err := cc.ValidateEnv()
 		if vmMode == "" {
 			if err == nil {
 				vmMode = onboard.VMMode_Docker
 			} else {
-				fmt.Printf("Warning: Docker requirements did not match:\n%s.\nFalling back to systemd mode for installation.\n", err.Error())
+				fmt.Printf(
+					color.YellowString("Warning: Docker requirements did not match:\n%s.\nFalling back to systemd mode for installation.\n", err.Error()))
 				vmMode = onboard.VMMode_Systemd
-				secureContainers = false
-			}
-		} else if vmMode == onboard.VMMode_Systemd {
-			// systemd mode explicitly specified
-			if err != nil {
-				// docker requirements didn't meet - containers won't be protected
-				secureContainers = false
 			}
 		} else if vmMode == onboard.VMMode_Docker && err != nil {
 			// docker mode specified explicitly but requirements didn't match
-			return fmt.Errorf("failed to validate environment: %s", err.Error())
+			return fmt.Errorf(color.RedString("failed to validate environment: %s", err.Error()))
 		}
+
 		vmConfigs, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, vmMode,
 			vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag,
 			feederVersionTag, sumEngineVersionTag, discoverVersionTag, hardeningAgentVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
 			kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, siaImage,
 			peaImage, feederImage, sumEngineImage, hardeningAgentImage, spireAgentImage, discoverImage, nodeAddr, dryRun,
-			true, imagePullPolicy, visibility, hostVisibility,
-			audit, block, cidr, secureContainers)
+			true, imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
+			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine)
 		if err != nil {
-			return fmt.Errorf("failed to create VM config: %s", err.Error())
+			return fmt.Errorf(color.RedString("failed to create VM config: %s", err.Error()))
 		}
 		joinConfig := onboard.JoinClusterConfig(*vmConfigs, kubeArmorAddr, relayServerAddr, siaAddr, peaAddr, hardenAddr)
 
 		err = joinConfig.CreateBaseNodeConfig()
 		if err != nil {
-			return fmt.Errorf("failed to create VM config: %s", err.Error())
+			return fmt.Errorf(color.RedString("failed to create VM config: %s", err.Error()))
 		}
 
 		switch vmMode {
 
 		case onboard.VMMode_Systemd:
-
 			if err := joinConfig.JoinSystemdNode(); err != nil {
-				return fmt.Errorf("failed to join worker node: %s", err.Error())
+				return fmt.Errorf(color.RedString("failed to join worker node: %s", err.Error()))
 			}
-			fmt.Println(cm.Green + "VM successfully joined with control-plane!" + cm.Reset)
 
 		case onboard.VMMode_Docker:
 			err = joinConfig.JoinWorkerNode()
 			if err != nil {
-				return fmt.Errorf("failed to join worker node: %s", err.Error())
+				return fmt.Errorf(color.RedString("failed to join worker node: %s", err.Error()))
 			}
-			fmt.Println(cm.Green + "VM successfully joined with control-plane!" + cm.Reset)
 
 		default:
-			fmt.Printf("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
+			return fmt.Errorf(color.RedString("vm mode: %s invalid, accepted values (docker/systemd)", vmMode))
 		}
 
+		fmt.Println(color.GreenString("VM successfully joined with control-plane!"))
 		return nil
 	},
 }
@@ -101,6 +99,9 @@ func init() {
 	joinNodeCmd.PersistentFlags().StringVar(&nodeAddr, "cp-node-addr", "", "address of control plane")
 
 	joinNodeCmd.PersistentFlags().StringVarP(&releaseVersion, "version", "v", "", "version to use - recommended to keep same as control plane node version")
+
+	joinNodeCmd.PersistentFlags().BoolVar(&deploySumegine, "deploy-summary-engine", false, "to deploy summary engine in worker node")
+	joinNodeCmd.PersistentFlags().StringVar(&rmqAddress, "rmq-addr", "", "address of remote RabbitMQ server")
 
 	onboardVMCmd.AddCommand(joinNodeCmd)
 }

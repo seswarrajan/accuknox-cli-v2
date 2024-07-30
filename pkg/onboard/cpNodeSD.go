@@ -2,13 +2,14 @@ package onboard
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/Masterminds/sprig"
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
+	"github.com/fatih/color"
 )
 
 func (ic *InitConfig) InitializeControlPlaneSD() error {
-
 	ic.TCArgs.KubeArmorURL = "0.0.0.0:32767"
 	ic.TCArgs.KubeArmorPort = "32767"
 
@@ -21,119 +22,95 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 	ic.TCArgs.SIAAddr = "0.0.0.0:32769"
 	ic.TCArgs.PEAAddr = "0.0.0.0:32770"
 	ic.TCArgs.HardenAddr = "0.0.0.0:32771"
+
 	ic.TCArgs.VmMode = ic.Mode
 
 	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
 
-	err := SystemdInstall(ic.ClusterConfig)
+	// initialize sprig for templating
+	ic.TemplateFuncs = sprig.GenericFuncMap()
+
+	// download and extract systemd packages
+	fmt.Println(color.MagentaString("Downloading agents..."))
+	err := ic.SystemdInstall()
 	if err != nil {
-		fmt.Println(cm.Red + "Installation failed!! Cleaning up downloaded assets:" + cm.Reset)
+		fmt.Println(color.RedString("Installation failed!! Cleaning up downloaded assets..."))
 		// ignoring G104 - can't send nil in installation failed case
-		Deletedir(cm.Download_dir)
+		Deletedir(cm.DownloadDir)
 		DeboardSystemd(NodeType_ControlPlane) // #nosec G104
 		return err
 	}
-	ic.TCArgs.KmuxConfigPathFS = "/opt/accuknox-feeder-service/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathSIA = "/opt/accuknox-shared-informer-agent/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathPEA = "/opt/accuknox-policy-enforcement-agent/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathSumengine = "/opt/accuknox-sumengine/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathDiscover = "/opt/accuknox-discover/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathHardeningAgent = "/opt/accuknox-hardening-agent/kmux-config.yaml"
 
-	// initialize sprig for templating
-	sprigFuncs := sprig.GenericFuncMap()
-
-	configs := []struct {
-		userConfigDir  string
-		dirPath        string
-		filePath       string
-		templateString string
-	}{
-		{"", cm.KAconfigPath, "kubearmor.yaml", kubeArmorConfig},
-		{"", cm.VmAdapterconfigPath, "vm-adapter-config.yaml", vmAdapterConfig},
-		{ic.UserConfigPath, cm.PEAconfigPath, "conf/application.yaml", peaConfig},
-		{ic.UserConfigPath, cm.SIAconfigPath, "conf/app.yaml", siaConfig},
-		{ic.UserConfigPath, cm.SpireconfigPath, "conf/agent/agent.conf", spireAgentConfig},
-		{ic.UserConfigPath, cm.FSconfigPath, "conf/env", fsEnvVal},
-		{ic.UserConfigPath, cm.DiscoverConfigPath, "conf/config.yaml", discoverConfig},
-		{ic.UserConfigPath, cm.SumEngineConfigPath, "conf/config.yaml", sumEngineConfig},
-		{ic.UserConfigPath, cm.HardeningAgentConfigPath, "conf/config.yaml", hardeningAgentConfig},
-	}
-
-	for _, cfg := range configs {
-		_, err = copyOrGenerateFile(cfg.userConfigDir, cfg.dirPath, cfg.filePath, sprigFuncs, cfg.templateString, ic.TCArgs)
-		if err != nil {
-			return err
-		}
-	}
+	// copy config files according to custom configuration specified by the user
 
 	kmuxConfigArgs := KmuxConfigTemplateArgs{
 		ReleaseVersion: ic.AgentsVersion,
 		StreamName:     "knox-gateway",
 		ServerURL:      ic.KnoxGateway,
-		RMQServer:      "0.0.0.0:5672",
+		RMQServer:      ic.RMQServer,
 	}
 
-	dirPathTemplateMap := map[string]string{
-		cm.SIAconfigPath:            kmuxConfig,
-		cm.FSconfigPath:             kmuxConfig,
-		cm.PEAconfigPath:            kmuxConfig,
-		cm.SumEngineConfigPath:      sumEngineKmuxConfig,
-		cm.DiscoverConfigPath:       discoverKmuxConfig,
-		cm.HardeningAgentConfigPath: hardeningAgentKmuxConfig,
-	}
+	fmt.Println(color.MagentaString("\nConfiguring services..."))
+	for _, obj := range ic.SystemdServiceObjects {
+		// copy generic config files
+		if obj.ConfigFilePath != "" {
+			// copy template args
+			tcArgs := ic.TCArgs
 
-	for dirPath, templateString := range dirPathTemplateMap {
-		_, err = copyOrGenerateFile(ic.UserConfigPath, dirPath, "kmux-config.yaml", sprigFuncs, templateString, kmuxConfigArgs)
-		if err != nil {
-			return err
+			// copy kmux config path for specifying in agent config
+			if obj.KmuxConfigPath != "" {
+				tcArgs.KmuxConfigPath = obj.KmuxConfigPath
+			}
+
+			_, err = copyOrGenerateFile(ic.UserConfigPath, obj.AgentDir, obj.ConfigFilePath, ic.TemplateFuncs, obj.ConfigTemplateString, tcArgs)
+			if err != nil {
+				return err
+			}
 		}
+
+		// copy kmux config
+		if obj.KmuxConfigPath != "" {
+			_, err = copyOrGenerateFile(ic.UserConfigPath, obj.AgentDir, cm.KmuxConfigFileName, ic.TemplateFuncs, obj.KmuxConfigTemplateString, kmuxConfigArgs)
+			if err != nil {
+				return err
+			}
+		}
+
+		// copy additional files
+		for filename, srcPath := range obj.ExtraFilePathSrc {
+			if srcPath == "" {
+				continue
+			}
+
+			destPath, ok := obj.ExtraFilePathDest[filename]
+			if !ok {
+				fmt.Println(color.YellowString("Warning! No destination for extra file %s", filename))
+				continue
+			}
+
+			srcPathDir := filepath.Dir(srcPath)
+			destPathDir := filepath.Dir(destPath)
+
+			_, err = copyOrGenerateFile(srcPathDir, destPathDir, filename, nil, "", nil)
+			if err != nil {
+				return err
+			}
+		}
+
 	}
 
-	services := []string{"spire-agent.service", "kubearmor.service", "kubearmor-relay-server.service", "kubearmor-vm-adapter.service", "accuknox-policy-enforcement-agent.service", "accuknox-shared-informer-agent.service", "accuknox-feeder-service.service", "accuknox-sumengine.service", "accuknox-discover.service", "accuknox-hardening-agent.service"}
-
-	for _, serviceName := range services {
-		err = StartSystemdService(serviceName)
+	// FINALLY START THE SYSTEMD SERVICES //
+	fmt.Println(color.MagentaString("\nEnabling services..."))
+	for _, obj := range ic.SystemdServiceObjects {
+		err = StartSystemdService(obj.ServiceName)
 		if err != nil {
-			fmt.Printf("failed to start service %s: %s\n", serviceName, err.Error())
+			fmt.Printf("failed to start service %s: %s\n", obj.ServiceName, err.Error())
 			return err
 		}
 	}
 
 	// Clean Up
-	fmt.Println("Cleaning up downloaded assets")
-	Deletedir(cm.Download_dir)
-	return nil
-
-}
-func placeServiceFiles(workernode bool) error {
-	sprigFuncs := sprig.GenericFuncMap()
-
-	_, err := copyOrGenerateFile("", cm.SystemdDir, cm.Vm_adapter+".service", sprigFuncs, vmAdapterServiceFile, interface{}(nil))
-	if err != nil {
-		return err
-	}
-
-	if workernode {
-		return nil
-	}
-
-	filePathTemplateMap := map[string]string{
-		cm.Feeder_service + ".service":  feederServiceFile,
-		cm.Pea_agent + ".service":       peaServiceFile,
-		cm.Sia_agent + ".service":       siaServiceFile,
-		cm.Relay_server + ".service":    relayServerServiceFile,
-		cm.Summary_Engine + ".service":  sumEngineFile,
-		cm.Discover_Agent + ".service":  discoverFile,
-		cm.Hardening_Agent + ".service": hardeningAgentFile,
-	}
-
-	for filePath, templateString := range filePathTemplateMap {
-		_, err = copyOrGenerateFile("", cm.SystemdDir, filePath, sprigFuncs, templateString, interface{}(nil))
-		if err != nil {
-			return err
-		}
-	}
-
+	fmt.Println(color.BlueString("\nCleaning up downloaded assets..."))
+	Deletedir(cm.DownloadDir)
 	return nil
 }
