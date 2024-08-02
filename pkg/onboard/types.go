@@ -52,8 +52,9 @@ const (
 )
 
 type ClusterConfig struct {
-	DefaultConfigPath string
-	UserConfigPath    string
+	DefaultConfigPath  string
+	UserConfigPath     string
+	RegistryConfigPath string
 
 	ClusterType      ClusterType
 	KubeArmorVersion string
@@ -109,7 +110,7 @@ type ClusterConfig struct {
 	DeploySumengine       bool
 	RMQServer             string
 
-	CredentialFunc auth.CredentialFunc
+	ORASClient *auth.Client
 }
 
 type InitConfig struct {

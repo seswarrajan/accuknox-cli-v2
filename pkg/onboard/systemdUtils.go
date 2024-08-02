@@ -19,8 +19,6 @@ import (
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
-	"oras.land/oras-go/v2/registry/remote/auth"
-	"oras.land/oras-go/v2/registry/remote/retry"
 )
 
 var (
@@ -180,7 +178,7 @@ func (cc *ClusterConfig) placeServiceFiles(workerNode bool) error {
 }
 
 // downloadAgent downloads agents as OCI artifiacts
-func downloadAgent(agentName, agentRepo, agentTag string) (string, error) {
+func (cc *ClusterConfig) downloadAgent(agentName, agentRepo, agentTag string) (string, error) {
 	fs, err := file.New(cm.DownloadDir)
 	if err != nil {
 		return "", err
@@ -194,11 +192,7 @@ func downloadAgent(agentName, agentRepo, agentTag string) (string, error) {
 		return "", err
 	}
 
-	repo.Client = &auth.Client{
-		Client: retry.DefaultClient,
-		//Cache:      auth.NewCache(),
-		//Credential: cc.CredentialFunc,
-	}
+	repo.Client = cc.ORASClient
 
 	_, err = oras.Copy(ctx, repo, agentTag, fs, agentTag, oras.DefaultCopyOptions)
 	if err != nil {
@@ -278,8 +272,8 @@ func extractAgent(fileName string) error {
 
 // InstallAgent downloads agent using downloadAgent.
 // It disables the systemd service first if it is running
-func installAgent(agentName, agentRepo, agentTag string) error {
-	fileName, err := downloadAgent(agentName, agentRepo, agentTag)
+func (cc *ClusterConfig) installAgent(agentName, agentRepo, agentTag string) error {
+	fileName, err := cc.downloadAgent(agentName, agentRepo, agentTag)
 	if err != nil {
 		return err
 	}
@@ -331,7 +325,7 @@ func (cc *ClusterConfig) SystemdInstall() error {
 			return fmt.Errorf("Invalid image: %s", obj.AgentImage)
 		}
 
-		err = installAgent(obj.AgentName, packageMeta[0], packageMeta[1])
+		err = cc.installAgent(obj.AgentName, packageMeta[0], packageMeta[1])
 		if err != nil {
 			//fmt.Println(err)
 			return err

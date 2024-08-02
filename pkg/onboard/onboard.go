@@ -17,7 +17,7 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 	feederImage, sumEngineImage, hardeningAgentImage, spireImage, discoverImage, nodeAddress string, dryRun, workerNode bool,
 	imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
 	cidr string, secureContainers, skipBTF bool, systemMonitorPath string,
-	rmqAddr string, deploySumengine bool) (*ClusterConfig, error) {
+	rmqAddr string, deploySumengine bool, registryConfigPath string) (*ClusterConfig, error) {
 
 	cc := new(ClusterConfig)
 
@@ -250,6 +250,27 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 	if vmMode == VMMode_Systemd {
 		// create systemd service objects
 		cc.createSystemdServiceObjects()
+
+		var err error
+		// prepare OAuth cerdentials
+		loginOptions := LoginOptions{
+			// TODO: custom registry
+			Registry: "docker.io",
+		}
+
+		if registryConfigPath == "" {
+			loginOptions.RegistryConfigPath, err = getDockerConfigPath("")
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			loginOptions.RegistryConfigPath = registryConfigPath
+		}
+
+		cc.ORASClient, err = loginOptions.ORASGetAuthClient()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return cc, nil

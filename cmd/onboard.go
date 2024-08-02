@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	dryRun         bool
-	userConfigPath string
+	dryRun             bool
+	userConfigPath     string
+	registryConfigPath string
 )
 
 // onboardCmd represents the onboard non-k8s cluster command
@@ -37,6 +38,8 @@ func init() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	onboardCmd.PersistentFlags().StringVarP(&registryConfigPath, "registry-config-path", "", "", "path to pre-existing OCI registry config")
 
 	onboardCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "only generate manifests and don't onboard anything")
 	onboardCmd.PersistentFlags().Lookup("dry-run").NoOptDefVal = "true"
