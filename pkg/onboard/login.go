@@ -171,8 +171,9 @@ func (lo *LoginOptions) isPlainHttp(registry string) bool {
 }
 
 func (lo *LoginOptions) authClient() (client *auth.Client, err error) {
+	// ignoring G402 - upto user to use secure connection
 	config := &tls.Config{
-		InsecureSkipVerify: lo.Insecure,
+		InsecureSkipVerify: lo.Insecure, // #nosec G402
 	}
 
 	baseTransport := http.DefaultTransport.(*http.Transport).Clone()

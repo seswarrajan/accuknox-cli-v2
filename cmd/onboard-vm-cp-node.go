@@ -86,7 +86,7 @@ var cpNodeCmd = &cobra.Command{
 			kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, siaImage,
 			peaImage, feederImage, sumEngineImage, hardeningAgentImage, spireAgentImage, discoverImage, nodeAddr, dryRun,
 			false, imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
-			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine, registryConfigPath)
+			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine, registry, registryConfigPath, insecure, plainHTTP, preserveUpstream)
 		if err != nil {
 			return fmt.Errorf(color.RedString("failed to create cluster config: %s", err.Error()))
 		}

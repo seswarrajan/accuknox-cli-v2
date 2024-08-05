@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 
@@ -319,7 +318,7 @@ func (cc *ClusterConfig) SystemdInstall() error {
 			fmt.Println(color.YellowString("Failed to stop existing systemd service %s: %s", obj.ServiceName, err.Error()))
 		}
 
-		fmt.Printf(color.CyanString("Downloading %s...\n", obj.AgentName))
+		fmt.Printf(color.CyanString("Downloading Agent - %s | Image - %s\n", obj.AgentName, obj.AgentImage))
 		packageMeta := strings.Split(obj.AgentImage, ":")
 		if len(packageMeta) != 2 {
 			return fmt.Errorf("Invalid image: %s", obj.AgentImage)
@@ -354,25 +353,6 @@ func (cc *ClusterConfig) SystemdInstall() error {
 	fmt.Println(color.GreenString("All agents downloaded successfully."))
 
 	return nil
-}
-
-func GetSystemdPackage(customImage, defaultImage, customTag, defaultTag string) string {
-	if customImage != "" {
-		return customImage
-	}
-
-	tagSuffix := "_" + runtime.GOOS + "-" + runtime.GOARCH
-	tag := ""
-	if customTag != "" {
-		tag = strings.TrimPrefix(customTag, "v")
-		if !strings.HasSuffix(customTag, tagSuffix) {
-			tag = tag + tagSuffix
-		}
-	} else {
-		tag = strings.TrimPrefix(defaultTag, "v") + tagSuffix
-	}
-
-	return defaultImage + ":" + tag
 }
 
 func StartSystemdService(serviceName string) error {

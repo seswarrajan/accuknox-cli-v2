@@ -2,6 +2,7 @@ package common
 
 import (
 	"path/filepath"
+	"runtime"
 	"time"
 )
 
@@ -53,12 +54,16 @@ const (
 
 	DefaultConfigPathDirName = ".accuknox-config"
 
-	// KubeArmor related image/image registries are fixed as of now
-	DefaultKubeArmorImage     = "kubearmor/kubearmor:"
-	DefaultKubeArmorInitImage = "kubearmor/kubearmor-init:"
-	DefaultRelayServerImage   = "accuknox/kubearmor-relay-server:"
-	DefaultVMAdapterImage     = "accuknox/vm-adapter:"
+	DefaultDockerRegistry = "docker.io"
 
+	// KubeArmor related image/image registries are fixed as of now
+	DefaultKubeArmorRepo      = "kubearmor"
+	DefaultKubeArmorImage     = "kubearmor/kubearmor"
+	DefaultKubeArmorInitImage = "kubearmor/kubearmor-init"
+	DefaultRelayServerImage   = "accuknox/kubearmor-relay-server"
+	DefaultVMAdapterImage     = "accuknox/vm-adapter"
+
+	DefaultAccuKnoxRepo = "accuknox"
 	// Agent images change/have changed over release versions
 	// deprecated - do not use
 	DefaultPEAImage    = "public.ecr.aws/k9v9d5v2/policy-enforcement-agent:"
@@ -126,17 +131,19 @@ var (
 	// SysBindNwHeader variable contains protocol, command, Bind Port, Bind Address, count and timestamp
 	SysBindNwHeader = []string{"Protocol", "Command", "Bind Port", "Bind Address", "Count", "Last Updated Time"}
 
+	SystemdTagSuffix = "_" + runtime.GOOS + "-" + runtime.GOARCH
+
 	AgentRepos = map[string]string{
-		KubeArmor:      "docker.io/kubearmor/kubearmor-systemd",
-		VMAdapter:      "docker.io/accuknox/vm-adapter-systemd",
-		RelayServer:    "docker.io/accuknox/kubearmor-relay-server-systemd",
-		PEAAgent:       "docker.io/accuknox/accuknox-policy-enforcement-agent-systemd",
-		SIAAgent:       "docker.io/accuknox/accuknox-shared-informer-agent-systemd",
-		FeederService:  "docker.io/accuknox/accuknox-feeder-service-systemd",
-		SpireAgent:     "docker.io/accuknox/spire-agent-systemd",
-		SummaryEngine:  "docker.io/accuknox/accuknox-sumengine-systemd",
-		DiscoverAgent:  "docker.io/accuknox/accuknox-discover-systemd",
-		HardeningAgent: "docker.io/accuknox/accuknox-hardening-agent-systemd",
+		KubeArmor:      "kubearmor/kubearmor-systemd",
+		VMAdapter:      "accuknox/vm-adapter-systemd",
+		RelayServer:    "accuknox/kubearmor-relay-server-systemd",
+		PEAAgent:       "accuknox/accuknox-policy-enforcement-agent-systemd",
+		SIAAgent:       "accuknox/accuknox-shared-informer-agent-systemd",
+		FeederService:  "accuknox/accuknox-feeder-service-systemd",
+		SpireAgent:     "accuknox/spire-agent-systemd",
+		SummaryEngine:  "accuknox/accuknox-sumengine-systemd",
+		DiscoverAgent:  "accuknox/accuknox-discover-systemd",
+		HardeningAgent: "accuknox/accuknox-hardening-agent-systemd",
 	}
 
 	KASystemMonitorPath string = filepath.Join(KAconfigPath, "BPF", "system_monitor.bpf.o")

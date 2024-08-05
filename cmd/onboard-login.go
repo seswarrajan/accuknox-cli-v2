@@ -10,7 +10,6 @@ import (
 var (
 	username string
 	password string
-	registry string
 
 	usernameSTDIN bool
 	passwordSTDIN bool
@@ -65,7 +64,6 @@ var loginCmd = &cobra.Command{
 }
 
 func init() {
-	loginCmd.PersistentFlags().StringVarP(&registry, "registry", "r", "docker.io", "the registry to authneticate with (default - DockerHub)")
 
 	loginCmd.PersistentFlags().StringVarP(&username, "username", "u", "", "username for authenticating")
 
@@ -75,7 +73,7 @@ func init() {
 	loginCmd.PersistentFlags().BoolVarP(&idTokenSTDIN, "identity-token-stdin", "", false, "identity-token from stdin")
 
 	loginCmd.PersistentFlags().BoolVarP(&plainHTTP, "plain-http", "", false, "allow insecre connections with registry without TLS")
-	loginCmd.PersistentFlags().BoolVarP(&insecure, "insecure", "", false, "allow insecure connections with registry")
+	loginCmd.PersistentFlags().BoolVarP(&insecure, "insecure", "", true, "allow insecure connections with registry")
 
 	loginCmd.MarkFlagsMutuallyExclusive("password", "password-stdin", "identity-token", "identity-token-stdin")
 

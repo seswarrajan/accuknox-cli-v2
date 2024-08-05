@@ -482,3 +482,15 @@ func ReadLine(reader io.Reader) ([]byte, error) {
 	}
 	return bytes.TrimSuffix(line, []byte{'\r'}), nil
 }
+
+// splitLast splits at the last index of separator
+func splitLast(fullString, seperator string) []string {
+	colonIdx := strings.LastIndex(fullString, seperator)
+
+	// bound check
+	if colonIdx <= 0 || colonIdx == (len(fullString)-1) {
+		return []string{fullString}
+	}
+
+	return []string{fullString[:colonIdx], fullString[colonIdx+1:]}
+}

@@ -11,6 +11,7 @@ var (
 	dryRun             bool
 	userConfigPath     string
 	registryConfigPath string
+	registry           string
 )
 
 // onboardCmd represents the onboard non-k8s cluster command
@@ -39,6 +40,7 @@ func init() {
 		os.Exit(1)
 	}
 
+	onboardCmd.PersistentFlags().StringVarP(&registry, "registry", "r", "docker.io", "the registry to authneticate with (default - DockerHub)")
 	onboardCmd.PersistentFlags().StringVarP(&registryConfigPath, "registry-config-path", "", "", "path to pre-existing OCI registry config")
 
 	onboardCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "only generate manifests and don't onboard anything")
