@@ -84,6 +84,8 @@ const (
 	DiscoverAgent      string = "accuknox-discover"
 	HardeningAgent     string = "accuknox-hardening-agent"
 
+	InContainerConfigDir string = "/opt"
+
 	//config paths for systemd mode
 	KAconfigPath             string = "/opt/kubearmor/"
 	VmAdapterconfigPath      string = "/opt/kubearmor-vm-adapter/"

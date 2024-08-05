@@ -88,6 +88,7 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 	}
 	cc.AgentsVersion = releaseVersion
 
+	cc.RMQServer = "0.0.0.0:5672"
 	if rmqAddr != "" {
 		rmqHost, rmqPort, err := parseURL(rmqAddr)
 		if err != nil {

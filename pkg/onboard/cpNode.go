@@ -3,6 +3,7 @@ package onboard
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/Masterminds/sprig"
@@ -12,7 +13,8 @@ import (
 
 type agentConfigMeta struct {
 	agentName                string
-	configPath               string
+	configDir                string
+	configFilePath           string
 	configTemplateString     string
 	kmuxConfigPath           string
 	kmuxConfigTemplateString string
@@ -190,17 +192,18 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	for _, agentObj := range agentMeta {
 		tcArgs := ic.TCArgs
 		tcArgs.KmuxConfigPath = agentObj.kmuxConfigPath
+		agentConfigPath := filepath.Join(configPath, agentObj.configDir)
 
 		// generate config file if not empty
-		if agentObj.configPath != "" {
-			if _, err := copyOrGenerateFile(ic.UserConfigPath, configPath, agentObj.configPath, sprigFuncs, agentObj.configTemplateString, tcArgs); err != nil {
+		if agentObj.configFilePath != "" {
+			if _, err := copyOrGenerateFile(ic.UserConfigPath, agentConfigPath, agentObj.configFilePath, sprigFuncs, agentObj.configTemplateString, tcArgs); err != nil {
 				return err
 			}
 		}
 
 		// generate kmux config only if it exists for this agent
 		if agentObj.kmuxConfigPath != "" {
-			if _, err := copyOrGenerateFile(ic.UserConfigPath, configPath, agentObj.kmuxConfigPath, sprigFuncs, agentObj.kmuxConfigTemplateString, kmuxConfigArgs); err != nil {
+			if _, err := copyOrGenerateFile(ic.UserConfigPath, agentConfigPath, common.KmuxConfigFileName, sprigFuncs, agentObj.kmuxConfigTemplateString, kmuxConfigArgs); err != nil {
 				return err
 			}
 		}
@@ -278,46 +281,53 @@ func getAgentConfigMeta() []agentConfigMeta {
 	agentMeta := []agentConfigMeta{
 		{
 			agentName:            "spire",
-			configPath:           "spire/conf/agent.conf",
+			configDir:            "spire",
+			configFilePath:       "conf/agent.conf",
 			configTemplateString: spireAgentConfig,
 		},
 		{
 			agentName:                "sia",
-			configPath:               "sia/app.yaml",
+			configDir:                "sia",
+			configFilePath:           "app.yaml",
 			configTemplateString:     siaConfig,
-			kmuxConfigPath:           "/opt/sia/kmux-config.yaml",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "sia", common.KmuxConfigFileName),
 			kmuxConfigTemplateString: kmuxConfig,
 		},
 		{
 			agentName:                "pea",
-			configPath:               "pea/application.yaml",
+			configDir:                "pea",
+			configFilePath:           "application.yaml",
 			configTemplateString:     peaConfig,
-			kmuxConfigPath:           "/opt/pea/kmux-config.yaml",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "pea", common.KmuxConfigFileName),
 			kmuxConfigTemplateString: kmuxConfig},
 		{
 			agentName:                "feeder-service",
-			kmuxConfigPath:           "/opt/feeder-service/kmux-config.yaml",
+			configDir:                "feeder-service",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "feeder-service", common.KmuxConfigFileName),
 			kmuxConfigTemplateString: kmuxConfig,
 		},
 		{
 			agentName:                "sumengine",
-			configPath:               "sumengine/config.yaml",
+			configDir:                "sumengine",
+			configFilePath:           "config.yaml",
 			configTemplateString:     sumEngineConfig,
-			kmuxConfigPath:           "/opt/sumengine/kmux-config.yaml",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "sumengine", common.KmuxConfigFileName),
 			kmuxConfigTemplateString: sumEngineKmuxConfig,
 		},
 		{
 			agentName:                "discover",
-			configPath:               "discover/config.yaml",
+			configDir:                "discover",
+			configFilePath:           "config.yaml",
 			configTemplateString:     discoverConfig,
-			kmuxConfigPath:           "/opt/discover/kmux-config.yaml",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "discover", common.KmuxConfigFileName),
 			kmuxConfigTemplateString: discoverKmuxConfig,
 		},
 		{
 			agentName:                "hardening-agent",
-			configPath:               "hardening-agent/config.yaml",
+			configDir:                "hardening-agent",
+			configFilePath:           "config.yaml",
 			configTemplateString:     hardeningAgentConfig,
-			kmuxConfigPath:           "/opt/hardening-agent/kmux-config.yaml",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "hardening-agent", common.KmuxConfigFileName),
 			kmuxConfigTemplateString: hardeningAgentKmuxConfig,
 		},
 	}
