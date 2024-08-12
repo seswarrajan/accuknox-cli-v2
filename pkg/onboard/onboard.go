@@ -10,11 +10,12 @@ import (
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
 )
 
+// TODO: THIS FUNCTION IS UNUSABLE!!!
 func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode VMMode,
 	vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag, feederVersionTag, sumEngineTag, discoverVersionTag, hardeningAgentVersionTag string,
 	kubearmorVersion, releaseVersion, kubearmorImage, kubearmorInitImage,
 	vmAdapterImage, relayServerImage, siaImage, peaImage,
-	feederImage, sumEngineImage, hardeningAgentImage, spireImage, discoverImage, nodeAddress string, dryRun, workerNode bool,
+	feederImage, rmqImage, sumEngineImage, hardeningAgentImage, spireImage, waitForItImage, discoverImage, nodeAddress string, dryRun, workerNode, deployRMQ bool,
 	imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
 	cidr string, secureContainers, skipBTF bool, systemMonitorPath string,
 	rmqAddr string, deploySumengine bool, registry, registryConfigPath string, insecureRegistryConnection, httpRegistryConnection, preserveUpstream bool) (*ClusterConfig, error) {
@@ -88,7 +89,7 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 	}
 	cc.AgentsVersion = releaseVersion
 
-	cc.RMQServer = "0.0.0.0:5672"
+	cc.DeployRMQ = deployRMQ
 	if rmqAddr != "" {
 		rmqHost, rmqPort, err := parseURL(rmqAddr)
 		if err != nil {
@@ -182,8 +183,15 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 		}
 
 		cc.SPIREAgentImage, err = getImage(registry, cm.DefaultDockerRegistry,
-			cm.DefaultAccuKnoxRepo, spireImage, "public.ecr.aws/k9v9d5v2/spire-agent",
-			"", releaseInfo.SPIREAgentImageTag, "", "", preserveUpstream)
+			cm.DefaultAccuKnoxRepo, spireImage, cm.DefaultSPIREAgentImage,
+			"latest", releaseInfo.SPIREAgentImageTag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.WaitForItImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, waitForItImage, cm.DefaultWaitForItImage,
+			"latest", "", "", "", preserveUpstream)
 		if err != nil {
 			return nil, err
 		}
@@ -205,6 +213,13 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 		cc.HardeningAgentImage, err = getImage(registry, cm.DefaultDockerRegistry,
 			cm.DefaultAccuKnoxRepo, hardeningAgentImage, releaseInfo.HardeningAgentImage,
 			hardeningAgentVersionTag, releaseInfo.HardeningAgentTag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.RMQImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			"", rmqImage, cm.DefaultRMQImage,
+			"", cm.DefaultRMQImageTag, "", "", preserveUpstream)
 		if err != nil {
 			return nil, err
 		}

@@ -32,6 +32,7 @@ func InitCPNodeConfig(cc ClusterConfig, joinToken, spireHost, ppsHost, knoxGatew
 		EnableLogs:          enableLogs,
 	}
 }
+
 func (ic *InitConfig) CreateBaseTemplateConfig() error {
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -69,12 +70,16 @@ func (ic *InitConfig) CreateBaseTemplateConfig() error {
 		KubeArmorRelayServerImage: ic.KubeArmorRelayServerImage,
 		KubeArmorVMAdapterImage:   ic.KubeArmorVMAdapterImage,
 		SPIREAgentImage:           ic.SPIREAgentImage,
+		WaitForItImage:            ic.WaitForItImage,
 		SIAImage:                  ic.SIAImage,
 		PEAImage:                  ic.PEAImage,
 		FeederImage:               ic.FeederImage,
+		RMQImage:                  ic.RMQImage,
 		DiscoverImage:             ic.DiscoverImage,
 		SumEngineImage:            ic.SumEngineImage,
 		HardeningAgentImage:       ic.HardeningAgentImage,
+
+		DeployRMQ: ic.DeployRMQ,
 
 		Hostname: hostname,
 		// TODO: make configurable
@@ -168,6 +173,20 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	ic.TCArgs.FileOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "file")
 	ic.TCArgs.NetworkOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "network")
 
+	kmuxConfigArgs := KmuxConfigTemplateArgs{
+		ReleaseVersion: ic.AgentsVersion,
+		StreamName:     "knox-gateway",
+		ServerURL:      ic.KnoxGateway,
+		RMQServer:      "rabbitmq:5672",
+	}
+
+	if ic.RMQServer != "" {
+		ic.TCArgs.RMQAddr = ic.RMQServer
+		kmuxConfigArgs.RMQServer = ic.RMQServer
+	} else if ic.RMQServer == "" && !ic.DeployRMQ {
+		return fmt.Errorf("RabbitMQ address must be specified if deployment is skipped")
+	}
+
 	// initialize sprig for templating
 	sprigFuncs := sprig.GenericFuncMap()
 
@@ -180,13 +199,6 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	// List of config files to be generated or copied
 	// TODO: Refactor later
 	agentMeta := getAgentConfigMeta()
-
-	kmuxConfigArgs := KmuxConfigTemplateArgs{
-		ReleaseVersion: ic.AgentsVersion,
-		StreamName:     "knox-gateway",
-		ServerURL:      ic.KnoxGateway,
-		RMQServer:      "rabbitmq:5672",
-	}
 
 	// Generate or copy config files
 	for _, agentObj := range agentMeta {

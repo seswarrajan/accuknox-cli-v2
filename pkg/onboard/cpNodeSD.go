@@ -47,7 +47,17 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 		ReleaseVersion: ic.AgentsVersion,
 		StreamName:     "knox-gateway",
 		ServerURL:      ic.KnoxGateway,
-		RMQServer:      ic.RMQServer,
+	}
+
+	if ic.RMQServer != "" {
+		ic.TCArgs.RMQAddr = ic.RMQServer
+		kmuxConfigArgs.RMQServer = ic.RMQServer
+	} else if ic.CPNodeAddr != "" {
+		ic.TCArgs.RMQAddr = ic.CPNodeAddr + ":5672"
+		kmuxConfigArgs.RMQServer = ic.CPNodeAddr + ":5672"
+	} else {
+		ic.TCArgs.RMQAddr = "0.0.0.0:5672"
+		kmuxConfigArgs.RMQServer = "0.0.0.0:5672"
 	}
 
 	fmt.Println(color.MagentaString("\nConfiguring services..."))

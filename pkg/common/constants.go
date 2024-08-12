@@ -63,7 +63,11 @@ const (
 	DefaultRelayServerImage   = "accuknox/kubearmor-relay-server"
 	DefaultVMAdapterImage     = "accuknox/vm-adapter"
 
-	DefaultAccuKnoxRepo = "accuknox"
+	DefaultAccuKnoxRepo    = "accuknox"
+	DefaultSPIREAgentImage = "accuknox/spire-agent"
+	DefaultWaitForItImage  = "accuknox/wait-for-it"
+	DefaultRMQImage        = "rabbitmq"
+	DefaultRMQImageTag     = "3.12.2-management"
 	// Agent images change/have changed over release versions
 	// deprecated - do not use
 	DefaultPEAImage    = "public.ecr.aws/k9v9d5v2/policy-enforcement-agent:"

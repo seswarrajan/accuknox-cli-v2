@@ -54,8 +54,8 @@ var joinNodeCmd = &cobra.Command{
 			vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag,
 			feederVersionTag, sumEngineVersionTag, discoverVersionTag, hardeningAgentVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
 			kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, siaImage,
-			peaImage, feederImage, sumEngineImage, hardeningAgentImage, spireAgentImage, discoverImage, nodeAddr, dryRun,
-			true, imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
+			peaImage, feederImage, rmqImage, sumEngineImage, hardeningAgentImage, spireAgentImage, waitForItImage, discoverImage, nodeAddr, dryRun,
+			true, deployRMQ, imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
 			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine, registry, registryConfigPath, insecure, plainHTTP, preserveUpstream)
 		if err != nil {
 			return fmt.Errorf(color.RedString("failed to create VM config: %s", err.Error()))
@@ -101,7 +101,6 @@ func init() {
 	joinNodeCmd.PersistentFlags().StringVarP(&releaseVersion, "version", "v", "", "version to use - recommended to keep same as control plane node version")
 
 	joinNodeCmd.PersistentFlags().BoolVar(&deploySumegine, "deploy-summary-engine", false, "to deploy summary engine in worker node")
-	joinNodeCmd.PersistentFlags().StringVar(&rmqAddress, "rmq-addr", "", "address of remote RabbitMQ server")
 
 	onboardVMCmd.AddCommand(joinNodeCmd)
 }

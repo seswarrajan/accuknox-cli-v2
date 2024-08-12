@@ -31,9 +31,13 @@ var (
 	peaImage                  string
 	feederImage               string
 	spireAgentImage           string
+	waitForItImage            string
 	discoverImage             string
 	sumEngineImage            string
 	hardeningAgentImage       string
+	rmqImage                  string
+
+	deployRMQ bool
 
 	// cp-node systemd tags
 	kubeArmorRelayServerTag  string
@@ -84,8 +88,8 @@ var cpNodeCmd = &cobra.Command{
 			vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag,
 			feederVersionTag, sumEngineVersionTag, discoverVersionTag, hardeningAgentVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
 			kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, siaImage,
-			peaImage, feederImage, sumEngineImage, hardeningAgentImage, spireAgentImage, discoverImage, nodeAddr, dryRun,
-			false, imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
+			peaImage, feederImage, rmqImage, sumEngineImage, hardeningAgentImage, spireAgentImage, waitForItImage, discoverImage, nodeAddr, dryRun,
+			false, deployRMQ, imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
 			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine, registry, registryConfigPath, insecure, plainHTTP, preserveUpstream)
 		if err != nil {
 			return fmt.Errorf(color.RedString("failed to create cluster config: %s", err.Error()))
@@ -152,12 +156,16 @@ func init() {
 	cpNodeCmd.PersistentFlags().StringVar(&peaVersionTag, "pea-version", "", "pea version to use")
 	cpNodeCmd.PersistentFlags().StringVar(&feederVersionTag, "feeder-version", "", "feeder version to use")
 	cpNodeCmd.PersistentFlags().StringVar(&spireAgentImage, "spire-agent-image", "", "spire-agent image to use")
+	cpNodeCmd.PersistentFlags().StringVar(&waitForItImage, "wait-for-it-image", "", "wait-for-it image to use")
 	cpNodeCmd.PersistentFlags().StringVar(&discoverImage, "discover-image", "", "discover image to use")
 	cpNodeCmd.PersistentFlags().StringVar(&discoverVersionTag, "discover-version", "", "discover version to use")
 	cpNodeCmd.PersistentFlags().StringVar(&sumEngineImage, "sumengine-image", "", "summary-engine image to use")
 	cpNodeCmd.PersistentFlags().StringVar(&sumEngineVersionTag, "sumengine-version", "", "summary-engine version to use")
 	cpNodeCmd.PersistentFlags().StringVar(&hardeningAgentImage, "hardening-agent-image", "", "hardening-agent image to use")
 	cpNodeCmd.PersistentFlags().StringVar(&hardeningAgentVersionTag, "hardening-agent-version", "", "hardening-agent version to use")
+
+	cpNodeCmd.PersistentFlags().StringVar(&rmqImage, "rmq-image", "", "RabbitMQ image to use")
+	cpNodeCmd.PersistentFlags().BoolVar(&deployRMQ, "deploy-rmq", true, "To deploy RabbitMQ")
 
 	// Access Key configurations
 	cpNodeCmd.PersistentFlags().StringVar(&accessKey, "access-key", "", "access-key for onboarding")

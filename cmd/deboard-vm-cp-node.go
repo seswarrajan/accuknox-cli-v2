@@ -6,6 +6,7 @@ import (
 
 	"github.com/accuknox/accuknox-cli-v2/pkg/deboard"
 	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +20,7 @@ var deboardCpNodeCmd = &cobra.Command{
 		if vmMode == "" {
 			systemdInstallation, err := onboard.CheckSystemdInstallation()
 			if err != nil {
-				return fmt.Errorf("error checking systemd files")
+				return fmt.Errorf(color.RedString("error checking systemd files"))
 			}
 			if systemdInstallation {
 				vmMode = onboard.VMMode_Systemd
@@ -32,23 +33,22 @@ var deboardCpNodeCmd = &cobra.Command{
 		case onboard.VMMode_Systemd:
 			_, err := deboard.Deboard(onboard.NodeType_ControlPlane, vmMode, dryRun)
 			if err != nil {
-				return fmt.Errorf("Failed to deboard control plane node: %s", err.Error())
+				return fmt.Errorf(color.RedString("Failed to deboard control plane node: %s", err.Error()))
 			}
-			fmt.Println("Control plane node deboarded successfully.")
-			return nil
+
 		case onboard.VMMode_Docker:
 			configPath, err := deboard.Deboard(onboard.NodeType_ControlPlane, vmMode, dryRun)
 			if err != nil && os.IsPermission(err) {
-				fmt.Println("Please remove any remaining resources at", configPath)
+				fmt.Println(color.YellowString("Please remove any remaining resources at", configPath))
 			} else if err != nil {
-				return fmt.Errorf("Failed to deboard control plane node: %s", err.Error())
+				return fmt.Errorf(color.RedString("Failed to deboard control plane node: %s", err.Error()))
 			}
-			fmt.Println("Control plane node deboarded successfully.")
-			return nil
 
 		default:
-			fmt.Printf("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
+			fmt.Printf(color.RedString("vm mode: %s invalid, accepted values (docker/systemd)", vmMode))
 		}
+
+		fmt.Println(color.GreenString("Control plane node deboarded successfully."))
 		return nil
 	},
 }

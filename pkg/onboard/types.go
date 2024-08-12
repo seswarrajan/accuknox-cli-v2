@@ -65,9 +65,11 @@ type ClusterConfig struct {
 	KubeArmorVMAdapterImage   string
 	KubeArmorRelayServerImage string
 	SPIREAgentImage           string
+	WaitForItImage            string
 	SIAImage                  string
 	PEAImage                  string
 	FeederImage               string
+	RMQImage                  string
 	DiscoverImage             string
 	SumEngineImage            string
 	HardeningAgentImage       string
@@ -76,6 +78,7 @@ type ClusterConfig struct {
 
 	WorkerNode bool
 	DryRun     bool
+	DeployRMQ  bool
 
 	ImagePullPolicy ImagePullPolicy
 
@@ -162,10 +165,12 @@ type TemplateConfigArgs struct {
 	KubeArmorHostCapPosture     string
 
 	SPIREAgentImage string
+	WaitForItImage  string
 
 	SIAImage            string
 	PEAImage            string
 	FeederImage         string
+	RMQImage            string
 	DiscoverImage       string
 	SumEngineImage      string
 	HardeningAgentImage string
@@ -183,8 +188,10 @@ type TemplateConfigArgs struct {
 	SIAAddr        string
 	PEAAddr        string
 	HardenAddr     string
+	RMQAddr        string
 
 	WorkerNode bool
+	DeployRMQ  bool
 
 	VmMode VMMode
 

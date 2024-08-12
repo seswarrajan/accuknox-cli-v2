@@ -47,7 +47,7 @@ services:
     depends_on:
       spire-agent:
         condition: service_started
-    image: "public.ecr.aws/k9v9d5v2/wait-for-it:latest"
+    image: {{.WaitForItImage}}
     pull_policy: "{{.ImagePullPolicy}}"
     command: ["-t", "60", "spire-agent:9090"]
     labels:
@@ -283,8 +283,10 @@ services:
     profiles:
       - "accuknox-agents"
     depends_on:
+      {{- if .DeployRMQ }}
       rabbitmq:
         condition: service_started
+      {{- end }}
       summary-engine:
         condition: service_started
     container_name: discover
@@ -307,8 +309,10 @@ services:
     profiles:
       - "accuknox-agents"
     depends_on:
+      {{- if .DeployRMQ }}
       rabbitmq:
         condition: service_started
+      {{- end }}
       kubearmor-relay-server:
         condition: service_started
     container_name: summary-engine
@@ -329,8 +333,10 @@ services:
     profiles:
       - "accuknox-agents"
     depends_on:
+      {{- if .DeployRMQ }}
       rabbitmq:
         condition: service_started
+      {{- end }}
       kubearmor-relay-server:
         condition: service_started
     container_name: hardening-agent
@@ -350,8 +356,9 @@ services:
         aliases:
           - hardening-agent
 
+  {{- if .DeployRMQ }}
   rabbitmq:
-    image: "rabbitmq:3.12.2-management"
+    image: {{.RMQImage}}
     container_name: rabbitmq
     ports:
       - "5672:5672"
@@ -362,6 +369,8 @@ services:
       accuknox-net:
         aliases:
           - rabbitmq
+  {{- end }}
+
 networks:
   accuknox-net:
     name: accuknox-net
