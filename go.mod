@@ -2,8 +2,6 @@ module github.com/accuknox/accuknox-cli-v2
 
 go 1.22.0
 
-toolchain go1.22.5
-
 replace (
 	github.com/etcd-io/bbolt => go.etcd.io/bbolt v1.3.6
 	github.com/optiopay/kafka => github.com/cilium/kafka v0.0.0-20180809090225-01ce283b732b
