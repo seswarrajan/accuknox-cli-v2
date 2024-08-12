@@ -242,6 +242,8 @@ services:
       - "KMUX_LOGS_ENABLED={{.EnableLogs}}"
       - "KMUX_CONFIG_PATH={{.KmuxConfigPath}}"
 
+      - "IGNORE_SUMMARY_EVENTS=Network:AF_UNIX,AF_NETLINK"
+
       - "SPIRE_AGENT_URL=unix:///var/run/spire/agent.sock"
       - "SPIRE_ENABLED=true"
 

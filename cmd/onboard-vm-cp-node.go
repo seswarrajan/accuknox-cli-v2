@@ -62,7 +62,7 @@ var cpNodeCmd = &cobra.Command{
 		)
 
 		if accessKey != "" {
-			joinToken, err = onboard.GetJoinTokenFromAccessKey(accessKey, vmName, tokenURL)
+			joinToken, err = onboard.GetJoinTokenFromAccessKey(accessKey, vmName, tokenURL, insecure)
 			if err != nil {
 				return fmt.Errorf(color.RedString(err.Error()))
 			}

@@ -12,6 +12,8 @@ var (
 	userConfigPath     string
 	registryConfigPath string
 	registry           string
+	plainHTTP          bool
+	insecure           bool
 )
 
 // onboardCmd represents the onboard non-k8s cluster command
@@ -45,6 +47,12 @@ func init() {
 
 	onboardCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "only generate manifests and don't onboard anything")
 	onboardCmd.PersistentFlags().Lookup("dry-run").NoOptDefVal = "true"
+
+	// TODO: custom CA path support
+	onboardCmd.PersistentFlags().BoolVarP(&plainHTTP, "plain-http", "", false, "use plain HTTP everywhere")
+	onboardCmd.PersistentFlags().BoolVarP(&insecure, "insecure", "", true, "skip verifying TLS certs")
+	onboardCmd.PersistentFlags().Lookup("plain-http").NoOptDefVal = "true"
+	onboardCmd.PersistentFlags().Lookup("insecure").NoOptDefVal = "true"
 
 	rootCmd.AddCommand(onboardCmd)
 }

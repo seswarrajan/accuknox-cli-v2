@@ -13,8 +13,6 @@ var (
 
 	usernameSTDIN bool
 	passwordSTDIN bool
-	plainHTTP     bool
-	insecure      bool
 
 	idToken      string
 	idTokenSTDIN bool
@@ -72,14 +70,9 @@ func init() {
 	loginCmd.PersistentFlags().StringVarP(&idToken, "identity-token", "", "", "identity-token for authenticating")
 	loginCmd.PersistentFlags().BoolVarP(&idTokenSTDIN, "identity-token-stdin", "", false, "identity-token from stdin")
 
-	loginCmd.PersistentFlags().BoolVarP(&plainHTTP, "plain-http", "", false, "allow insecre connections with registry without TLS")
-	loginCmd.PersistentFlags().BoolVarP(&insecure, "insecure", "", true, "allow insecure connections with registry")
-
 	loginCmd.MarkFlagsMutuallyExclusive("password", "password-stdin", "identity-token", "identity-token-stdin")
 
 	loginCmd.PersistentFlags().Lookup("password-stdin").NoOptDefVal = "true"
-	loginCmd.PersistentFlags().Lookup("plain-http").NoOptDefVal = "true"
-	loginCmd.PersistentFlags().Lookup("insecure").NoOptDefVal = "true"
 	loginCmd.PersistentFlags().Lookup("identity-token-stdin").NoOptDefVal = "true"
 
 	onboardCmd.AddCommand(loginCmd)

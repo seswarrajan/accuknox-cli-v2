@@ -362,7 +362,7 @@ func verifyBTF() (bool, error) {
 	}
 }
 
-func GetJoinTokenFromAccessKey(accessKey, vmName, url string) (string, error) {
+func GetJoinTokenFromAccessKey(accessKey, vmName, url string, insecure bool) (string, error) {
 	if accessKey == "" || vmName == "" || url == "" {
 		return "", fmt.Errorf("invalid accessKey, vmName or url")
 	}
@@ -378,7 +378,7 @@ func GetJoinTokenFromAccessKey(accessKey, vmName, url string) (string, error) {
 		fmt.Printf("createPayload failed: %v\n", err)
 		return "", err
 	}
-	return getJoinToken(payload, url, accessKey)
+	return getJoinToken(payload, url, accessKey, insecure)
 
 }
 
@@ -398,7 +398,7 @@ func createPayload(onboardingToken, clusterName string) ([]byte, error) {
 	return jsonPayload, nil
 }
 
-func getJoinToken(payload []byte, apiURL, token string) (string, error) {
+func getJoinToken(payload []byte, apiURL, token string, insecure bool) (string, error) {
 
 	// create a new request using http [method; POST]
 	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(payload))
@@ -416,7 +416,16 @@ func getJoinToken(payload []byte, apiURL, token string) (string, error) {
 	req.Header.Add("Authorization", "Bearer "+token)
 	req.Header.Add("X-Tenant-Id", tenantID)
 
-	resp, err := http.DefaultClient.Do(req)
+	// TODO: custom CA
+
+	transportConfig := http.DefaultTransport.(*http.Transport).Clone()
+	transportConfig.TLSClientConfig.InsecureSkipVerify = insecure
+
+	httpClient := http.Client{
+		Transport: transportConfig,
+	}
+
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		fmt.Println("Error sending request:", err)
 		return "", err
