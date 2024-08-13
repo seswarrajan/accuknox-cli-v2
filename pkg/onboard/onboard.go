@@ -2,22 +2,23 @@ package onboard
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/accuknox/accuknox-cli-v2/pkg/common"
+	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
 )
 
+// TODO: THIS FUNCTION IS UNUSABLE!!!
 func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode VMMode,
 	vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag, feederVersionTag, sumEngineTag, discoverVersionTag, hardeningAgentVersionTag string,
 	kubearmorVersion, releaseVersion, kubearmorImage, kubearmorInitImage,
 	vmAdapterImage, relayServerImage, siaImage, peaImage,
-	feederImage, sumEngineImage, hardeningAgentImage, spireImage, discoverImage, nodeAddress string, dryRun, workerNode bool,
-	imagePullPolicy, visibility, hostVisibility, audit,
-	block, cidr string, secureContainers bool) (*ClusterConfig, error) {
+	feederImage, rmqImage, sumEngineImage, hardeningAgentImage, spireImage, waitForItImage, discoverImage, nodeAddress string, dryRun, workerNode, deployRMQ bool,
+	imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
+	cidr string, secureContainers, skipBTF bool, systemMonitorPath string,
+	rmqAddr string, deploySumengine bool, registry, registryConfigPath string, insecureRegistryConnection, httpRegistryConnection, preserveUpstream bool) (*ClusterConfig, error) {
 
 	cc := new(ClusterConfig)
 
@@ -29,7 +30,7 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 			return nil, err
 		}
 
-		defaultConfigPath, err := common.GetDefaultConfigPath()
+		defaultConfigPath, err := cm.GetDefaultConfigPath()
 		if err != nil {
 			return nil, err
 		}
@@ -45,6 +46,15 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 	cc.Mode = vmMode
 
 	cc.SecureContainers = secureContainers
+	cc.SkipBTFCheck = skipBTF
+
+	if systemMonitorPath != "" {
+		_, err := os.Stat(systemMonitorPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find system monitor at path %s", systemMonitorPath)
+		}
+	}
+	cc.SystemMonitorPath = systemMonitorPath
 
 	cc.ClusterType = clusterType
 
@@ -63,14 +73,14 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 	cc.DefaultNetworkPosture = getDefaultPosture(audit, block, "network")
 	cc.DefaultCapPosture = getDefaultPosture(audit, block, "capabilities")
 
-	cc.DefaultHostFilePosture = getDefaultPosture(audit, block, "file")
-	cc.DefaultHostNetworkPosture = getDefaultPosture(audit, block, "network")
-	cc.DefaultHostCapPosture = getDefaultPosture(audit, block, "capabilities")
+	cc.DefaultHostFilePosture = getDefaultPosture(hostAudit, hostBlock, "file")
+	cc.DefaultHostNetworkPosture = getDefaultPosture(hostAudit, hostBlock, "network")
+	cc.DefaultHostCapPosture = getDefaultPosture(hostAudit, hostBlock, "capabilities")
 
-	var releaseInfo common.ReleaseMetadata
+	var releaseInfo cm.ReleaseMetadata
 	if releaseVersion == "" {
-		_, releaseInfo = common.GetLatestReleaseInfo()
-	} else if releaseInfoTemp, ok := common.ReleaseInfo[releaseVersion]; ok {
+		_, releaseInfo = cm.GetLatestReleaseInfo()
+	} else if releaseInfoTemp, ok := cm.ReleaseInfo[releaseVersion]; ok {
 		releaseInfo = releaseInfoTemp
 	} else {
 		// TODO: publish release JSON as OCI artifact to remove dependency
@@ -78,67 +88,19 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 		return nil, fmt.Errorf("Unknown image tag %s", releaseVersion)
 	}
 	cc.AgentsVersion = releaseVersion
-	switch cc.Mode {
 
-	case VMMode_Docker:
-
-		switch strings.ToLower(imagePullPolicy) {
-		case string(ImagePullPolicy_Always):
-			cc.ImagePullPolicy = ImagePullPolicy_Always
-		case string(ImagePullPolicy_IfNotPresent):
-			cc.ImagePullPolicy = ImagePullPolicy_IfNotPresent
-		case string(ImagePullPolicy_Never):
-			cc.ImagePullPolicy = ImagePullPolicy_Never
-		default:
-			return nil, fmt.Errorf("Image pull policy %s unrecognized", imagePullPolicy)
+	cc.DeployRMQ = deployRMQ
+	if rmqAddr != "" {
+		rmqHost, rmqPort, err := parseURL(rmqAddr)
+		if err != nil {
+			return nil, fmt.Errorf("parsing RMQ Address: %s", err.Error())
 		}
 
-		if kubearmorImage != "" {
-			cc.KubeArmorImage = kubearmorImage
-		} else if kubearmorVersion != "" {
-			cc.KubeArmorImage = common.DefaultKubeArmorImage + kubearmorVersion
-		} else {
-			cc.KubeArmorImage = common.DefaultKubeArmorImage + releaseInfo.KubeArmorTag
-		}
-
-		if kubearmorInitImage != "" {
-			cc.KubeArmorInitImage = kubearmorInitImage
-		} else if kubearmorVersion != "" {
-			cc.KubeArmorInitImage = common.DefaultKubeArmorInitImage + kubearmorVersion
-		} else {
-			cc.KubeArmorInitImage = common.DefaultKubeArmorInitImage + releaseInfo.KubeArmorTag
-		}
-
-		if relayServerImage != "" {
-			cc.KubeArmorRelayServerImage = relayServerImage
-		} else {
-			cc.KubeArmorRelayServerImage = common.DefaultRelayServerImage + releaseInfo.KubeArmorRelayTag
-		}
-
-		if vmAdapterImage != "" {
-			cc.KubeArmorVMAdapterImage = vmAdapterImage
-		} else {
-			cc.KubeArmorVMAdapterImage = common.DefaultVMAdapterImage + releaseInfo.KubeArmorVMAdapterTag
-		}
-
-	case VMMode_Systemd:
-		if kubearmorVersion == "" {
-			cc.KubeArmorTag = releaseInfo.KubeArmorTag
-		} else if kubearmorVersion == "stable" || kubearmorVersion == "latest" {
-			log.Printf("%s tag not available for systemd package using values from release chart", kubearmorVersion)
-			cc.KubeArmorTag = releaseInfo.KubeArmorTag
-		} else {
-			if !strings.HasPrefix(kubearmorVersion, "v") {
-				kubearmorVersion = "v" + kubearmorVersion
-			}
-			cc.KubeArmorTag = kubearmorVersion
-		}
-		cc.VmAdapterTag = GetSystemdTag(vmAdapterTag, releaseInfo.KubeArmorVMAdapterTag)
-		cc.RelayServerTag = GetSystemdTag(kubeArmorRelayServerTag, releaseInfo.KubeArmorRelayTag)
-
+		cc.RMQServer = rmqHost + ":" + rmqPort
 	}
 
 	cc.WorkerNode = workerNode
+	cc.DeploySumengine = deploySumengine
 	cc.DryRun = dryRun
 
 	cc.CPNodeAddr = nodeAddress
@@ -155,74 +117,204 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 		cc.CIDR = network.String()
 	}
 
-	if workerNode {
-		return cc, nil
+	// TODO: image pull policy in systemd mode
+	switch strings.ToLower(imagePullPolicy) {
+	case string(ImagePullPolicy_Always):
+		cc.ImagePullPolicy = ImagePullPolicy_Always
+	case string(ImagePullPolicy_IfNotPresent):
+		cc.ImagePullPolicy = ImagePullPolicy_IfNotPresent
+	case string(ImagePullPolicy_Never):
+		cc.ImagePullPolicy = ImagePullPolicy_Never
+	default:
+		return nil, fmt.Errorf("Image pull policy %s unrecognized", imagePullPolicy)
 	}
+
+	// mode specific config
+	var err error
 	switch cc.Mode {
 	case VMMode_Docker:
-
-		if siaImage != "" {
-			cc.SIAImage = siaImage
-		} else if releaseVersion != "" {
-			cc.SIAImage = releaseInfo.SIAImage + ":" + releaseInfo.SIATag
-		} else {
-			return nil, fmt.Errorf("No tag found for SIA")
+		cc.KubeArmorImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultKubeArmorRepo, kubearmorImage, cm.DefaultKubeArmorImage,
+			kubearmorVersion, releaseInfo.KubeArmorTag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
 		}
 
-		if peaImage != "" {
-			cc.PEAImage = peaImage
-		} else if releaseVersion != "" {
-			cc.PEAImage = releaseInfo.PEAImage + ":" + releaseInfo.PEATag
-		} else {
-			return nil, fmt.Errorf("No tag found for PEA")
+		cc.KubeArmorInitImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultKubeArmorRepo, kubearmorInitImage, cm.DefaultKubeArmorInitImage,
+			kubearmorVersion, releaseInfo.KubeArmorTag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
 		}
 
-		if feederImage != "" {
-			cc.FeederImage = feederImage
-		} else if releaseVersion != "" {
-			cc.FeederImage = releaseInfo.FeederServiceImage + ":" + releaseInfo.FeederServiceTag
-		} else {
-			return nil, fmt.Errorf("No tag found for feeder-service")
+		cc.KubeArmorVMAdapterImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, vmAdapterImage, cm.DefaultVMAdapterImage,
+			vmAdapterTag, releaseInfo.KubeArmorVMAdapterTag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
 		}
-		if spireImage != "" {
-			cc.SPIREAgentImage = spireImage
-		} else if releaseVersion != "" {
-			cc.SPIREAgentImage = "public.ecr.aws/k9v9d5v2/spire-agent:latest"
-			// TODO: once the image is pushed to dockerhub
-			//cc.SPIREAgentImage = "accuknox/spire-agent" + ":" + releaseInfo.SPIREAgentImageTag
-		} else {
-			return nil, fmt.Errorf("No tag found for spire-agent")
+
+		cc.KubeArmorRelayServerImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, relayServerImage, cm.DefaultRelayServerImage,
+			kubeArmorRelayServerTag, releaseInfo.KubeArmorRelayTag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
 		}
-		if discoverImage != "" {
-			cc.DiscoverImage = discoverImage
-		} else if releaseVersion != "" {
-			cc.DiscoverImage = releaseInfo.DiscoverImage + ":" + releaseInfo.DiscoverTag
-		} else {
-			return nil, fmt.Errorf("No tag found for discover")
+
+		cc.SIAImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, siaImage, releaseInfo.SIAImage,
+			siaVersionTag, releaseInfo.SIATag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
 		}
-		if sumEngineImage != "" {
-			cc.SumEngineImage = sumEngineImage
-		} else if releaseVersion != "" {
-			cc.SumEngineImage = releaseInfo.SumEngineImage + ":" + releaseInfo.SumEngineTag
-		} else {
-			return nil, fmt.Errorf("No tag found for summary-engine")
+
+		cc.PEAImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, peaImage, releaseInfo.PEAImage,
+			peaVersionTag, releaseInfo.PEATag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
 		}
-		if hardeningAgentImage != "" {
-			cc.HardeningAgentImage = hardeningAgentImage
-		} else if releaseVersion != "" {
-			cc.HardeningAgentImage = releaseInfo.HardeningAgentImage + ":" + releaseInfo.HardeningAgentTag
-		} else {
-			return nil, fmt.Errorf("No tag found for hardening-agent")
+
+		cc.FeederImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, feederImage, releaseInfo.FeederServiceImage,
+			feederVersionTag, releaseInfo.FeederServiceTag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.SPIREAgentImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, spireImage, cm.DefaultSPIREAgentImage,
+			"latest", releaseInfo.SPIREAgentImageTag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.WaitForItImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, waitForItImage, cm.DefaultWaitForItImage,
+			"latest", "", "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.DiscoverImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, discoverImage, releaseInfo.DiscoverImage,
+			discoverVersionTag, releaseInfo.DiscoverTag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.SumEngineImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, sumEngineImage, releaseInfo.SumEngineImage,
+			sumEngineTag, releaseInfo.SumEngineTag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.HardeningAgentImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, hardeningAgentImage, releaseInfo.HardeningAgentImage,
+			hardeningAgentVersionTag, releaseInfo.HardeningAgentTag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.RMQImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			"", rmqImage, cm.DefaultRMQImage,
+			"", cm.DefaultRMQImageTag, "", "", preserveUpstream)
+		if err != nil {
+			return nil, err
 		}
 
 	case VMMode_Systemd:
-		cc.PeaTag = GetSystemdTag(peaVersionTag, releaseInfo.PEATag)
-		cc.SiaTag = GetSystemdTag(siaVersionTag, releaseInfo.SIATag)
-		cc.FsTag = GetSystemdTag(feederVersionTag, releaseInfo.FeederServiceTag)
-		cc.SpireTag = GetSystemdTag("", releaseInfo.SPIREAgentImageTag)
-		cc.SumEngineTag = GetSystemdTag("", releaseInfo.SumEngineTag)
-		cc.DiscoverTag = GetSystemdTag("", releaseInfo.DiscoverTag)
-		cc.HardeningAgentTag = GetSystemdTag("", releaseInfo.HardeningAgentTag)
+		kaVersion := kubearmorVersion
+		if kubearmorVersion != "" && (kubearmorVersion == "stable" || kubearmorVersion == "latest") {
+			fmt.Printf("%s tag not available for systemd package. Using values from release chart", kubearmorVersion)
+			kaVersion = ""
+		}
+		cc.KubeArmorImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultKubeArmorRepo, kubearmorImage, cm.AgentRepos[cm.KubeArmor],
+			kaVersion, releaseInfo.KubeArmorTag, "v", cm.SystemdTagSuffix, preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.KubeArmorVMAdapterImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, vmAdapterImage, cm.AgentRepos[cm.VMAdapter],
+			vmAdapterTag, releaseInfo.KubeArmorVMAdapterTag, "v", cm.SystemdTagSuffix, preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.KubeArmorRelayServerImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, relayServerImage, cm.AgentRepos[cm.RelayServer],
+			kubeArmorRelayServerTag, releaseInfo.KubeArmorRelayTag, "v", cm.SystemdTagSuffix, preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.SIAImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, siaImage, cm.AgentRepos[cm.SIAAgent],
+			siaVersionTag, releaseInfo.SIATag, "v", cm.SystemdTagSuffix, preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.PEAImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, peaImage, cm.AgentRepos[cm.PEAAgent],
+			peaVersionTag, releaseInfo.PEATag, "v", cm.SystemdTagSuffix, preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.FeederImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, feederImage, cm.AgentRepos[cm.FeederService],
+			feederVersionTag, releaseInfo.FeederServiceTag, "v", cm.SystemdTagSuffix, preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.SPIREAgentImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, spireImage, cm.AgentRepos[cm.SpireAgent],
+			"", releaseInfo.SPIREAgentImageTag, "v", cm.SystemdTagSuffix, preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.SumEngineImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, sumEngineImage, cm.AgentRepos[cm.SummaryEngine],
+			sumEngineTag, releaseInfo.SumEngineTag, "v", cm.SystemdTagSuffix, preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.DiscoverImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, discoverImage, cm.AgentRepos[cm.DiscoverAgent],
+			discoverVersionTag, releaseInfo.DiscoverTag, "v", cm.SystemdTagSuffix, preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		cc.HardeningAgentImage, err = getImage(registry, cm.DefaultDockerRegistry,
+			cm.DefaultAccuKnoxRepo, hardeningAgentImage, cm.AgentRepos[cm.HardeningAgent],
+			hardeningAgentVersionTag, releaseInfo.HardeningAgentTag, "v", cm.SystemdTagSuffix, preserveUpstream)
+		if err != nil {
+			return nil, err
+		}
+
+		// create systemd service objects
+		cc.createSystemdServiceObjects()
+
+		// prepare OAuth cerdentials
+		loginOptions := LoginOptions{
+			Insecure:           insecureRegistryConnection,
+			PlainHTTP:          httpRegistryConnection,
+			Registry:           registry,
+			RegistryConfigPath: registryConfigPath,
+		}
+
+		cc.ORASClient, err = loginOptions.ORASGetAuthClient()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return cc, nil
@@ -230,9 +322,9 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 
 // prints join command - currently only with the default ports
 // TODO: handle complex configuration
-func (cc *ClusterConfig) PrintJoinCommand(vmmode VMMode) {
+func (cc *ClusterConfig) PrintJoinCommand() {
 	command := ""
-	switch vmmode {
+	switch cc.Mode {
 	case VMMode_Docker:
 		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"docker\" --version=%s --cp-node-addr=%s", cc.AgentsVersion, cc.CPNodeAddr)
 

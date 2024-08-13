@@ -8,9 +8,12 @@ import (
 )
 
 var (
-	dryRun         bool
-	nodeAddr       string
-	userConfigPath string
+	dryRun             bool
+	userConfigPath     string
+	registryConfigPath string
+	registry           string
+	plainHTTP          bool
+	insecure           bool
 )
 
 // onboardCmd represents the onboard non-k8s cluster command
@@ -39,8 +42,17 @@ func init() {
 		os.Exit(1)
 	}
 
+	onboardCmd.PersistentFlags().StringVarP(&registry, "registry", "r", "docker.io", "the registry to authneticate with (default - DockerHub)")
+	onboardCmd.PersistentFlags().StringVarP(&registryConfigPath, "registry-config-path", "", "", "path to pre-existing OCI registry config")
+
 	onboardCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "only generate manifests and don't onboard anything")
 	onboardCmd.PersistentFlags().Lookup("dry-run").NoOptDefVal = "true"
+
+	// TODO: custom CA path support
+	onboardCmd.PersistentFlags().BoolVarP(&plainHTTP, "plain-http", "", false, "use plain HTTP everywhere")
+	onboardCmd.PersistentFlags().BoolVarP(&insecure, "insecure", "", true, "skip verifying TLS certs")
+	onboardCmd.PersistentFlags().Lookup("plain-http").NoOptDefVal = "true"
+	onboardCmd.PersistentFlags().Lookup("insecure").NoOptDefVal = "true"
 
 	rootCmd.AddCommand(onboardCmd)
 }

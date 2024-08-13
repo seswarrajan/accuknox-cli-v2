@@ -1,6 +1,10 @@
 [Unit]
 Description=accuknox-sumengine
+{{- if .WorkerNode }}
+After=kubearmor.service
+{{- else }}
 After=kubearmor-relay.service
+{{- end }}
 
 [Service]
 User=root

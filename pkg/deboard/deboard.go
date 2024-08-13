@@ -7,6 +7,7 @@ import (
 
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
 	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
+	"github.com/fatih/color"
 )
 
 func Deboard(nodeType onboard.NodeType, vmMode onboard.VMMode, dryRun bool) (string, error) {
@@ -14,7 +15,7 @@ func Deboard(nodeType onboard.NodeType, vmMode onboard.VMMode, dryRun bool) (str
 	// check for systemd installation
 	switch vmMode {
 	case onboard.VMMode_Systemd:
-		fmt.Println("Deboarding VM....")
+		fmt.Println(color.MagentaString("Deboarding VM...."))
 		err := onboard.DeboardSystemd(nodeType)
 		return "", err
 

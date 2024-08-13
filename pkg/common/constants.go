@@ -1,6 +1,10 @@
 package common
 
-import "time"
+import (
+	"path/filepath"
+	"runtime"
+	"time"
+)
 
 const (
 	SpecialRegexChars = `.*+?()|[]{}^$`
@@ -50,12 +54,20 @@ const (
 
 	DefaultConfigPathDirName = ".accuknox-config"
 
-	// KubeArmor related image/image registries are fixed as of now
-	DefaultKubeArmorImage     = "kubearmor/kubearmor:"
-	DefaultKubeArmorInitImage = "kubearmor/kubearmor-init:"
-	DefaultRelayServerImage   = "accuknox/kubearmor-relay-server:"
-	DefaultVMAdapterImage     = "accuknox/vm-adapter:"
+	DefaultDockerRegistry = "docker.io"
 
+	// KubeArmor related image/image registries are fixed as of now
+	DefaultKubeArmorRepo      = "kubearmor"
+	DefaultKubeArmorImage     = "kubearmor/kubearmor"
+	DefaultKubeArmorInitImage = "kubearmor/kubearmor-init"
+	DefaultRelayServerImage   = "accuknox/kubearmor-relay-server"
+	DefaultVMAdapterImage     = "accuknox/vm-adapter"
+
+	DefaultAccuKnoxRepo    = "accuknox"
+	DefaultSPIREAgentImage = "accuknox/spire-agent"
+	DefaultWaitForItImage  = "accuknox/wait-for-it"
+	DefaultRMQImage        = "rabbitmq"
+	DefaultRMQImageTag     = "3.12.2-management"
 	// Agent images change/have changed over release versions
 	// deprecated - do not use
 	DefaultPEAImage    = "public.ecr.aws/k9v9d5v2/policy-enforcement-agent:"
@@ -66,19 +78,22 @@ const (
 	MinDockerComposeVersion           = "v1.27.0"
 	MinDockerComposeWithWaitSupported = "v2.17.0"
 
-	Download_dir string = "/tmp/accuknox-downloads/"
+	DownloadDir string = "/tmp/accuknox-downloads/"
 
 	// agents names
-	KA_Vm_Adapter   string = "kubearmor-vm-adapter" // to identify service
-	Vm_adapter      string = "vm-adapter"           // for download package
-	Relay_server    string = "kubearmor-relay-server"
-	Spire_agent     string = "spire-agent"
-	Pea_agent       string = "accuknox-policy-enforcement-agent"
-	Sia_agent       string = "accuknox-shared-informer-agent"
-	Feeder_service  string = "accuknox-feeder-service"
-	Summary_Engine  string = "accuknox-sumengine"
-	Discover_Agent  string = "accuknox-discover"
-	Hardening_Agent string = "accuknox-hardening-agent"
+	KubeArmor          string = "kubearmor"
+	KubeArmorVMAdapter string = "kubearmor-vm-adapter" // to identify service
+	VMAdapter          string = "vm-adapter"           // for download package
+	RelayServer        string = "kubearmor-relay-server"
+	SpireAgent         string = "spire-agent"
+	PEAAgent           string = "accuknox-policy-enforcement-agent"
+	SIAAgent           string = "accuknox-shared-informer-agent"
+	FeederService      string = "accuknox-feeder-service"
+	SummaryEngine      string = "accuknox-sumengine"
+	DiscoverAgent      string = "accuknox-discover"
+	HardeningAgent     string = "accuknox-hardening-agent"
+
+	InContainerConfigDir string = "/opt"
 
 	//config paths for systemd mode
 	KAconfigPath             string = "/opt/kubearmor/"
@@ -96,12 +111,8 @@ const (
 	PeaPolicyPath string = "/opt/pea/"
 
 	//systemd path
-	SystemdDir string = "/usr/lib/systemd/system/"
-
-	// color coding for logs
-	Red   = "\033[31m"
-	Reset = "\033[0m"
-	Green = "\033[32m"
+	SystemdDir         string = "/usr/lib/systemd/system/"
+	KmuxConfigFileName string = "kmux-config.yaml"
 
 	// KubeArmor gRPC service port
 	KubeArmorGRPCAddress string = "localhost:32767"
@@ -123,6 +134,23 @@ var (
 	SysNwHeader = []string{"Protocol", "Command", "POD/SVC/IP", "Port", "Count", "Last Updated Time"}
 	// SysBindNwHeader variable contains protocol, command, Bind Port, Bind Address, count and timestamp
 	SysBindNwHeader = []string{"Protocol", "Command", "Bind Port", "Bind Address", "Count", "Last Updated Time"}
+
+	SystemdTagSuffix = "_" + runtime.GOOS + "-" + runtime.GOARCH
+
+	AgentRepos = map[string]string{
+		KubeArmor:      "kubearmor/kubearmor-systemd",
+		VMAdapter:      "accuknox/vm-adapter-systemd",
+		RelayServer:    "accuknox/kubearmor-relay-server-systemd",
+		PEAAgent:       "accuknox/accuknox-policy-enforcement-agent-systemd",
+		SIAAgent:       "accuknox/accuknox-shared-informer-agent-systemd",
+		FeederService:  "accuknox/accuknox-feeder-service-systemd",
+		SpireAgent:     "accuknox/spire-agent-systemd",
+		SummaryEngine:  "accuknox/accuknox-sumengine-systemd",
+		DiscoverAgent:  "accuknox/accuknox-discover-systemd",
+		HardeningAgent: "accuknox/accuknox-hardening-agent-systemd",
+	}
+
+	KASystemMonitorPath string = filepath.Join(KAconfigPath, "BPF", "system_monitor.bpf.o")
 )
 
 // Timeoutes

@@ -19,7 +19,7 @@ statusendpoint:
 syncuptime:
   t: 5
 
-kmux-config-file: {{.KmuxConfigPathPEA}}
+kmux-config-file: {{.KmuxConfigPath}}
 
 annotation:
   statusendpoint: /pps/api/v1/policy-provider/update-annotation-status

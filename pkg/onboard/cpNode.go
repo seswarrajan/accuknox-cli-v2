@@ -3,12 +3,22 @@ package onboard
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/Masterminds/sprig"
 	"github.com/accuknox/accuknox-cli-v2/pkg/common"
 	"golang.org/x/mod/semver"
 )
+
+type agentConfigMeta struct {
+	agentName                string
+	configDir                string
+	configFilePath           string
+	configTemplateString     string
+	kmuxConfigPath           string
+	kmuxConfigTemplateString string
+}
 
 func InitCPNodeConfig(cc ClusterConfig, joinToken, spireHost, ppsHost, knoxGateway, spireTrustBundle string, enableLogs bool) *InitConfig {
 	return &InitConfig{
@@ -22,6 +32,7 @@ func InitCPNodeConfig(cc ClusterConfig, joinToken, spireHost, ppsHost, knoxGatew
 		EnableLogs:          enableLogs,
 	}
 }
+
 func (ic *InitConfig) CreateBaseTemplateConfig() error {
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -59,12 +70,16 @@ func (ic *InitConfig) CreateBaseTemplateConfig() error {
 		KubeArmorRelayServerImage: ic.KubeArmorRelayServerImage,
 		KubeArmorVMAdapterImage:   ic.KubeArmorVMAdapterImage,
 		SPIREAgentImage:           ic.SPIREAgentImage,
+		WaitForItImage:            ic.WaitForItImage,
 		SIAImage:                  ic.SIAImage,
 		PEAImage:                  ic.PEAImage,
 		FeederImage:               ic.FeederImage,
+		RMQImage:                  ic.RMQImage,
 		DiscoverImage:             ic.DiscoverImage,
 		SumEngineImage:            ic.SumEngineImage,
 		HardeningAgentImage:       ic.HardeningAgentImage,
+
+		DeployRMQ: ic.DeployRMQ,
 
 		Hostname: hostname,
 		// TODO: make configurable
@@ -80,6 +95,7 @@ func (ic *InitConfig) CreateBaseTemplateConfig() error {
 		SIAAddr:    "shared-informer-agent:32769",
 		PEAAddr:    "policy-enforcement-agent:32770",
 		HardenAddr: "hardening-agent:32771",
+
 		EnableLogs: ic.EnableLogs,
 
 		PPSHost: ic.PPSHost,
@@ -152,18 +168,24 @@ func (ic *InitConfig) InitializeControlPlane() error {
 
 	ic.TCArgs.ConfigPath = configPath
 
-	// kmux config file paths
-	ic.TCArgs.KmuxConfigPathFS = "/opt/feeder-service/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathSIA = "/opt/sia/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathPEA = "/opt/pea/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathDiscover = "/opt/discover/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathSumengine = "/opt/sumengine/kmux-config.yaml"
-	ic.TCArgs.KmuxConfigPathHardeningAgent = "/opt/hardening-agent/kmux-config.yaml"
-
 	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
 	ic.TCArgs.ProcessOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "process")
 	ic.TCArgs.FileOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "file")
 	ic.TCArgs.NetworkOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "network")
+
+	kmuxConfigArgs := KmuxConfigTemplateArgs{
+		ReleaseVersion: ic.AgentsVersion,
+		StreamName:     "knox-gateway",
+		ServerURL:      ic.KnoxGateway,
+		RMQServer:      "rabbitmq:5672",
+	}
+
+	if ic.RMQServer != "" {
+		ic.TCArgs.RMQAddr = ic.RMQServer
+		kmuxConfigArgs.RMQServer = ic.RMQServer
+	} else if ic.RMQServer == "" && !ic.DeployRMQ {
+		return fmt.Errorf("RabbitMQ address must be specified if deployment is skipped")
+	}
 
 	// initialize sprig for templating
 	sprigFuncs := sprig.GenericFuncMap()
@@ -175,45 +197,30 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	}
 
 	// List of config files to be generated or copied
-	fileTemplateMap := map[string]string{
-		"spire/conf/agent.conf":       spireAgentConfig,
-		"pea/application.yaml":        peaConfig,
-		"sia/app.yaml":                siaConfig,
-		"sumengine/config.yaml":       sumEngineConfig,
-		"discover/config.yaml":        discoverConfig,
-		"hardening-agent/config.yaml": hardeningAgentConfig,
-	}
+	// TODO: Refactor later
+	agentMeta := getAgentConfigMeta()
 
-	// Generate or copy files
-	for filePath, templateString := range fileTemplateMap {
-		if _, err := copyOrGenerateFile(ic.UserConfigPath, configPath, filePath, sprigFuncs, templateString, ic.TCArgs); err != nil {
-			return err
+	// Generate or copy config files
+	for _, agentObj := range agentMeta {
+		tcArgs := ic.TCArgs
+		tcArgs.KmuxConfigPath = agentObj.kmuxConfigPath
+		agentConfigPath := filepath.Join(configPath, agentObj.configDir)
+
+		// generate config file if not empty
+		if agentObj.configFilePath != "" {
+			if _, err := copyOrGenerateFile(ic.UserConfigPath, agentConfigPath, agentObj.configFilePath, sprigFuncs, agentObj.configTemplateString, tcArgs); err != nil {
+				return err
+			}
+		}
+
+		// generate kmux config only if it exists for this agent
+		if agentObj.kmuxConfigPath != "" {
+			if _, err := copyOrGenerateFile(ic.UserConfigPath, agentConfigPath, common.KmuxConfigFileName, sprigFuncs, agentObj.kmuxConfigTemplateString, kmuxConfigArgs); err != nil {
+				return err
+			}
 		}
 	}
 
-	kmuxConfigArgs := KmuxConfigTemplateArgs{
-		ReleaseVersion: ic.AgentsVersion,
-		StreamName:     "knox-gateway",
-		ServerURL:      ic.KnoxGateway,
-		RMQServer:      "rabbitmq:5672",
-	}
-
-	// List of kmux config files to be generated or copied
-	kmuxConfigFileTemplateMap := map[string]string{
-		"pea/kmux-config.yaml":             kmuxConfig,
-		"sia/kmux-config.yaml":             kmuxConfig,
-		"feeder-service/kmux-config.yaml":  kmuxConfig,
-		"sumengine/kmux-config.yaml":       sumEngineKmuxConfig,
-		"discover/kmux-config.yaml":        discoverKmuxConfig,
-		"hardening-agent/kmux-config.yaml": hardeningAgentKmuxConfig,
-	}
-
-	// Generate or copy kmux config files
-	for filePath, templateString := range kmuxConfigFileTemplateMap {
-		if _, err := copyOrGenerateFile(ic.UserConfigPath, configPath, filePath, sprigFuncs, templateString, kmuxConfigArgs); err != nil {
-			return err
-		}
-	}
 	// Diagnose if necessary and run compose command
 	return ic.runComposeCommand(composeFilePath)
 }
@@ -280,4 +287,62 @@ func isOperationDisabled(visibility, hostVisibility, operation string) bool {
 	}
 	_, exists := visibilities[operation]
 	return !exists
+}
+
+func getAgentConfigMeta() []agentConfigMeta {
+	agentMeta := []agentConfigMeta{
+		{
+			agentName:            "spire",
+			configDir:            "spire",
+			configFilePath:       "conf/agent.conf",
+			configTemplateString: spireAgentConfig,
+		},
+		{
+			agentName:                "sia",
+			configDir:                "sia",
+			configFilePath:           "app.yaml",
+			configTemplateString:     siaConfig,
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "sia", common.KmuxConfigFileName),
+			kmuxConfigTemplateString: kmuxConfig,
+		},
+		{
+			agentName:                "pea",
+			configDir:                "pea",
+			configFilePath:           "application.yaml",
+			configTemplateString:     peaConfig,
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "pea", common.KmuxConfigFileName),
+			kmuxConfigTemplateString: kmuxConfig},
+		{
+			agentName:                "feeder-service",
+			configDir:                "feeder-service",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "feeder-service", common.KmuxConfigFileName),
+			kmuxConfigTemplateString: kmuxConfig,
+		},
+		{
+			agentName:                "sumengine",
+			configDir:                "sumengine",
+			configFilePath:           "config.yaml",
+			configTemplateString:     sumEngineConfig,
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "sumengine", common.KmuxConfigFileName),
+			kmuxConfigTemplateString: sumEngineKmuxConfig,
+		},
+		{
+			agentName:                "discover",
+			configDir:                "discover",
+			configFilePath:           "config.yaml",
+			configTemplateString:     discoverConfig,
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "discover", common.KmuxConfigFileName),
+			kmuxConfigTemplateString: discoverKmuxConfig,
+		},
+		{
+			agentName:                "hardening-agent",
+			configDir:                "hardening-agent",
+			configFilePath:           "config.yaml",
+			configTemplateString:     hardeningAgentConfig,
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "hardening-agent", common.KmuxConfigFileName),
+			kmuxConfigTemplateString: hardeningAgentKmuxConfig,
+		},
+	}
+
+	return agentMeta
 }

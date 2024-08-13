@@ -6,6 +6,7 @@ import (
 
 	"github.com/accuknox/accuknox-cli-v2/pkg/deboard"
 	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -19,37 +20,34 @@ var deboardNodeCmd = &cobra.Command{
 		if vmMode == "" {
 			systemdInstallation, err := onboard.CheckSystemdInstallation()
 			if err != nil {
-				return fmt.Errorf("error checking systemd files")
+				return fmt.Errorf(color.RedString("error checking systemd files: %s", err.Error()))
 			}
+
 			if systemdInstallation {
 				vmMode = onboard.VMMode_Systemd
 			} else {
 				vmMode = onboard.VMMode_Docker
 			}
-
 		}
 
 		switch vmMode {
 		case onboard.VMMode_Systemd:
 			_, err := deboard.Deboard(onboard.NodeType_WorkerNode, vmMode, dryRun)
 			if err != nil {
-				return fmt.Errorf("Failed to deboard worker node: %s", err.Error())
+				return fmt.Errorf(color.RedString("Failed to deboard worker node: %s", err.Error()))
 			}
-			fmt.Println("Worker node deboarded successfully.")
-			return nil
 		case onboard.VMMode_Docker:
 			configPath, err := deboard.Deboard(onboard.NodeType_WorkerNode, vmMode, dryRun)
 			if err != nil && os.IsPermission(err) {
 				fmt.Println("Please remove any remaining resources at", configPath)
 			} else if err != nil {
-				return fmt.Errorf("Failed to deboard worker node: %s", err.Error())
+				return fmt.Errorf(color.RedString("Failed to deboard worker node: %s", err.Error()))
 			}
-			fmt.Println("Worker node deboarded successfully.")
-			return nil
-
 		default:
-			fmt.Printf("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
+			return fmt.Errorf(color.RedString("vm mode: %s invalid, accepted values (docker/systemd)", vmMode))
 		}
+
+		fmt.Println(color.GreenString("Worker node deboarded successfully."))
 		return nil
 	},
 }

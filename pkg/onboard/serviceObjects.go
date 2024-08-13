@@ -5,6 +5,9 @@ import (
 )
 
 var (
+	//go:embed templates/systemdTemplates/kubearmor.service
+	kubearmorServiceFile string
+
 	//go:embed templates/systemdTemplates/feeder-service.service
 	feederServiceFile string
 
