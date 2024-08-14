@@ -113,7 +113,9 @@ type ClusterConfig struct {
 	DeploySumengine       bool
 	RMQServer             string
 
-	ORASClient *auth.Client
+	PlainHTTP   bool
+	InsecureTLS bool
+	ORASClient  *auth.Client
 }
 
 type InitConfig struct {

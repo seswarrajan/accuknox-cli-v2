@@ -307,6 +307,8 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 			Registry:           registry,
 			RegistryConfigPath: registryConfigPath,
 		}
+		loginOptions.PlainHTTP = loginOptions.isPlainHttp(registry)
+		cc.PlainHTTP = loginOptions.PlainHTTP
 
 		cc.ORASClient, err = loginOptions.ORASGetAuthClient()
 		if err != nil {

@@ -192,6 +192,7 @@ func (cc *ClusterConfig) downloadAgent(agentName, agentRepo, agentTag string) (s
 	}
 
 	repo.Client = cc.ORASClient
+	repo.PlainHTTP = cc.PlainHTTP
 
 	_, err = oras.Copy(ctx, repo, agentTag, fs, agentTag, oras.DefaultCopyOptions)
 	if err != nil {
@@ -319,10 +320,7 @@ func (cc *ClusterConfig) SystemdInstall() error {
 		}
 
 		fmt.Printf(color.CyanString("Downloading Agent - %s | Image - %s\n", obj.AgentName, obj.AgentImage))
-		packageMeta := strings.Split(obj.AgentImage, ":")
-		if len(packageMeta) != 2 {
-			return fmt.Errorf("Invalid image: %s", obj.AgentImage)
-		}
+		packageMeta := splitLast(obj.AgentImage, ":")
 
 		err = cc.installAgent(obj.AgentName, packageMeta[0], packageMeta[1])
 		if err != nil {
