@@ -68,3 +68,4 @@ jobs:
             dist/*.txt
             dist/*.cert
             dist/*.sig
+            pkg/common/release.json
