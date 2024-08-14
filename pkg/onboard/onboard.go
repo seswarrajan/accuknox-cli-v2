@@ -104,9 +104,6 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 	cc.DryRun = dryRun
 
 	cc.CPNodeAddr = nodeAddress
-	if cc.CPNodeAddr == "" {
-		cc.CPNodeAddr = "<address-of-this-node>"
-	}
 
 	if cidr != "" {
 		_, network, err := net.ParseCIDR(cidr)
@@ -310,6 +307,8 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 			Registry:           registry,
 			RegistryConfigPath: registryConfigPath,
 		}
+		loginOptions.PlainHTTP = loginOptions.isPlainHttp(registry)
+		cc.PlainHTTP = loginOptions.PlainHTTP
 
 		cc.ORASClient, err = loginOptions.ORASGetAuthClient()
 		if err != nil {
@@ -324,12 +323,16 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 // TODO: handle complex configuration
 func (cc *ClusterConfig) PrintJoinCommand() {
 	command := ""
+	cpNodeAddr := cc.CPNodeAddr
+	if cc.CPNodeAddr == "" {
+		cpNodeAddr = "<address-of-this-node>"
+	}
 	switch cc.Mode {
 	case VMMode_Docker:
-		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"docker\" --version=%s --cp-node-addr=%s", cc.AgentsVersion, cc.CPNodeAddr)
+		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"docker\" --version=%s --cp-node-addr=%s", cc.AgentsVersion, cpNodeAddr)
 
 	case VMMode_Systemd:
-		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"systemd\" --version=%s --cp-node-addr=%s", cc.AgentsVersion, cc.CPNodeAddr)
+		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"systemd\" --version=%s --cp-node-addr=%s", cc.AgentsVersion, cpNodeAddr)
 	}
 
 	fmt.Println(command)

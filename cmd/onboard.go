@@ -50,7 +50,7 @@ func init() {
 
 	// TODO: custom CA path support
 	onboardCmd.PersistentFlags().BoolVarP(&plainHTTP, "plain-http", "", false, "use plain HTTP everywhere")
-	onboardCmd.PersistentFlags().BoolVarP(&insecure, "insecure", "", true, "skip verifying TLS certs")
+	onboardCmd.PersistentFlags().BoolVarP(&insecure, "insecure", "", false, "skip verifying TLS certs")
 	onboardCmd.PersistentFlags().Lookup("plain-http").NoOptDefVal = "true"
 	onboardCmd.PersistentFlags().Lookup("insecure").NoOptDefVal = "true"
 

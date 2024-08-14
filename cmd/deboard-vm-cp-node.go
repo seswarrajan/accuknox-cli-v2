@@ -39,7 +39,7 @@ var deboardCpNodeCmd = &cobra.Command{
 		case onboard.VMMode_Docker:
 			configPath, err := deboard.Deboard(onboard.NodeType_ControlPlane, vmMode, dryRun)
 			if err != nil && os.IsPermission(err) {
-				fmt.Println(color.YellowString("Please remove any remaining resources at", configPath))
+				fmt.Println(color.YellowString("Please remove any remaining resources at %s", configPath))
 			} else if err != nil {
 				return fmt.Errorf(color.RedString("Failed to deboard control plane node: %s", err.Error()))
 			}
