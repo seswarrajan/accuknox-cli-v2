@@ -51,6 +51,9 @@ func init() {
 	scanCmd.PersistentFlags().BoolVar(&scanOpts.FilterEventType.System, "system", false, "collect 'system' only events")
 	scanCmd.PersistentFlags().StringVar(&scanOpts.Output, "output", "", "output path for the files to be placed")
 
+	scanCmd.PersistentFlags().StringVar(&scanOpts.AlertFilters.IgnoreEvent, "ignore-alerts", "", "ignore alerts of a specific type: 'file', 'network', or 'process'")
+	scanCmd.PersistentFlags().StringVar(&scanOpts.AlertFilters.SeverityLevel, "min-severity", "", "minimum severity level for alerts (1-10)")
+
 	policyCmd.Flags().StringVar(&scanOpts.PolicyAction, "action", "Audit", "Policy action: 'Block' or 'Audit'")
 	policyCmd.Flags().StringVar(&scanOpts.PolicyEvent, "event", "ADDED", "Policy event: 'ADDED' or 'DELETED'")
 	policyCmd.Flags().BoolVar(&scanOpts.PolicyDryRun, "dryrun", false, "generate and save the hardening policies but don't apply them")

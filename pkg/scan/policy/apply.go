@@ -22,6 +22,16 @@ const (
 	ActionAudit = "Audit"
 )
 
+// SkipPolicy has a set of policies that are not applied, but they will
+// applied if they are ran in `strict` mode. These policies are not applied
+// since they tend to generate a lot of alerts.
+var SkipPolicy = map[string]bool{
+	"hsp-nist-ca-9-audit-untrusted-read-on-sensitive-files":   true,
+	"hsp-cm-1-configuration-management-policy-and-procedures": true,
+	"hsp-block-stig-ubuntu-20-010427-lib":                     true,
+	"hsp-cve-2019-13139-docker-build":                         true,
+}
+
 // Apply policies via gRPC
 type Apply struct {
 	// grpc connection
@@ -39,10 +49,10 @@ type Apply struct {
 	// Name of the host
 	hostname string
 
-	// action
+	// action (Audit or Block)
 	action string
 
-	// event type (add or delete)
+	// event type (ADDED or DELETED)
 	event string
 
 	// dryrun
@@ -108,19 +118,21 @@ func (a *Apply) handlePolicies() error {
 }
 
 // omitEmpty removes empty fields from a map recursively
-func omitEmpty(m map[string]interface{}) map[string]interface{} {
+// this is a custom omission mechanism because k8s yaml engine
+// just doesn't works and fails to exclude empty fields
+func omitEmpty(m map[string]any) map[string]any {
 	for k, v := range m {
 		if v == nil {
 			delete(m, k)
 			continue
 		}
 		switch v := v.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			m[k] = omitEmpty(v)
-			if len(m[k].(map[string]interface{})) == 0 {
+			if len(m[k].(map[string]any)) == 0 {
 				delete(m, k)
 			}
-		case []interface{}:
+		case []any:
 			if len(v) == 0 {
 				delete(m, k)
 			}
@@ -144,7 +156,7 @@ func omitEmpty(m map[string]interface{}) map[string]interface{} {
 			rv := reflect.ValueOf(v)
 			if rv.Kind() == reflect.Struct {
 				m[k] = omitEmpty(structToMap(v))
-				if len(m[k].(map[string]interface{})) == 0 {
+				if len(m[k].(map[string]any)) == 0 {
 					delete(m, k)
 				}
 			}
@@ -154,14 +166,28 @@ func omitEmpty(m map[string]interface{}) map[string]interface{} {
 }
 
 // structToMap converts a struct to a map
-func structToMap(obj interface{}) map[string]interface{} {
-	out := make(map[string]interface{})
+func structToMap(obj any) map[string]any {
+	out := make(map[string]any)
 	j, _ := jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(obj)
 	_ = jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal(j, &out)
 	return out
 }
 
+// processPolicy basically does the following
+// After skipping certain policies, we
+// first, we modify the whole policy to change few fields
+// second, it applies a transformation by converting the policy to map via json
+// third, we omit the empty fields
+// fourth, we convert the policy back to json bytes and then from json to yaml
+// finally, it sends the policy to be applied via gRPC
 func (a *Apply) processPolicy(policy *KubeArmorPolicy) error {
+	if a.event == "ADDED" && !a.dryrun {
+		if _, ok := SkipPolicy[policy.Metadata.Name]; ok {
+			fmt.Printf("Omiting policy addition\n")
+			return nil
+		}
+	}
+
 	a.modifyPolicy(policy)
 
 	// Convert policy to map and omit empty fields
