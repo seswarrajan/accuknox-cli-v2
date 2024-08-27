@@ -14,8 +14,13 @@ Usage: $this [-b] bindir [-d] [tag]
 	-b sets bindir or installation directory, Defaults to ./bin
 	-d turns on debug logging
 
-	[tag] is a tag from -
+	[tag] is a semver tag from -
 	https://github.com/accuknox/knoxctl-website/releases
+
+	[tag] might also be without the patch version.
+	In this case latest patch version of the given release version
+	will be fetched.
+	Example: v0.4
 
 	If tag is missing, then the latest will be used.
 
@@ -102,6 +107,17 @@ semver_compare() {
 	return 1
 }
 
+get_patch_version() {
+  owner_repo=$1
+  tag=${2#v}
+  giturl="https://api.github.com/repos/${owner_repo}/releases"
+  json=$(http_copy "$giturl" "Accept:application/json")
+  test -z "$json" && return 1
+  version=$(echo $json | tr -s ',' '\n' | sed -n 's/.*"tag_name"\s*:\s*"\(.*'${tag}'.*\)"/\1/p' | head -n 1)
+  test -z "$version" && return 1
+  echo "$version"
+}
+
 tag_to_version() {
 	if [ -z "${TAG}" ]; then
 		# latest tag will always be fetched from GitHub
@@ -111,6 +127,14 @@ tag_to_version() {
 		# check GitHub only if provided tag greater than/equal to v0.3.0
 		if semver_compare "${TAG#v}" "0.3.0"; then
 			log_info "checking GitHub for tag '${TAG}'"
+
+			# tag doesn't contain patch version
+			temp_tag=${TAG#v}
+			tag_length=${#temp_tag}
+			if [[ $tag_length -le 3 ]]; then
+				TAG=$(get_patch_version "$OWNER/$REPO" $TAG)
+			fi
+
 		else
 			log_info "downloading from knoxctl.accuknox.com"
 			# if version starts with 'v', remove it
