@@ -8,6 +8,7 @@ import (
 var (
 	clusterType onboard.ClusterType
 	vmMode      onboard.VMMode
+	tls         onboard.TLS
 
 	kubearmorVersion string
 	releaseVersion   string
@@ -30,6 +31,7 @@ var (
 	hostBlock        string
 	cidr             string
 	kubeArmorPolicy  bool
+	topicPrefix      string
 	secureContainers bool
 
 	skipBTF           bool
@@ -83,6 +85,26 @@ func init() {
 	onboardVMCmd.PersistentFlags().StringVar(&rmqAddress, "rmq-address", "", "RabbitMQ address")
 
 	onboardVMCmd.PersistentFlags().StringVar(&cidr, "network-cidr", "172.20.32.0/27", "CIDR for accuknox network")
+
+	onboardVMCmd.PersistentFlags().StringVar(&sumEngineImage, "sumengine-image", "", "summary-engine image to use")
+	onboardVMCmd.PersistentFlags().StringVar(&sumEngineVersionTag, "sumengine-version", "", "summary-engine version to use")
+
+	onboardVMCmd.PersistentFlags().BoolVar(&tls.Enabled, "tls", false, "enable TLS for rabbitmq connection")
+	onboardVMCmd.PersistentFlags().BoolVar(&tls.Generate, "tls-gen", false, "generate TLS certificates for rabbitmq connection (generates CA, Cert, and Key)")
+	onboardVMCmd.PersistentFlags().StringVar(&tls.CaPath, "ca-path", "", "path to ca certificate file")
+
+	onboardVMCmd.PersistentFlags().StringVar(&topicPrefix, "rmq-topic-prefix", "", "rabbitmq topic prefix")
+
+	onboardVMCmd.PersistentFlags().StringArrayVar(&tls.Organization, "tls-org", []string{"accuknox"}, "Organization for TLS certificates")
+
+	onboardVMCmd.PersistentFlags().StringVar(&tls.CommonName, "tls-cn", "accuknox", "CommonName for TLS certificates")
+
+	onboardVMCmd.PersistentFlags().StringVar(&tls.RMQCredentials, "rmq-creds", "", "rabbitmq credentials in base64 encoded key:value format")
+	onboardVMCmd.PersistentFlags().StringArrayVar(&tls.DNS, "dns", []string{}, "DNS names for TLS certificates")
+
+	onboardVMCmd.PersistentFlags().StringArrayVar(&tls.IPs, "ips", []string{}, "List of IPs for TLS certificates")
+
+	onboardVMCmd.MarkFlagsMutuallyExclusive("tls-gen", "ca-path")
 
 	onboardCmd.AddCommand(onboardVMCmd)
 }

@@ -47,7 +47,7 @@ const (
 	DiscoverConfMap  = "dev2-discover"
 	HardeningConfMap = "dev2-hardening"
 	OffloaderConfMap = "dev2-offloader"
-	SumengineConfmap = "dev2-sumengine"
+	SumEngineConfMap = "dev2-sumengine"
 
 	AccuknoxGithub  = "accuknox"
 	AccuknoxCLIRepo = "accuknox-cli-v2"
@@ -97,17 +97,17 @@ const (
 
 	//config paths for systemd mode
 	KAconfigPath             string = "/opt/kubearmor/"
-	VmAdapterconfigPath      string = "/opt/kubearmor-vm-adapter/"
-	RelayServerconfigPath    string = "/opt/kubearmor-relay-server/"
+	VmAdapterConfigPath      string = "/opt/kubearmor-vm-adapter/"
+	RelayServerConfigPath    string = "/opt/kubearmor-relay-server/"
 	FSconfigPath             string = "/opt/accuknox-feeder-service/"
 	PEAconfigPath            string = "/opt/accuknox-policy-enforcement-agent/"
 	SIAconfigPath            string = "/opt/accuknox-shared-informer-agent/"
-	SpireconfigPath          string = "/opt/spire-agent/"
+	SpireConfigPath          string = "/opt/spire-agent/"
 	SumEngineConfigPath      string = "/opt/accuknox-sumengine/"
 	DiscoverConfigPath       string = "/opt/accuknox-discover/"
 	HardeningAgentConfigPath string = "/opt/accuknox-hardening-agent/"
 
-	//TODO make configurable for policy dir in accuknox policy enforcementagent
+	//TODO make configurable for policy dir in accuknox policy enforcement agent
 	PeaPolicyPath string = "/opt/pea/"
 
 	//systemd path
@@ -121,6 +121,13 @@ const (
 	OperationNetwork = "Network"
 	OperationFile    = "File"
 	OperationProcess = "Process"
+
+	DefaultRabbitMQDir     = "/rabbitmq"
+	DefaultCAFileName      = "ca_certificate.pem"
+	DefaultCertificateName = "certificate.pem"
+	DefaultKeyFileName     = "key.pem"
+	DefaultEncodedFileName = "encoded.pem"
+	DefaultCACertDir       = "/cert"
 )
 
 var (

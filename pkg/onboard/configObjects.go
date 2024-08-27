@@ -20,6 +20,9 @@ var (
 	//go:embed templates/pea-config.yaml
 	peaConfig string
 
+	//go:embed templates/pea-rmq-kmux-config.yaml
+	peaRmqKmuxConfig string
+
 	//go:embed templates/sia-config.yaml
 	siaConfig string
 
@@ -40,6 +43,12 @@ var (
 
 	//go:embed templates/spire-agent.conf
 	spireAgentConfig string
+
+	//go:embed templates/rabbitmq.conf
+	rabbitmqConfig string
+
+	//go:embed templates/definitions.json
+	rabbitmqDefinitions string
 
 	//go:embed templates/systemdTemplates/feeder-service-env
 	fsEnvVal string

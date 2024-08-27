@@ -18,6 +18,7 @@ type agentConfigMeta struct {
 	configTemplateString     string
 	kmuxConfigPath           string
 	kmuxConfigTemplateString string
+	kmuxConfigFileName       string
 }
 
 func InitCPNodeConfig(cc ClusterConfig, joinToken, spireHost, ppsHost, knoxGateway, spireTrustBundle string, enableLogs bool) *InitConfig {
@@ -122,7 +123,9 @@ func (ic *InitConfig) CreateBaseTemplateConfig() error {
 
 		SecureContainers: ic.SecureContainers,
 
-		VmMode: ic.Mode,
+		VmMode:         ic.Mode,
+		RMQServer:      ic.RMQServer,
+		RMQTopicPrefix: ic.RMQTopicPrefix,
 	}
 	return nil
 }
@@ -167,6 +170,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	ic.TCArgs.ImagePullPolicy = string(ic.ImagePullPolicy)
 
 	ic.TCArgs.ConfigPath = configPath
+	ic.TCArgs.KmuxRMQConfigPathPEA = "/opt/pea/pea-rmq-kmux-config.yaml"
 
 	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
 	ic.TCArgs.ProcessOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "process")
@@ -186,6 +190,25 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	} else if ic.RMQServer == "" && !ic.DeployRMQ {
 		return fmt.Errorf("RabbitMQ address must be specified if deployment is skipped")
 	}
+	if ic.Tls.Enabled {
+		ic.TCArgs.TlsEnabled = ic.Tls.Enabled
+		ic.TCArgs.TlsCertFile = fmt.Sprintf("%s%s%s/%s", ic.UserConfigPath, configPath, common.DefaultCACertDir, common.DefaultEncodedFileName)
+		if err := ic.handleTLS(); err != nil {
+			return err
+		}
+	}
+	kmuxConfigArgs.RMQUsername = ic.TCArgs.RMQUsername
+	kmuxConfigArgs.RMQPassword = ic.TCArgs.RMQPassword
+	kmuxConfigArgs.TlsEnabled = ic.TCArgs.TlsEnabled
+	kmuxConfigArgs.TlsCertFile = ic.TCArgs.TlsCertFile
+
+	ic.TCArgs.ContainerPolicyTopic = getTopicName(ic.RMQTopicPrefix, "container-policy")
+	ic.TCArgs.HostPolicyTopic = getTopicName(ic.RMQTopicPrefix, "host-policy")
+	ic.TCArgs.LogsTopic = getTopicName(ic.RMQTopicPrefix, "logs")
+	ic.TCArgs.AlertsTopic = getTopicName(ic.RMQTopicPrefix, "alerts")
+	ic.TCArgs.StateEventTopic = getTopicName(ic.RMQTopicPrefix, "state-event")
+	ic.TCArgs.PolicyV1Topic = getTopicName(ic.RMQTopicPrefix, "policy-v1")
+	ic.TCArgs.SummaryV2Topic = getTopicName(ic.RMQTopicPrefix, "summary-v2")
 
 	// initialize sprig for templating
 	sprigFuncs := sprig.GenericFuncMap()
@@ -198,7 +221,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 
 	// List of config files to be generated or copied
 	// TODO: Refactor later
-	agentMeta := getAgentConfigMeta()
+	agentMeta := getAgentConfigMeta(ic.Tls.Enabled)
 
 	// Generate or copy config files
 	for _, agentObj := range agentMeta {
@@ -215,7 +238,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 
 		// generate kmux config only if it exists for this agent
 		if agentObj.kmuxConfigPath != "" {
-			if _, err := copyOrGenerateFile(ic.UserConfigPath, agentConfigPath, common.KmuxConfigFileName, sprigFuncs, agentObj.kmuxConfigTemplateString, kmuxConfigArgs); err != nil {
+			if _, err := copyOrGenerateFile(ic.UserConfigPath, agentConfigPath, agentObj.kmuxConfigFileName, sprigFuncs, agentObj.kmuxConfigTemplateString, kmuxConfigArgs); err != nil {
 				return err
 			}
 		}
@@ -249,6 +272,35 @@ func (ic *InitConfig) runComposeCommand(composeFilePath string) error {
 			fmt.Println("Error while removing volumes:", volDelErr.Error())
 		}
 		return ic.handleComposeError(err, diagnosis)
+	}
+	return nil
+}
+
+func (ic *InitConfig) handleTLS() error {
+
+	paths := oldCertPaths(ic.TCArgs.ConfigPath)
+
+	if ic.Tls.Enabled && ic.Tls.CaPath == "" && len(paths) == 0 {
+		ic.Tls.Generate = true
+	}
+	if ic.RMQCredentials == "" {
+		ic.TCArgs.RMQUsername, ic.TCArgs.RMQPassword = GenerateUserAndPassword()
+		ic.TCArgs.RMQPasswordHash = GetHash(ic.TCArgs.RMQPassword)
+		ic.RMQCredentials = Encode([]byte(ic.TCArgs.RMQUsername + ":" + ic.TCArgs.RMQPassword))
+	}
+	ic.TCArgs.RMQTlsPort = "5672"
+
+	storeData, caBytes, err := ic.GenerateOrUpdateCert(paths)
+	if err != nil {
+		return err
+	}
+
+	ic.CaCert = Encode(caBytes)
+
+	storeData[ic.TCArgs.TlsCertFile] = ic.CaCert
+
+	if err := StoreCert(storeData); err != nil {
+		return err
 	}
 	return nil
 }
@@ -289,7 +341,7 @@ func isOperationDisabled(visibility, hostVisibility, operation string) bool {
 	return !exists
 }
 
-func getAgentConfigMeta() []agentConfigMeta {
+func getAgentConfigMeta(tlsEnabled bool) []agentConfigMeta {
 	agentMeta := []agentConfigMeta{
 		{
 			agentName:            "spire",
@@ -304,6 +356,7 @@ func getAgentConfigMeta() []agentConfigMeta {
 			configTemplateString:     siaConfig,
 			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "sia", common.KmuxConfigFileName),
 			kmuxConfigTemplateString: kmuxConfig,
+			kmuxConfigFileName:       common.KmuxConfigFileName,
 		},
 		{
 			agentName:                "pea",
@@ -311,12 +364,16 @@ func getAgentConfigMeta() []agentConfigMeta {
 			configFilePath:           "application.yaml",
 			configTemplateString:     peaConfig,
 			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "pea", common.KmuxConfigFileName),
-			kmuxConfigTemplateString: kmuxConfig},
+			kmuxConfigTemplateString: kmuxConfig,
+			kmuxConfigFileName:       common.KmuxConfigFileName,
+		},
+
 		{
 			agentName:                "feeder-service",
 			configDir:                "feeder-service",
 			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "feeder-service", common.KmuxConfigFileName),
 			kmuxConfigTemplateString: kmuxConfig,
+			kmuxConfigFileName:       common.KmuxConfigFileName,
 		},
 		{
 			agentName:                "sumengine",
@@ -325,6 +382,7 @@ func getAgentConfigMeta() []agentConfigMeta {
 			configTemplateString:     sumEngineConfig,
 			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "sumengine", common.KmuxConfigFileName),
 			kmuxConfigTemplateString: sumEngineKmuxConfig,
+			kmuxConfigFileName:       common.KmuxConfigFileName,
 		},
 		{
 			agentName:                "discover",
@@ -333,6 +391,7 @@ func getAgentConfigMeta() []agentConfigMeta {
 			configTemplateString:     discoverConfig,
 			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "discover", common.KmuxConfigFileName),
 			kmuxConfigTemplateString: discoverKmuxConfig,
+			kmuxConfigFileName:       common.KmuxConfigFileName,
 		},
 		{
 			agentName:                "hardening-agent",
@@ -341,8 +400,68 @@ func getAgentConfigMeta() []agentConfigMeta {
 			configTemplateString:     hardeningAgentConfig,
 			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "hardening-agent", common.KmuxConfigFileName),
 			kmuxConfigTemplateString: hardeningAgentKmuxConfig,
+			kmuxConfigFileName:       common.KmuxConfigFileName,
 		},
+	}
+	if tlsEnabled {
+		agentMeta = append(agentMeta, []agentConfigMeta{
+			{
+				agentName:            "rabbitmq",
+				configDir:            "rabbitmq",
+				configFilePath:       "rabbitmq.conf",
+				configTemplateString: rabbitmqConfig,
+			},
+			{
+				agentName:            "rabbitmq",
+				configDir:            "rabbitmq",
+				configFilePath:       "definitions.json",
+				configTemplateString: rabbitmqDefinitions,
+			},
+			{
+				agentName:                "pea",
+				configDir:                "pea",
+				kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "pea", "pea-rmq-kmux-config.yaml"),
+				kmuxConfigTemplateString: peaRmqKmuxConfig,
+				kmuxConfigFileName:       "pea-rmq-kmux-config.yaml",
+			},
+			{
+				agentName:                "vm-adapter",
+				configDir:                "vm-adapter",
+				kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "vm-adapter", common.KmuxConfigFileName),
+				kmuxConfigTemplateString: sumEngineKmuxConfig,
+				kmuxConfigFileName:       common.KmuxConfigFileName,
+			},
+		}...)
 	}
 
 	return agentMeta
+}
+
+// getTopicName Returns:
+// - The topic name with the prefix, if the prefix is not empty.
+// - The topic name itself, if the prefix is empty.
+func getTopicName(prefix, topic string) string {
+	if prefix == "" {
+		return topic
+	}
+	return prefix + "-" + topic
+}
+
+func oldCertPaths(root string) []string {
+
+	paths := []string{}
+
+	if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && filepath.Ext(d.Name()) == ".pem" {
+			paths = append(paths, path)
+		}
+		return nil
+	}); err != nil {
+		return paths
+	}
+
+	return paths
 }

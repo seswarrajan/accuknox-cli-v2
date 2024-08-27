@@ -18,8 +18,10 @@ spire:
 
 rabbitmq:
   server: {{.RMQServer}}
+  username: {{.RMQUsername}}
+  password: {{.RMQPassword}}
   exchange:
-    name: "dev2" 
+    name: "agents" 
     type: "direct"
     durable: true
     auto-delete: true
@@ -28,3 +30,7 @@ rabbitmq:
     durable: true
     auto-delete: true
   debug: false
+  tls: 
+    enabled: {{.TlsEnabled}}
+    cert-file: "/opt/cert/encoded.pem"
+    skip-verify: false

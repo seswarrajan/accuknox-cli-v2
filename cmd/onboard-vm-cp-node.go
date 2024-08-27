@@ -90,7 +90,7 @@ var cpNodeCmd = &cobra.Command{
 			kubeArmorInitImage, kubeArmorVMAdapterImage, kubeArmorRelayServerImage, siaImage,
 			peaImage, feederImage, rmqImage, sumEngineImage, hardeningAgentImage, spireAgentImage, waitForItImage, discoverImage, nodeAddr, dryRun,
 			false, deployRMQ, imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
-			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine, registry, registryConfigPath, insecure, plainHTTP, preserveUpstream)
+			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine, registry, registryConfigPath, insecure, plainHTTP, preserveUpstream, topicPrefix, tls)
 		if err != nil {
 			return fmt.Errorf(color.RedString("failed to create cluster config: %s", err.Error()))
 		}
@@ -101,6 +101,7 @@ var cpNodeCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf(color.RedString("failed to create base template config: %s", err.Error()))
 		}
+
 		switch vmMode {
 
 		case onboard.VMMode_Systemd:
@@ -159,8 +160,6 @@ func init() {
 	cpNodeCmd.PersistentFlags().StringVar(&waitForItImage, "wait-for-it-image", "", "wait-for-it image to use")
 	cpNodeCmd.PersistentFlags().StringVar(&discoverImage, "discover-image", "", "discover image to use")
 	cpNodeCmd.PersistentFlags().StringVar(&discoverVersionTag, "discover-version", "", "discover version to use")
-	cpNodeCmd.PersistentFlags().StringVar(&sumEngineImage, "sumengine-image", "", "summary-engine image to use")
-	cpNodeCmd.PersistentFlags().StringVar(&sumEngineVersionTag, "sumengine-version", "", "summary-engine version to use")
 	cpNodeCmd.PersistentFlags().StringVar(&hardeningAgentImage, "hardening-agent-image", "", "hardening-agent image to use")
 	cpNodeCmd.PersistentFlags().StringVar(&hardeningAgentVersionTag, "hardening-agent-version", "", "hardening-agent version to use")
 

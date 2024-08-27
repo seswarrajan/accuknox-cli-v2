@@ -24,3 +24,9 @@ state-agent:
 
 k8s:
   enable: false
+
+tls:
+  enabled: {{.TlsEnabled}}
+  state-topic: {{.StateEventTopic}}
+
+deployMode: "vm"

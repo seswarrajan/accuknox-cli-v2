@@ -29,6 +29,14 @@ annotation:
 non-k8s:
   enable: true
   policy-server-port: 32770
+tls:
+  enabled: {{.TlsEnabled}}
+  policy-topic:
+    container: {{.ContainerPolicyTopic}}
+    host: {{.HostPolicyTopic}}
+  kmux-config: {{.KmuxRMQConfigPathPEA}}
 
 policy-watcher:
   enable: false
+
+deployMode: "vm"

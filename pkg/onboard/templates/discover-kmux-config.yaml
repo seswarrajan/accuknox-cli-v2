@@ -5,13 +5,19 @@ kmux:
   source:
     stream: rabbitmq
 rabbitmq:
+  username: {{.RMQUsername}}
+  password: {{.RMQPassword}}
   exchange:
     auto-delete: true
     durable: true
-    name: dev2
+    name: agents
     type: direct
   queue:
     auto-delete: true
     durable: true
     name: ""
   server: {{.RMQServer}}
+  tls: 
+    enabled: {{.TlsEnabled}}
+    cert-file: "/opt/cert/encoded.pem"
+    skip-verify: false

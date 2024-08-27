@@ -88,15 +88,45 @@ services:
     command:
       - "--kubearmor-addr={{.KubeArmorURL}}"
       - "--relay-server-addr={{.RelayServerURL}}"
+      {{- if .TlsEnabled }}
+      - "--tls"
+      - "--host-policy-topic={{.HostPolicyTopic}}"
+      - "--container-policy-topic={{.ContainerPolicyTopic}}"
+      - "--state-topic={{.StateEventTopic}}"
+      - "--alert-topic={{.AlertsTopic}}"
+      - "--logs-topic={{.LogsTopic}}"
+      {{- else }}
       - "--sia-addr={{.SIAAddr}}"
       - "--pea-addr={{.PEAAddr}}"
       - "--harden-addr={{.HardenAddr}}"
+      {{- end }}
     volumes:
       - "{{.ConfigPath}}:/opt"
     labels:
       app: kubearmor-vm-adapter
     restart: always
     network_mode: "host"
+
+  summary-engine:
+    profiles:
+      - "accuknox-agents"
+    depends_on:
+      kubearmor-vm-adapter:
+        condition: service_started
+    container_name: summary-engine
+    image: "{{.SumEngineImage}}"
+    pull_policy: "{{.ImagePullPolicy}}"
+    command: ["--config", "/opt/sumengine/config.yaml", "--kmux-config", "/opt/sumengine/kmux-config.yaml"]
+    labels:
+      app: sumengine
+    volumes:
+      - "{{.ConfigPath}}:/opt"
+    restart: always
+    pid: "host"
+    networks:
+      accuknox-net:
+        aliases:
+          - sumengine
 
 networks:
   accuknox-net:

@@ -18,7 +18,7 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 	feederImage, rmqImage, sumEngineImage, hardeningAgentImage, spireImage, waitForItImage, discoverImage, nodeAddress string, dryRun, workerNode, deployRMQ bool,
 	imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
 	cidr string, secureContainers, skipBTF bool, systemMonitorPath string,
-	rmqAddr string, deploySumengine bool, registry, registryConfigPath string, insecureRegistryConnection, httpRegistryConnection, preserveUpstream bool) (*ClusterConfig, error) {
+	rmqAddr string, deploySumengine bool, registry, registryConfigPath string, insecureRegistryConnection, httpRegistryConnection, preserveUpstream bool, topicPrefix string, tls TLS) (*ClusterConfig, error) {
 
 	cc := new(ClusterConfig)
 
@@ -42,6 +42,9 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 
 		cc.UserConfigPath = cleanUserConfigPath
 	}
+
+	cc.RMQTopicPrefix = topicPrefix
+
 	// systemd or docker
 	cc.Mode = vmMode
 
@@ -300,7 +303,7 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 		// create systemd service objects
 		cc.createSystemdServiceObjects()
 
-		// prepare OAuth cerdentials
+		// prepare OAuth credentials
 		loginOptions := LoginOptions{
 			Insecure:           insecureRegistryConnection,
 			PlainHTTP:          httpRegistryConnection,
@@ -315,6 +318,7 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 			return nil, err
 		}
 	}
+	cc.Tls = tls
 
 	return cc, nil
 }
@@ -322,18 +326,29 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 // prints join command - currently only with the default ports
 // TODO: handle complex configuration
 func (cc *ClusterConfig) PrintJoinCommand() {
-	command := ""
+	command := "knoxctl onboard vm node"
+
 	cpNodeAddr := cc.CPNodeAddr
 	if cc.CPNodeAddr == "" {
 		cpNodeAddr = "<address-of-this-node>"
 	}
+
 	switch cc.Mode {
 	case VMMode_Docker:
-		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"docker\" --version=%s --cp-node-addr=%s", cc.AgentsVersion, cpNodeAddr)
+		command = fmt.Sprintf("%s --vm-mode=\"docker\"", command)
 
 	case VMMode_Systemd:
-		command = fmt.Sprintf("knoxctl onboard vm node --vm-mode=\"systemd\" --version=%s --cp-node-addr=%s", cc.AgentsVersion, cpNodeAddr)
+		command = fmt.Sprintf("%s --vm-mode=\"systemd\" ", command)
 	}
+
+	if cc.CaCert != "" {
+		command = fmt.Sprintf("%s --tls --ca-cert=\"%s\" --rmq-creds=\"%s\"", command, cc.CaCert, cc.RMQCredentials)
+	}
+	if cc.Tls.Enabled {
+		command = fmt.Sprintf("%s --deploy-summary-engine", command)
+	}
+
+	command = fmt.Sprintf("%s --version=%s --cp-node-addr=%s", command, cc.AgentsVersion, cpNodeAddr)
 
 	fmt.Println(command)
 }

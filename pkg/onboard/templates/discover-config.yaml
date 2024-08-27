@@ -21,5 +21,7 @@ discover:
     topic: policy-v1
   k8s:
     enable: false
+  tls:
+    enabled: {{.TlsEnabled}}
 logging:
   level: info

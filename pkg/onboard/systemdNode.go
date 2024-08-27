@@ -3,6 +3,7 @@ package onboard
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/Masterminds/sprig"
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
@@ -13,7 +14,7 @@ func (jc *JoinConfig) JoinSystemdNode() error {
 	// initialize template funcs
 	jc.TemplateFuncs = sprig.GenericFuncMap()
 
-	// Download and intall agents
+	// Download and install agents
 	fmt.Println(color.MagentaString("Downloading agents..."))
 	err := jc.SystemdInstall()
 	if err != nil {
@@ -23,10 +24,35 @@ func (jc *JoinConfig) JoinSystemdNode() error {
 		return err
 	}
 
+	jc.TCArgs.TlsEnabled = jc.Tls.Enabled
+
+	if jc.Tls.RMQCredentials != "" {
+
+		rmqData := strings.Split(Decode(jc.Tls.RMQCredentials), ":")
+		if len(rmqData) != 2 {
+			return fmt.Errorf("invalid RMQ credentials")
+		}
+		jc.TCArgs.RMQUsername = rmqData[0]
+		jc.TCArgs.RMQPassword = rmqData[1]
+	}
+
+	if jc.Tls.Enabled {
+		jc.TCArgs.TlsCertFile = "/opt" + cm.DefaultCACertDir + "/" + cm.DefaultEncodedFileName
+		if err := StoreCert(map[string]string{
+			jc.TCArgs.TlsCertFile: jc.Tls.CaCert,
+		}); err != nil {
+			return err
+		}
+	}
+
 	// config services
 	kmuxConfigArgs := KmuxConfigTemplateArgs{
 		ReleaseVersion: jc.AgentsVersion,
 		RMQServer:      jc.RMQServer,
+		RMQUsername:    jc.TCArgs.RMQUsername,
+		RMQPassword:    jc.TCArgs.RMQPassword,
+		TlsEnabled:     jc.TCArgs.TlsEnabled,
+		TlsCertFile:    jc.TCArgs.TlsCertFile,
 	}
 
 	fmt.Println(color.MagentaString("\nConfiguring services..."))
@@ -87,7 +113,6 @@ func (jc *JoinConfig) JoinSystemdNode() error {
 		if !obj.InstallOnWorkerNode {
 			continue
 		}
-
 		err = StartSystemdService(obj.ServiceName)
 		if err != nil {
 			fmt.Printf("failed to start service %s: %s\n", obj.ServiceName, err.Error())

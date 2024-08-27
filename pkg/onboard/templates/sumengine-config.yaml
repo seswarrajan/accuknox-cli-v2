@@ -14,6 +14,10 @@ watcher:
     url: {{.RelayServerAddr}}
     port: {{.RelayServerPort}}
 {{- end }}
+  rabbitmq:
+    enabled: true
+    logs-topic: {{.LogsTopic}}
+    alerts-topic: {{.AlertsTopic}}
 
 summary-engine:
   enabled: true
@@ -31,3 +35,5 @@ summary-engine:
     kubearmor: true 
   k8s:
     enable: false
+  tls:
+    enabled: {{.TlsEnabled}}

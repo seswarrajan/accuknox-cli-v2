@@ -1,0 +1,25 @@
+{
+    "rabbit_version": "3.8.9",
+    "users": [
+      {
+        "name": "{{.RMQUsername}}",
+        "password_hash": "{{.RMQPasswordHash}}",
+        "tags": "administrator"
+      }
+    ],
+    "vhosts": [
+      {
+        "name": "/"
+      }
+    ],
+    "permissions": [
+      {
+        "user": "{{.RMQUsername}}",
+        "vhost": "/",
+        "configure": ".*",
+        "write": ".*",
+        "read": ".*"
+      }
+    ]
+  }
+  

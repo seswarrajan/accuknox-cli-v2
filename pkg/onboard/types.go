@@ -116,6 +116,14 @@ type ClusterConfig struct {
 	PlainHTTP   bool
 	InsecureTLS bool
 	ORASClient  *auth.Client
+
+	// tls configs
+	CaCert         string
+	RMQCredentials string
+
+	RMQTopicPrefix string
+
+	Tls TLS
 }
 
 type InitConfig struct {
@@ -218,7 +226,8 @@ type TemplateConfigArgs struct {
 	NetworkCIDR string
 
 	// kmux config paths for agents
-	KmuxConfigPath string
+	KmuxRMQConfigPathPEA string
+	KmuxConfigPath       string
 
 	// container security
 	SecureContainers bool
@@ -227,6 +236,25 @@ type TemplateConfigArgs struct {
 	ProcessOperation bool
 	FileOperation    bool
 	NetworkOperation bool
+
+	RMQTlsPort      string
+	RMQPasswordHash string
+	RMQUsername     string
+	RMQPassword     string
+	RMQServer       string
+	RMQTopicPrefix  string
+
+	TlsEnabled  bool
+	TlsCertFile string
+
+	// topic config
+	ContainerPolicyTopic string
+	HostPolicyTopic      string
+	StateEventTopic      string
+	LogsTopic            string
+	AlertsTopic          string
+	PolicyV1Topic        string
+	SummaryV2Topic       string
 }
 
 type KmuxConfigTemplateArgs struct {
@@ -234,6 +262,10 @@ type KmuxConfigTemplateArgs struct {
 	StreamName     string
 	ServerURL      string
 	RMQServer      string
+	RMQUsername    string
+	RMQPassword    string
+	TlsEnabled     bool
+	TlsCertFile    string
 }
 
 type TokenResponse struct {
@@ -275,3 +307,15 @@ var (
 )
 
 const AccessKeyEndpoint = "/access-token/api/v1/process"
+
+type TLS struct {
+	CaPath         string
+	Generate       bool
+	Enabled        bool
+	CaCert         string
+	RMQCredentials string
+	Organization   []string
+	CommonName     string
+	IPs            []string
+	DNS            []string
+}
