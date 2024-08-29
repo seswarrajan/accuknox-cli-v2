@@ -25,7 +25,7 @@ summary-engine:
   threshold: 10000
   file-aggregation: true
   topic:
-    summary-event: "summary-v2"
+    summary-event: {{.SummaryV2Topic}}
   exclude-events:
     operation:
       process: {{.ProcessOperation}}
