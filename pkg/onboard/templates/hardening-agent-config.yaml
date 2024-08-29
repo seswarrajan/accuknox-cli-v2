@@ -4,7 +4,7 @@ hardening:
   enabled: true
   recommend-host-policy: true
   template-version: "0.2.6"
-  topic: "policy-v1"
+  topic: {{.PolicyV1Topic}}
   delay-cron-job: "0h05m00s"
   filter-enabled: false
   exclude-namespaces:

@@ -5,7 +5,7 @@ discover:
       network: 100
       system: 1000
     time-limit: 1
-    topic: summary-v2
+    topic: {{.SummaryV2Topic}}
   policy-client:
     server: 127.0.0.1:8090
   processor:
@@ -18,7 +18,7 @@ discover:
     rules: {{.DiscoverRules}}
   sink:
     channel-size: 100
-    topic: policy-v1
+    topic: {{.PolicyV1Topic}}
   k8s:
     enable: false
   tls:
