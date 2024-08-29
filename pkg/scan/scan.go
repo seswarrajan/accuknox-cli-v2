@@ -94,7 +94,7 @@ func New(opts *ScanOptions) *Scan {
 		processForest:  NewProcessForest(),
 		networkCache:   NewNetworkCache(),
 		segregate:      NewSegregator(),
-		alertProcessor: NewAlertProcessor(),
+		alertProcessor: NewAlertProcessor(opts.AlertFilters),
 	}
 
 	if opts.RepoBranch == "" {
@@ -173,7 +173,7 @@ func (s *Scan) HandlePolicies() error {
 
 	if s.options.PolicyDryRun {
 		fmt.Println(`Running in dry run mode, policies won't be 
-        applied on the system, but will get generated and saved`)
+applied on the system, but will get generated and saved`)
 	}
 
 	err := s.policyApplier.Apply()
@@ -416,49 +416,70 @@ func (s *Scan) postProcessing() {
 		return filepath.Join(outputDir, fileName)
 	}
 
-	segregatedDataPath := createFilePath("segragated_data", "json")
-	err := s.segregate.SaveSegregatedDataToFile(segregatedDataPath)
-	if err != nil {
-		fmt.Printf("error while saving segregated data: %s\n", err.Error())
-	} else {
-		fmt.Printf("Segrgated data saved successfully to %s\n", segregatedDataPath)
+	var wg sync.WaitGroup
+
+	// Helper function to run a task in a goroutine
+	runTask := func(task func()) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			task()
+		}()
 	}
 
-	s.processForest.BuildFromSegregatedData(s.segregate.data.Logs.Process)
-	processTreePath := createFilePath("process_tree", "json")
-	err = s.processForest.SaveProcessForestJSON(processTreePath)
-	if err != nil {
-		fmt.Printf("failed to write process tree json file: %s\n", err.Error())
-	} else {
-		fmt.Printf("Process tree json written to %s\n", processTreePath)
-	}
+	// Save segregated data
+	runTask(func() {
+		segregatedDataPath := createFilePath("segregated_data", "json")
+		err := s.segregate.SaveSegregatedDataToFile(segregatedDataPath)
+		if err != nil {
+			fmt.Printf("error while saving segregated data: %s\n", err.Error())
+		} else {
+			fmt.Printf("Segregated data saved successfully to %s\n", segregatedDataPath)
+		}
+	})
 
-	s.networkCache.StartCachingEvents(s.segregate.data.Logs.Network)
-	processTreeMDPath := createFilePath("process_tree", "md")
-	err = s.processForest.SaveProcessForestMarkdown(processTreeMDPath)
-	if err != nil {
-		fmt.Printf("failed to write process tree markdown file: %s\n", err.Error())
-	} else {
-		fmt.Printf("Process tree markdown written to %s\n", processTreeMDPath)
-	}
+	// Build and save process forest
+	runTask(func() {
+		s.processForest.BuildFromSegregatedData(s.segregate.data.Logs.Process)
+		processTreePath := createFilePath("process_tree", "json")
+		err := s.processForest.SaveProcessForestJSON(processTreePath)
+		if err != nil {
+			fmt.Printf("failed to write process tree json file: %s\n", err.Error())
+		} else {
+			fmt.Printf("Process tree json written to %s\n", processTreePath)
+		}
 
-	networkFilePath := createFilePath("network_events", "json")
-	err = s.networkCache.SaveNetworkCacheJSON(networkFilePath)
-	if err != nil {
-		fmt.Printf("failed to write network json file: %s\n", err.Error())
-	} else {
-		fmt.Printf("Network events json file written to %s\n", networkFilePath)
-	}
+		processTreeMDPath := createFilePath("process_tree", "md")
+		err = s.processForest.SaveProcessForestMarkdown(processTreeMDPath)
+		if err != nil {
+			fmt.Printf("failed to write process tree markdown file: %s\n", err.Error())
+		} else {
+			fmt.Printf("Process tree markdown written to %s\n", processTreeMDPath)
+		}
+	})
 
-	networkMDPath := createFilePath("network_events_md", "md")
-	err = s.networkCache.SaveNetworkCacheMarkdown(networkMDPath)
-	if err != nil {
-		fmt.Printf("failed to write to network json file: %s\n", err.Error())
-	} else {
-		fmt.Printf("Network events markdown file written to %s\n", networkMDPath)
-	}
+	// Handle network cache
+	runTask(func() {
+		s.networkCache.StartCachingEvents(s.segregate.data.Logs.Network)
+		networkFilePath := createFilePath("network_events", "json")
+		err := s.networkCache.SaveNetworkCacheJSON(networkFilePath)
+		if err != nil {
+			fmt.Printf("failed to write network json file: %s\n", err.Error())
+		} else {
+			fmt.Printf("Network events json file written to %s\n", networkFilePath)
+		}
 
-	if s.options.PolicyDryRun {
+		networkMDPath := createFilePath("network_events_md", "md")
+		err = s.networkCache.SaveNetworkCacheMarkdown(networkMDPath)
+		if err != nil {
+			fmt.Printf("failed to write to network json file: %s\n", err.Error())
+		} else {
+			fmt.Printf("Network events markdown file written to %s\n", networkMDPath)
+		}
+	})
+
+	// Save the generated policies
+	runTask(func() {
 		policiesPath := createFilePath("generated_policies", "yaml")
 		err := s.policyApplier.SavePolicies(policiesPath)
 		if err != nil {
@@ -466,32 +487,34 @@ func (s *Scan) postProcessing() {
 		} else {
 			fmt.Printf("Generated policies saved to %s\n", policiesPath)
 		}
-	}
+	})
 
-	// Start handling alerts
-	s.alertProcessor.ProcessAlerts(s.segregate.data)
+	// Process alerts
+	runTask(func() {
+		s.alertProcessor.ProcessAlerts(s.segregate.data)
 
-	// Generate and save JSON
-	alertsJSON, err := s.alertProcessor.GenerateJSON()
-	if err != nil {
-		fmt.Printf("Error generating JSON for alerts: %v\n", err)
-	} else {
-		alertsJSONPath := createFilePath("processed_alerts", "json")
-		err = common.CleanAndWrite(alertsJSONPath, alertsJSON)
+		alertsJSON, err := s.alertProcessor.GenerateJSON()
 		if err != nil {
-			fmt.Printf("Error writing alerts JSON to file: %v\n", err)
+			fmt.Printf("Error generating JSON for alerts: %v\n", err)
 		} else {
-			fmt.Printf("Processed alerts JSON written to %s\n", alertsJSONPath)
+			alertsJSONPath := createFilePath("processed_alerts", "json")
+			err = common.CleanAndWrite(alertsJSONPath, alertsJSON)
+			if err != nil {
+				fmt.Printf("Error writing alerts JSON to file: %v\n", err)
+			} else {
+				fmt.Printf("Processed alerts JSON written to %s\n", alertsJSONPath)
+			}
 		}
-	}
 
-	// Generate and save Markdown
-	alertsMarkdown := s.alertProcessor.GenerateMarkdownTable()
-	alertsMarkdownPath := createFilePath("processed_alerts", "md")
-	err = common.CleanAndWrite(alertsMarkdownPath, []byte(alertsMarkdown))
-	if err != nil {
-		fmt.Printf("Error writing alerts Markdown to file: %v\n", err)
-	} else {
-		fmt.Printf("Processed alerts Markdown written to %s\n", alertsMarkdownPath)
-	}
+		alertsMarkdown := s.alertProcessor.GenerateMarkdownTable()
+		alertsMarkdownPath := createFilePath("processed_alerts", "md")
+		err = common.CleanAndWrite(alertsMarkdownPath, []byte(alertsMarkdown))
+		if err != nil {
+			fmt.Printf("Error writing alerts Markdown to file: %v\n", err)
+		} else {
+			fmt.Printf("Processed alerts Markdown written to %s\n", alertsMarkdownPath)
+		}
+	})
+
+	wg.Wait()
 }
