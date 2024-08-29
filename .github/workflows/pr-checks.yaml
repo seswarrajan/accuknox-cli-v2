@@ -20,7 +20,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: AccuKnox Runtime Monitoring
-        uses: accuknox/report-action@v0.3.2
+        uses: accuknox/report-action@v0.3.3
+        with:
+          knoxctl_version: '0.6.1'
 
       - uses: actions/setup-go@v2
         with:
