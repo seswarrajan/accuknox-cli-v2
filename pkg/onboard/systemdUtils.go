@@ -155,6 +155,11 @@ func (cc *ClusterConfig) createSystemdServiceObjects() {
 		if obj.AgentName == cm.SummaryEngine && cc.WorkerNode && cc.DeploySumengine {
 			systemdObjects[i].InstallOnWorkerNode = true
 		}
+
+		// TEMP: skip installing hardening agent in TLS mode
+		if obj.AgentName == cm.HardeningAgent && cc.Tls.Enabled {
+			systemdObjects = slices.Delete(systemdObjects, i, i)
+		}
 	}
 
 	cc.SystemdServiceObjects = systemdObjects

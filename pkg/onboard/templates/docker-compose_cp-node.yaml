@@ -106,6 +106,9 @@ services:
       - "-hostDefaultFilePosture={{.KubeArmorHostFilePosture}}"
       - "-hostDefaultNetworkPosture={{.KubeArmorHostNetworkPosture}}"
       - "-hostDefaultCapabilitiesPosture={{.KubeArmorHostCapPosture}}"
+      - "-alertThrottling={{.KubeArmorAlertThrottling}}"
+      - "-maxAlertPerSec={{.KubeArmorMaxAlertsPerSec}}"
+      - "-throttleSec={{.KubeArmorThrottleSec}}"
     labels:
       app: kubearmor
     volumes:
@@ -235,8 +238,10 @@ services:
         condition: service_started
       discover:
         condition: service_started
+      {{- if not .TlsEnabled }}
       hardening-agent:
         condition: service_started
+      {{- end }}
     container_name: feeder-service
     image: "{{.FeederImage}}"
     pull_policy: "{{.ImagePullPolicy}}"
@@ -358,6 +363,7 @@ services:
       accuknox-net:
         aliases:
           - sumengine
+  {{- if not .TlsEnabled }}
   hardening-agent:
     profiles:
       - "accuknox-agents"
@@ -384,6 +390,7 @@ services:
       accuknox-net:
         aliases:
           - hardening-agent
+  {{- end }}
 
   {{- if .DeployRMQ }}
   rabbitmq:
