@@ -167,6 +167,8 @@ services:
       {{- if .TlsEnabled }}
       shared-informer-agent:
         condition: service_started
+      policy-enforcement-agent:
+        condition: service_started
       {{- end }}
     container_name: kubearmor-vm-adapter
     image: "{{.KubeArmorVMAdapterImage}}"
@@ -292,8 +294,6 @@ services:
       wait-for-it:
         condition: service_completed_successfully
       kubearmor-relay-server:
-        condition: service_started
-      kubearmor-vm-adapter:
         condition: service_started
     container_name: policy-enforcement-agent
     image: "{{.PEAImage}}"
