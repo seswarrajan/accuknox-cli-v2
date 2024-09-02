@@ -49,26 +49,29 @@ type Alert struct {
 	// Name of the policy
 	PolicyName string `json:"policyName"`
 
-	// Operation
+	// Operation type which can be either network, file or process
 	Operation string `json:"operation"`
 
-	// PID
+	// PID of the process for which the alert is generated
 	PID int32 `json:"pid"`
 
-	// Process name
+	// Process name for which the alert is generated
 	ProcessName string `json:"processName"`
 
-	// Command
+	// Command executed by the process
 	Command string `json:"command"`
 
-	// Message
+	// Message as given in the policy
 	Message string `json:"message"`
 
-	// Tags
+	// Tags as given in the policy
 	Tags []string `json:"tags"`
 
-	// Severity level
+	// Severity level as given in the policy
 	Severity SeverityLevel `json:"severity"`
+
+	// Action can either be blocked or audit
+	Action string `json:"action"`
 }
 
 // AlertProcessor represents alerts cache and filters
@@ -91,7 +94,7 @@ func NewAlertProcessor(filters AlertFilters) *AlertProcessor {
 	}
 }
 
-// ProcessAlerts processes alerts 
+// ProcessAlerts processes alerts
 func (ap *AlertProcessor) ProcessAlerts(segregatedData *SegregatedData) {
 	ap.processAlertGroup(segregatedData.Alerts.Network, "network")
 	ap.processAlertGroup(segregatedData.Alerts.File, "file")
@@ -114,10 +117,11 @@ func (ap *AlertProcessor) processAlertGroup(alerts []kaproto.Alert, eventType st
 			Message:     kaAlert.Message,
 			Tags:        ap.processTags(kaAlert),
 			Severity:    GetSeverityLevel(severityValue),
+			Action:      kaAlert.Action,
 		}
 
 		// Create a unique key for the alert
-		alertKey := fmt.Sprintf("%s-%s-%s-%s", alert.PolicyName, alert.Operation, alert.ProcessName, alert.Message)
+		alertKey := fmt.Sprintf("%s-%s-%s-%s-%s", alert.PolicyName, alert.Operation, alert.ProcessName, alert.Message, alert.Action)
 
 		if _, exists := ap.alerts[kaAlert.PID]; !exists {
 			ap.alerts[kaAlert.PID] = make(map[string]Alert)
@@ -189,18 +193,19 @@ func (ap *AlertProcessor) GenerateMarkdownTable() string {
 		sb.WriteString(fmt.Sprintf("### %s (%d alerts)\n\n", severity.Label, len(alerts)))
 		sb.WriteString("<details>\n<summary>Click to expand</summary>\n\n")
 
-		sb.WriteString("| 📜 Policy Name | 🔧 Operation | 🔢 PID | ⚡ Command | 💻 Process Name | 📣 Message | 🏷️ Tags |\n")
-		sb.WriteString("|----------------|--------------|--------|------------|----------------|-----------|--------|\n")
+		sb.WriteString("| 📜 Policy Name | 🔧 Operation | 🔢 PID | ⚡ Command | 💻 Process Name | 📣 Message | 🏷️ Tags | 🛡️ Action    |\n")
+		sb.WriteString("|----------------|--------------|--------|------------|-----------------|------------|---------|--------------|\n")
 
 		for _, alert := range alerts {
-			sb.WriteString(fmt.Sprintf("| %s | %s | %d | %s | %s | %s | %s |\n",
+			sb.WriteString(fmt.Sprintf("| %s | %s | %d | %s | %s | %s | %s | %s |\n",
 				alert.PolicyName,
 				alert.Operation,
 				alert.PID,
 				alert.Command,
 				alert.ProcessName,
 				alert.Message,
-				strings.Join(alert.Tags, ", ")))
+				strings.Join(alert.Tags, ", "),
+				alert.Action))
 		}
 
 		sb.WriteString("\n</details>\n\n")
