@@ -8,7 +8,6 @@ import (
 type LabelMap = map[string]string
 
 /* KubeArmor system policy */
-
 // KubeArmorPolicy Structure
 type KubeArmorPolicy struct {
 	APIVersion string            `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`

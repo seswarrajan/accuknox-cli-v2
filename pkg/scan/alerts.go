@@ -10,6 +10,41 @@ import (
 	kaproto "github.com/kubearmor/KubeArmor/protobuf"
 )
 
+// SeverityLevel
+type SeverityLevel struct {
+	// Represents the severity level in integer
+	Value int
+
+	// Label represents the severity level in "words"
+	Label string
+}
+
+var (
+	SeverityInfo     = SeverityLevel{Value: 1, Label: "Info"}
+	SeverityLow      = SeverityLevel{Value: 3, Label: "Low"}
+	SeverityMedium   = SeverityLevel{Value: 5, Label: "Medium"}
+	SeverityHigh     = SeverityLevel{Value: 7, Label: "High"}
+	SeverityCritical = SeverityLevel{Value: 9, Label: "Critical"}
+)
+
+var severityLevels = []SeverityLevel{
+	SeverityInfo,
+	SeverityLow,
+	SeverityMedium,
+	SeverityHigh,
+	SeverityCritical,
+}
+
+func GetSeverityLevel(value int) SeverityLevel {
+	for _, level := range severityLevels {
+		if value <= level.Value {
+			return level
+		}
+	}
+
+	return SeverityCritical
+}
+
 type Alert struct {
 	// Name of the policy
 	PolicyName string `json:"policyName"`
@@ -33,21 +68,30 @@ type Alert struct {
 	Tags []string `json:"tags"`
 
 	// Severity level
-	Severity string `json:"severity"`
+	Severity SeverityLevel `json:"severity"`
 }
 
+// AlertProcessor represents alerts cache and filters
 type AlertProcessor struct {
-	alerts  map[int32]Alert
+	// alerts caches the alerts
+	// each alert is stored against a PID
+	// with a 'key' to make sure that we only store
+	// unique alerts for a given PID
+	alerts map[int32]map[string]Alert
+
+	// filters are used to filter out specific alerts
 	filters AlertFilters
 }
 
+// NewAlertProcessor returns new instance of alerts processor
 func NewAlertProcessor(filters AlertFilters) *AlertProcessor {
 	return &AlertProcessor{
-		alerts:  make(map[int32]Alert),
+		alerts:  make(map[int32]map[string]Alert),
 		filters: filters,
 	}
 }
 
+// ProcessAlerts processes alerts 
 func (ap *AlertProcessor) ProcessAlerts(segregatedData *SegregatedData) {
 	ap.processAlertGroup(segregatedData.Alerts.Network, "network")
 	ap.processAlertGroup(segregatedData.Alerts.File, "file")
@@ -60,6 +104,7 @@ func (ap *AlertProcessor) processAlertGroup(alerts []kaproto.Alert, eventType st
 			continue
 		}
 
+		severityValue, _ := strconv.Atoi(kaAlert.Severity)
 		alert := Alert{
 			PolicyName:  kaAlert.PolicyName,
 			Operation:   kaAlert.Operation,
@@ -68,9 +113,16 @@ func (ap *AlertProcessor) processAlertGroup(alerts []kaproto.Alert, eventType st
 			Command:     getActualProcessName(kaAlert.Source),
 			Message:     kaAlert.Message,
 			Tags:        ap.processTags(kaAlert),
-			Severity:    kaAlert.Severity,
+			Severity:    GetSeverityLevel(severityValue),
 		}
-		ap.alerts[kaAlert.PID] = alert
+
+		// Create a unique key for the alert
+		alertKey := fmt.Sprintf("%s-%s-%s-%s", alert.PolicyName, alert.Operation, alert.ProcessName, alert.Message)
+
+		if _, exists := ap.alerts[kaAlert.PID]; !exists {
+			ap.alerts[kaAlert.PID] = make(map[string]Alert)
+		}
+		ap.alerts[kaAlert.PID][alertKey] = alert
 	}
 }
 
@@ -116,24 +168,25 @@ func (ap *AlertProcessor) GenerateJSON() ([]byte, error) {
 func (ap *AlertProcessor) GenerateMarkdownTable() string {
 	var sb strings.Builder
 
-	alertsBySeverity := make(map[string][]Alert)
-	for _, alert := range ap.alerts {
-		alertsBySeverity[alert.Severity] = append(alertsBySeverity[alert.Severity], alert)
+	alertsBySeverity := make(map[SeverityLevel][]Alert)
+	for _, alertMap := range ap.alerts {
+		for _, alert := range alertMap {
+			alertsBySeverity[alert.Severity] = append(alertsBySeverity[alert.Severity], alert)
+		}
 	}
 
-	severities := make([]string, 0, len(alertsBySeverity))
+	// Sort severity levels
+	sortedSeverities := make([]SeverityLevel, 0, len(alertsBySeverity))
 	for severity := range alertsBySeverity {
-		severities = append(severities, severity)
+		sortedSeverities = append(sortedSeverities, severity)
 	}
-	sort.Slice(severities, func(i, j int) bool {
-		a, _ := strconv.Atoi(severities[i])
-		b, _ := strconv.Atoi(severities[j])
-		return a > b
+	sort.Slice(sortedSeverities, func(i, j int) bool {
+		return sortedSeverities[i].Value > sortedSeverities[j].Value
 	})
 
-	for _, severity := range severities {
+	for _, severity := range sortedSeverities {
 		alerts := alertsBySeverity[severity]
-		sb.WriteString(fmt.Sprintf("## Severity %s (%d alerts)\n\n", severity, len(alerts)))
+		sb.WriteString(fmt.Sprintf("### %s (%d alerts)\n\n", severity.Label, len(alerts)))
 		sb.WriteString("<details>\n<summary>Click to expand</summary>\n\n")
 
 		sb.WriteString("| 📜 Policy Name | 🔧 Operation | 🔢 PID | ⚡ Command | 💻 Process Name | 📣 Message | 🏷️ Tags |\n")
