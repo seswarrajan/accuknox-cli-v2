@@ -218,7 +218,7 @@ func (a *Apply) processPolicy(policy *KubeArmorPolicy) error {
 		}
 	}
 
-	a.modifyPolicy(policy)
+	a.modifyPolicy(policy, false)
 
 	// Convert policy to map and omit empty fields
 	policyMap := structToMap(policy)
@@ -260,7 +260,7 @@ func (a *Apply) processPolicy(policy *KubeArmorPolicy) error {
 	return a.applyPolicy(policyEventBytes)
 }
 
-func (a *Apply) modifyPolicy(policy *KubeArmorPolicy) {
+func (a *Apply) modifyPolicy(policy *KubeArmorPolicy, byUser bool) {
 	if policy.Spec.NodeSelector.MatchLabels == nil {
 		policy.Spec.NodeSelector.MatchLabels = make(map[string]string)
 	}
@@ -270,6 +270,11 @@ func (a *Apply) modifyPolicy(policy *KubeArmorPolicy) {
 
 	// Remove kubernetes.io/hostname if it exists
 	delete(policy.Spec.NodeSelector.MatchLabels, "kubernetes.io/hostname")
+
+	// Return since we don't want to change anything else in a user defined policy
+	if byUser {
+		return
+	}
 
 	newAction := a.action
 
@@ -418,6 +423,9 @@ func (a *Apply) loadUserPolicies() error {
 
 func (a *Apply) handleUserPolicy() error {
 	for _, policy := range a.userPolicies {
+		// Just modify the policy to write the current hostname
+		a.modifyPolicy(policy, true)
+
 		err := a.processPolicy(policy)
 		if err != nil {
 			return fmt.Errorf("failed to process user-defined policy: %v", err)
