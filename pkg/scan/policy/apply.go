@@ -129,6 +129,7 @@ func (a *Apply) handlePolicies() error {
 		wg.Add(1)
 		go func(p *KubeArmorPolicy) {
 			defer wg.Done()
+			a.modifyPolicy(p, false)
 			if err := a.processPolicy(p); err != nil {
 				errorChan <- err
 			}
@@ -217,8 +218,6 @@ func (a *Apply) processPolicy(policy *KubeArmorPolicy) error {
 			return nil
 		}
 	}
-
-	a.modifyPolicy(policy, false)
 
 	// Convert policy to map and omit empty fields
 	policyMap := structToMap(policy)
