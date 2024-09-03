@@ -53,6 +53,7 @@ func init() {
 	scanCmd.PersistentFlags().StringVar(&scanOpts.AlertFilters.SeverityLevel, "min-severity", "", "Minimum severity level for alerts (1-10)")
 
 	policyCmd.Flags().BoolVar(&scanOpts.PolicyDryRun, "dryrun", false, "Generate and save the hardening policies but don't apply them")
+	policyCmd.Flags().BoolVar(&scanOpts.StrictMode, "strict", false, "In strict mode all the policies will be applied, this may lead to a lot of alerts generated")
 	policyCmd.Flags().StringVar(&scanOpts.PolicyAction, "action", "Audit", "Policy action: 'Block' or 'Audit'")
 	policyCmd.Flags().StringVar(&scanOpts.PolicyEvent, "event", "ADDED", "Policy event: 'ADDED' or 'DELETED'")
 	policyCmd.Flags().StringVar(&scanOpts.PoliciesPath, "policies", "", "File path to user defined security policies to be applied")

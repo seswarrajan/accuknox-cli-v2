@@ -110,6 +110,7 @@ func New(opts *ScanOptions) *Scan {
 		opts.PolicyAction,
 		opts.PolicyEvent,
 		opts.PoliciesPath,
+		opts.StrictMode,
 		opts.PolicyDryRun,
 	)
 

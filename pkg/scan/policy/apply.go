@@ -59,6 +59,9 @@ type Apply struct {
 	// dryrun
 	dryrun bool
 
+	// run in strict mode
+	strictMode bool
+
 	// generated policies
 	generatedPolicies [][]byte
 
@@ -70,7 +73,7 @@ type Apply struct {
 }
 
 // NewApplier will instantiate the policy applier
-func NewApplier(connString, zipURL, hostname, action, event, userPoliciesPath string, dryrun bool) *Apply {
+func NewApplier(connString, zipURL, hostname, action, event, userPoliciesPath string, strictMode, dryrun bool) *Apply {
 	return &Apply{
 		connString:       connString,
 		policies:         NewGenerator(zipURL),
@@ -78,6 +81,7 @@ func NewApplier(connString, zipURL, hostname, action, event, userPoliciesPath st
 		action:           action,
 		event:            event,
 		dryrun:           dryrun,
+		strictMode:       strictMode,
 		userPoliciesPath: userPoliciesPath,
 	}
 }
@@ -114,6 +118,10 @@ func (a *Apply) Apply() error {
 }
 
 func (a *Apply) handlePolicies() error {
+	if a.strictMode {
+		fmt.Println("Running in strict mode, all the policies will be applied")
+	}
+
 	var wg sync.WaitGroup
 	errorChan := make(chan error, len(a.policies.PolicyCache))
 
@@ -203,7 +211,7 @@ func structToMap(obj any) map[string]any {
 // fourth, we convert the policy back to json bytes and then from json to yaml
 // finally, it sends the policy to be applied via gRPC
 func (a *Apply) processPolicy(policy *KubeArmorPolicy) error {
-	if a.event == "ADDED" && !a.dryrun {
+	if a.event == "ADDED" && !a.dryrun && !a.strictMode {
 		if _, ok := SkipPolicy[policy.Metadata.Name]; ok {
 			fmt.Printf("Omiting policy addition\n")
 			return nil
