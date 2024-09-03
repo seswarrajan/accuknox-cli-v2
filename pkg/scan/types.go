@@ -11,6 +11,7 @@ type ScanOptions struct {
 	RepoBranch   string
 	PolicyAction string // Block or Audit
 	PolicyEvent  string // ADDED or DELETED
+	PoliciesPath string
 
 	ShowProcessTree bool
 	PolicyDryRun    bool

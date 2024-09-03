@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/accuknox/accuknox-cli-v2/pkg/common"
@@ -60,17 +61,24 @@ type Apply struct {
 
 	// generated policies
 	generatedPolicies [][]byte
+
+	// user defined policies path
+	userPoliciesPath string
+
+	// user defined policies
+	userPolicies []*KubeArmorPolicy
 }
 
 // NewApplier will instantiate the policy applier
-func NewApplier(connString, zipURL, hostname, action, event string, dryrun bool) *Apply {
+func NewApplier(connString, zipURL, hostname, action, event, userPoliciesPath string, dryrun bool) *Apply {
 	return &Apply{
-		connString: connString,
-		policies:   NewGenerator(zipURL),
-		hostname:   hostname,
-		action:     action,
-		event:      event,
-		dryrun:     dryrun,
+		connString:       connString,
+		policies:         NewGenerator(zipURL),
+		hostname:         hostname,
+		action:           action,
+		event:            event,
+		dryrun:           dryrun,
+		userPoliciesPath: userPoliciesPath,
 	}
 }
 
@@ -82,6 +90,20 @@ func (a *Apply) Apply() error {
 	}
 
 	a.policyService = kaproto.NewPolicyServiceClient(a.conn)
+
+	err = a.loadUserPolicies()
+	if err != nil {
+		return fmt.Errorf("failed to load user-defined policies: %v", err)
+	}
+
+	if len(a.userPolicies) > 0 {
+		fmt.Println("Found user defined policies")
+
+		err = a.handleUserPolicy()
+		if err != nil {
+			return fmt.Errorf("failed to handle user policies: %v", err)
+		}
+	}
 
 	err = a.policies.FetchTemplates()
 	if err != nil {
@@ -353,6 +375,47 @@ func (a *Apply) connectToGRPC() error {
 	}
 
 	a.conn = connection
+	return nil
+}
+
+func (a *Apply) loadUserPolicies() error {
+	if a.userPoliciesPath == "" {
+		return nil
+	}
+
+	content, err := common.CleanAndRead(a.userPoliciesPath)
+	if err != nil {
+		return fmt.Errorf("failed to read user policies file: %v", err)
+	}
+
+	policyYAMLs := strings.Split(string(content), "---")
+
+	for _, policyYAML := range policyYAMLs {
+		policyYAML = strings.TrimSpace(policyYAML)
+		if policyYAML == "" {
+			continue
+		}
+
+		var policy KubeArmorPolicy
+		err := yaml.Unmarshal([]byte(policyYAML), &policy)
+		if err != nil {
+			return fmt.Errorf("failed to parse user policy: %v", err)
+		}
+
+		a.userPolicies = append(a.userPolicies, &policy)
+	}
+
+	return nil
+}
+
+func (a *Apply) handleUserPolicy() error {
+	for _, policy := range a.userPolicies {
+		err := a.processPolicy(policy)
+		if err != nil {
+			return fmt.Errorf("failed to process user-defined policy: %v", err)
+		}
+	}
+
 	return nil
 }
 

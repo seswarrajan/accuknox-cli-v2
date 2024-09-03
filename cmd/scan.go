@@ -47,15 +47,13 @@ func init() {
 	rootCmd.AddCommand(scanCmd)
 	scanCmd.AddCommand(policyCmd)
 
-	scanCmd.PersistentFlags().BoolVar(&scanOpts.FilterEventType.All, "all", false, "collect 'all' events, may get verbose")
-	scanCmd.PersistentFlags().BoolVar(&scanOpts.FilterEventType.System, "system", false, "collect 'system' only events")
-	scanCmd.PersistentFlags().StringVar(&scanOpts.Output, "output", "", "output path for the files to be placed")
+	scanCmd.PersistentFlags().BoolVar(&scanOpts.FilterEventType.All, "all", false, "Collect 'all' events, may get verbose")
+	scanCmd.PersistentFlags().BoolVar(&scanOpts.FilterEventType.System, "system", false, "Collect 'system' only events")
+	scanCmd.PersistentFlags().StringVar(&scanOpts.AlertFilters.IgnoreEvent, "ignore-alerts", "", "Ignore alerts of a specific type: 'file', 'network', or 'process'")
+	scanCmd.PersistentFlags().StringVar(&scanOpts.AlertFilters.SeverityLevel, "min-severity", "", "Minimum severity level for alerts (1-10)")
 
-	scanCmd.PersistentFlags().StringVar(&scanOpts.AlertFilters.IgnoreEvent, "ignore-alerts", "", "ignore alerts of a specific type: 'file', 'network', or 'process'")
-	scanCmd.PersistentFlags().StringVar(&scanOpts.AlertFilters.SeverityLevel, "min-severity", "", "minimum severity level for alerts (1-10)")
-
+	policyCmd.Flags().BoolVar(&scanOpts.PolicyDryRun, "dryrun", false, "Generate and save the hardening policies but don't apply them")
 	policyCmd.Flags().StringVar(&scanOpts.PolicyAction, "action", "Audit", "Policy action: 'Block' or 'Audit'")
 	policyCmd.Flags().StringVar(&scanOpts.PolicyEvent, "event", "ADDED", "Policy event: 'ADDED' or 'DELETED'")
-	policyCmd.Flags().BoolVar(&scanOpts.PolicyDryRun, "dryrun", false, "generate and save the hardening policies but don't apply them")
-	policyCmd.Flags().StringVar(&scanOpts.RepoBranch, "branch", "main", "Branch of the policy templates repository")
+	policyCmd.Flags().StringVar(&scanOpts.PoliciesPath, "policies", "", "File path to user defined security policies to be applied")
 }

@@ -109,6 +109,7 @@ func New(opts *ScanOptions) *Scan {
 		hostname,
 		opts.PolicyAction,
 		opts.PolicyEvent,
+		opts.PoliciesPath,
 		opts.PolicyDryRun,
 	)
 
