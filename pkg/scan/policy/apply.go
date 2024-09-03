@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/accuknox/accuknox-cli-v2/pkg/common"
@@ -58,19 +59,30 @@ type Apply struct {
 	// dryrun
 	dryrun bool
 
+	// run in strict mode
+	strictMode bool
+
 	// generated policies
 	generatedPolicies [][]byte
+
+	// user defined policies path
+	userPoliciesPath string
+
+	// user defined policies
+	userPolicies []*KubeArmorPolicy
 }
 
 // NewApplier will instantiate the policy applier
-func NewApplier(connString, zipURL, hostname, action, event string, dryrun bool) *Apply {
+func NewApplier(connString, zipURL, hostname, action, event, userPoliciesPath string, strictMode, dryrun bool) *Apply {
 	return &Apply{
-		connString: connString,
-		policies:   NewGenerator(zipURL),
-		hostname:   hostname,
-		action:     action,
-		event:      event,
-		dryrun:     dryrun,
+		connString:       connString,
+		policies:         NewGenerator(zipURL),
+		hostname:         hostname,
+		action:           action,
+		event:            event,
+		dryrun:           dryrun,
+		strictMode:       strictMode,
+		userPoliciesPath: userPoliciesPath,
 	}
 }
 
@@ -83,6 +95,20 @@ func (a *Apply) Apply() error {
 
 	a.policyService = kaproto.NewPolicyServiceClient(a.conn)
 
+	err = a.loadUserPolicies()
+	if err != nil {
+		return fmt.Errorf("failed to load user-defined policies: %v", err)
+	}
+
+	if len(a.userPolicies) > 0 {
+		fmt.Println("Found user defined policies")
+
+		err = a.handleUserPolicy()
+		if err != nil {
+			return fmt.Errorf("failed to handle user policies: %v", err)
+		}
+	}
+
 	err = a.policies.FetchTemplates()
 	if err != nil {
 		return fmt.Errorf("failed to fetch policy templates: %v", err.Error())
@@ -92,6 +118,10 @@ func (a *Apply) Apply() error {
 }
 
 func (a *Apply) handlePolicies() error {
+	if a.strictMode {
+		fmt.Println("Running in strict mode, all the policies will be applied")
+	}
+
 	var wg sync.WaitGroup
 	errorChan := make(chan error, len(a.policies.PolicyCache))
 
@@ -99,6 +129,7 @@ func (a *Apply) handlePolicies() error {
 		wg.Add(1)
 		go func(p *KubeArmorPolicy) {
 			defer wg.Done()
+			a.modifyPolicy(p, false)
 			if err := a.processPolicy(p); err != nil {
 				errorChan <- err
 			}
@@ -181,14 +212,12 @@ func structToMap(obj any) map[string]any {
 // fourth, we convert the policy back to json bytes and then from json to yaml
 // finally, it sends the policy to be applied via gRPC
 func (a *Apply) processPolicy(policy *KubeArmorPolicy) error {
-	if a.event == "ADDED" && !a.dryrun {
+	if a.event == "ADDED" && !a.dryrun && !a.strictMode {
 		if _, ok := SkipPolicy[policy.Metadata.Name]; ok {
 			fmt.Printf("Omiting policy addition\n")
 			return nil
 		}
 	}
-
-	a.modifyPolicy(policy)
 
 	// Convert policy to map and omit empty fields
 	policyMap := structToMap(policy)
@@ -230,7 +259,7 @@ func (a *Apply) processPolicy(policy *KubeArmorPolicy) error {
 	return a.applyPolicy(policyEventBytes)
 }
 
-func (a *Apply) modifyPolicy(policy *KubeArmorPolicy) {
+func (a *Apply) modifyPolicy(policy *KubeArmorPolicy, byUser bool) {
 	if policy.Spec.NodeSelector.MatchLabels == nil {
 		policy.Spec.NodeSelector.MatchLabels = make(map[string]string)
 	}
@@ -240,6 +269,11 @@ func (a *Apply) modifyPolicy(policy *KubeArmorPolicy) {
 
 	// Remove kubernetes.io/hostname if it exists
 	delete(policy.Spec.NodeSelector.MatchLabels, "kubernetes.io/hostname")
+
+	// Return since we don't want to change anything else in a user defined policy
+	if byUser {
+		return
+	}
 
 	newAction := a.action
 
@@ -353,6 +387,50 @@ func (a *Apply) connectToGRPC() error {
 	}
 
 	a.conn = connection
+	return nil
+}
+
+func (a *Apply) loadUserPolicies() error {
+	if a.userPoliciesPath == "" {
+		return nil
+	}
+
+	content, err := common.CleanAndRead(a.userPoliciesPath)
+	if err != nil {
+		return fmt.Errorf("failed to read user policies file: %v", err)
+	}
+
+	policyYAMLs := strings.Split(string(content), "---")
+
+	for _, policyYAML := range policyYAMLs {
+		policyYAML = strings.TrimSpace(policyYAML)
+		if policyYAML == "" {
+			continue
+		}
+
+		var policy KubeArmorPolicy
+		err := yaml.Unmarshal([]byte(policyYAML), &policy)
+		if err != nil {
+			return fmt.Errorf("failed to parse user policy: %v", err)
+		}
+
+		a.userPolicies = append(a.userPolicies, &policy)
+	}
+
+	return nil
+}
+
+func (a *Apply) handleUserPolicy() error {
+	for _, policy := range a.userPolicies {
+		// Just modify the policy to write the current hostname
+		a.modifyPolicy(policy, true)
+
+		err := a.processPolicy(policy)
+		if err != nil {
+			return fmt.Errorf("failed to process user-defined policy: %v", err)
+		}
+	}
+
 	return nil
 }
 
