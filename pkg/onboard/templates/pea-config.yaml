@@ -34,6 +34,7 @@ tls:
   policy-topic:
     container: {{.ContainerPolicyTopic}}
     host: {{.HostPolicyTopic}}
+  state-topic: {{.StateEventTopic}}
   kmux-config: {{.KmuxRMQConfigPathPEA}}
 
 policy-watcher:

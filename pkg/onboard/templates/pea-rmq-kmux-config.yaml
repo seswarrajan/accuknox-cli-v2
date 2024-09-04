@@ -1,6 +1,8 @@
 kmux:
   sink:
     stream: rabbitmq
+  source:
+    stream: rabbitmq
   security: spire
 
 spire:
