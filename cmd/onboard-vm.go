@@ -101,7 +101,7 @@ func init() {
 	onboardVMCmd.PersistentFlags().BoolVar(&tls.Generate, "tls-gen", false, "generate TLS certificates for rabbitmq connection (generates CA, Cert, and Key)")
 	onboardVMCmd.PersistentFlags().StringVar(&tls.CaPath, "ca-path", "", "path to ca certificate file")
 
-	onboardVMCmd.PersistentFlags().StringVar(&topicPrefix, "rmq-topic-prefix", "", "rabbitmq topic prefix")
+	onboardVMCmd.PersistentFlags().StringVar(&topicPrefix, "cp-name", "", "control plane node name to be used as topic prefix")
 
 	onboardVMCmd.PersistentFlags().StringArrayVar(&tls.Organization, "tls-org", []string{"accuknox"}, "Organization for TLS certificates")
 
