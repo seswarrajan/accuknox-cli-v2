@@ -27,10 +27,16 @@ const (
 // applied if they are ran in `strict` mode. These policies are not applied
 // since they tend to generate a lot of alerts.
 var SkipPolicy = map[string]bool{
-	"hsp-nist-ca-9-audit-untrusted-read-on-sensitive-files":   true,
-	"hsp-cm-1-configuration-management-policy-and-procedures": true,
-	"hsp-block-stig-ubuntu-20-010427-lib":                     true,
-	"hsp-cve-2019-13139-docker-build":                         true,
+	"hsp-nist-ca-9-audit-untrusted-read-on-sensitive-files":              true,
+	"hsp-cm-1-configuration-management-policy-and-procedures":            true,
+	"hsp-block-stig-ubuntu-20-010427-lib":                                true,
+	"hsp-cve-2019-13139-docker-build":                                    true,
+	"hsp-ca-7-4-continuous-monitoring-automation-support-for-monitoring": true,
+	"hsp-mitre-persistence-bash-profile-audit":                           true,
+	"hsp-mitre-ptrace-syscall":                                           true,
+	"hsp-mitre-t1053-003-scheduled-task-job-crontab":                     true,
+	"hsp-nist-au-3-audit-etc-dir":                                        true,
+	"hsp-cis-1-1-9-api-cni-files":                                        true,
 }
 
 // Apply policies via gRPC
@@ -41,8 +47,8 @@ type Apply struct {
 	// grpc connection string
 	connString string
 
-	// policy cache
-	policies *GetPolicy
+	// policy cache (this is public because we need the policy cache)
+	Policies *GetPolicy
 
 	// policy service client
 	policyService kaproto.PolicyServiceClient
@@ -76,7 +82,7 @@ type Apply struct {
 func NewApplier(connString, zipURL, hostname, action, event, userPoliciesPath string, strictMode, dryrun bool) *Apply {
 	return &Apply{
 		connString:       connString,
-		policies:         NewGenerator(zipURL),
+		Policies:         NewGenerator(zipURL),
 		hostname:         hostname,
 		action:           action,
 		event:            event,
@@ -109,7 +115,7 @@ func (a *Apply) Apply() error {
 		}
 	}
 
-	err = a.policies.FetchTemplates()
+	err = a.Policies.FetchTemplates()
 	if err != nil {
 		return fmt.Errorf("failed to fetch policy templates: %v", err.Error())
 	}
@@ -123,9 +129,9 @@ func (a *Apply) handlePolicies() error {
 	}
 
 	var wg sync.WaitGroup
-	errorChan := make(chan error, len(a.policies.PolicyCache))
+	errorChan := make(chan error, len(a.Policies.PolicyCache))
 
-	for _, policy := range a.policies.PolicyCache {
+	for _, policy := range a.Policies.PolicyCache {
 		wg.Add(1)
 		go func(p *KubeArmorPolicy) {
 			defer wg.Done()

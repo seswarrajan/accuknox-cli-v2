@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
 	"os"
 	"os/signal"
+	"os/user"
 	"path/filepath"
 	"sync"
 	"syscall"
@@ -78,6 +80,9 @@ type Scan struct {
 
 	// Alerts processor
 	alertProcessor *AlertProcessor
+
+	// Sudo required
+	sudoRequired bool
 }
 
 // Enforce Client interface on Scan structure
@@ -95,6 +100,7 @@ func New(opts *ScanOptions) *Scan {
 		networkCache:   NewNetworkCache(),
 		segregate:      NewSegregator(),
 		alertProcessor: NewAlertProcessor(opts.AlertFilters),
+		sudoRequired:   opts.AlertFilters.DetailedView,
 	}
 
 	if opts.RepoBranch == "" {
@@ -125,6 +131,12 @@ func (s *Scan) Start() error {
 	// 	fmt.Println("KubeArmor service is not running")
 	// 	return nil
 	// }
+
+	if s.sudoRequired {
+		if !s.isRunningAsSudo() {
+			return fmt.Errorf("detailed view requires sudo privileges, please run the command with sudo")
+		}
+	}
 
 	err := s.ConnectToGRPC()
 	if err != nil {
@@ -218,8 +230,8 @@ func (s *Scan) healthCheck() bool {
 	ctx, cancel := context.WithTimeout(context.Background(), common.OneMinute)
 	defer cancel()
 
-	bigNum, _ := rand.Int(rand.Reader, big.NewInt(100))
-	check := int32(bigNum.Int64())
+	bigNum, _ := rand.Int(rand.Reader, big.NewInt(math.MaxInt32))
+	check := int32(bigNum.Int64()) // #nosec G115
 
 	nonce := kaproto.NonceMessage{Nonce: check}
 
@@ -403,6 +415,16 @@ func (s *Scan) processData(ctx context.Context) {
 			s.segregate.SegregateLogs(&log)
 		}
 	}
+}
+
+func (s *Scan) isRunningAsSudo() bool {
+	currentUser, err := user.Current()
+	if err != nil {
+		fmt.Printf("Warning: failed to determine if running in sudo mode: %s", err.Error())
+		return false
+	}
+
+	return currentUser.Uid == "0"
 }
 
 func (s *Scan) postProcessing() {

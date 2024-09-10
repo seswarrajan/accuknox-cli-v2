@@ -1,6 +1,8 @@
 package policy
 
 import (
+	jsoniter "github.com/json-iterator/go"
+	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -16,6 +18,128 @@ type KubeArmorPolicy struct {
 
 	// Spec KnoxSystemSpec   `json:"spec,omitempty" yaml:"spec,omitempty"`
 	Spec HostSecuritySpec `json:"spec" yaml:"spec"`
+}
+
+// CustomUnmarshalJSON implements custom JSON unmarshalling due to
+// inconsistencies in mapping between files stored in /opt/... and
+// type defined in metav1.ObjectMeta
+func (k *KubeArmorPolicy) CustomUnmarshalJSON(data []byte) error {
+	type Alias KubeArmorPolicy
+	aux := &struct {
+		Metadata struct {
+			PolicyName string `json:"policyName"`
+		} `json:"metadata"`
+		*Alias
+	}{
+		Alias: (*Alias)(k),
+	}
+
+	if err := jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	k.Metadata.Name = aux.Metadata.PolicyName
+	return nil
+}
+
+// New method for generating optimized YAML for markdown display
+type OptimizedMatch struct {
+	Path     string `yaml:"path,omitempty"`
+	Dir      string `yaml:"dir,omitempty"`
+	Pattern  string `yaml:"pattern,omitempty"`
+	Severity int    `yaml:"severity,omitempty"`
+	Action   string `yaml:"action,omitempty"`
+}
+
+type OptimizedFile struct {
+	MatchPaths       []OptimizedMatch `yaml:"matchPaths,omitempty"`
+	MatchDirectories []OptimizedMatch `yaml:"matchDirectories,omitempty"`
+	MatchPatterns    []OptimizedMatch `yaml:"matchPatterns,omitempty"`
+	Severity         int              `yaml:"severity,omitempty"`
+	Action           string           `yaml:"action,omitempty"`
+}
+
+type OptimizedSpec struct {
+	NodeSelector yaml.MapSlice `yaml:"nodeSelector,omitempty"`
+	File         OptimizedFile `yaml:"file,omitempty"`
+	Severity     int           `yaml:"severity,omitempty"`
+	Tags         []string      `yaml:"tags,omitempty"`
+	Message      string        `yaml:"message,omitempty"`
+	Action       string        `yaml:"action,omitempty"`
+}
+
+func (k KubeArmorPolicy) OptimizedYAML() (string, error) {
+
+	optimized := struct {
+		APIVersion string            `yaml:"apiVersion,omitempty"`
+		Kind       string            `yaml:"kind,omitempty"`
+		Metadata   metav1.ObjectMeta `yaml:"metadata,omitempty"`
+		Spec       OptimizedSpec     `yaml:"spec"`
+	}{
+		APIVersion: k.APIVersion,
+		Kind:       k.Kind,
+		Metadata:   k.Metadata,
+		Spec: OptimizedSpec{
+			NodeSelector: yaml.MapSlice{
+				{Key: "matchLabels", Value: k.Spec.NodeSelector.MatchLabels},
+				{Key: "identities", Value: k.Spec.NodeSelector.Identities},
+			},
+			File: OptimizedFile{
+				MatchPaths:       optimizeFilePaths(k.Spec.File.MatchPaths),
+				MatchDirectories: optimizeFileDirectories(k.Spec.File.MatchDirectories),
+				MatchPatterns:    optimizeFilePatterns(k.Spec.File.MatchPatterns),
+				Severity:         k.Spec.File.Severity,
+				Action:           k.Spec.File.Action,
+			},
+			Severity: k.Spec.Severity,
+			Tags:     k.Spec.Tags,
+			Message:  k.Spec.Message,
+			Action:   k.Spec.Action,
+		},
+	}
+
+	yamlBytes, err := yaml.Marshal(optimized)
+	if err != nil {
+		return "", err
+	}
+
+	return string(yamlBytes), nil
+}
+
+func optimizeFilePaths(paths []FilePathType) []OptimizedMatch {
+	optimized := make([]OptimizedMatch, len(paths))
+	for i, p := range paths {
+		optimized[i] = OptimizedMatch{
+			Path:     p.Path,
+			Severity: p.Severity,
+			Action:   p.Action,
+		}
+	}
+	return optimized
+}
+
+func optimizeFileDirectories(dirs []FileDirectoryType) []OptimizedMatch {
+	optimized := make([]OptimizedMatch, len(dirs))
+	for i, d := range dirs {
+		optimized[i] = OptimizedMatch{
+			Dir:      d.Directory,
+			Severity: d.Severity,
+			Action:   d.Action,
+		}
+	}
+	return optimized
+}
+
+func optimizeFilePatterns(patterns []FilePatternType) []OptimizedMatch {
+	optimized := make([]OptimizedMatch, len(patterns))
+	for i, p := range patterns {
+		optimized[i] = OptimizedMatch{
+			Pattern:  p.Pattern,
+			Severity: p.Severity,
+			Action:   p.Action,
+		}
+	}
+	return optimized
 }
 
 type HostSecuritySpec struct {

@@ -40,4 +40,8 @@ type AlertFilters struct {
 	// Severity will filter only specific severity levels, from 1 to 10
 	// so if its "--severity-level 5" then we show all the events from 5 and up
 	SeverityLevel string
+
+	// DetailedView will include/exclude detailed JSON alerts and complete policy
+	// view
+	DetailedView bool
 }
