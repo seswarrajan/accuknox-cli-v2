@@ -90,4 +90,3 @@ func (pr *PolicyReader) PrintPolicyMap() {
 		}
 	}
 }
-
