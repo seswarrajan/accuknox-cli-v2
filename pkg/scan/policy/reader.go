@@ -1,0 +1,116 @@
+package policy
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+
+	jsoniter "github.com/json-iterator/go"
+)
+
+const policyDir = "/opt/kubearmor/policies"
+
+type PolicyReader struct {
+	Policies map[string]*KubeArmorPolicy
+	mu       sync.Mutex
+}
+
+func NewPolicyReader() (*PolicyReader, error) {
+	pr := &PolicyReader{
+		Policies: make(map[string]*KubeArmorPolicy),
+	}
+
+	err := pr.ReadPolicies()
+	return pr, err
+}
+
+func (pr *PolicyReader) ReadPolicies() error {
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+
+	files, err := os.ReadDir(policyDir)
+	if err != nil {
+		return fmt.Errorf("failed to read policies from %s: %s", policyDir, err.Error())
+	}
+
+	for _, file := range files {
+		if filepath.Ext(file.Name()) == ".yaml" {
+			fullPath := filepath.Join(policyDir, file.Name())
+			policyJSON, err := os.ReadFile(fullPath)
+			if err != nil {
+				fmt.Printf("warning: failed to read policy file %s: %v\n", fullPath, err)
+				continue
+			}
+
+			var policy KubeArmorPolicy
+			err = policy.CustomUnmarshalJSON(policyJSON)
+			if err != nil {
+				fmt.Printf("warning: failed to unmarshal JSON policy %s: %v\n", fullPath, err)
+				continue
+			}
+
+			// Convert policy to map
+			policyMap := structToMap(policy)
+
+			// Clean up empty fields
+			cleanedPolicyMap := omitEmpty(policyMap)
+
+			// Convert cleaned map back to KubeArmorPolicy
+			cleanedJSON, err := jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(cleanedPolicyMap)
+			if err != nil {
+				fmt.Printf("warning: failed to marshal cleaned policy %s: %v\n", fullPath, err)
+				continue
+			}
+
+			var cleanedPolicy KubeArmorPolicy
+			err = cleanedPolicy.CustomUnmarshalJSON(cleanedJSON)
+			if err != nil {
+				fmt.Printf("warning: failed to unmarshal cleaned policy %s: %v\n", fullPath, err)
+				continue
+			}
+
+			if cleanedPolicy.Metadata.Name == "" {
+				fmt.Printf("warning: policy name is empty for file %s\n", fullPath)
+				continue
+			}
+
+			pr.Policies[cleanedPolicy.Metadata.Name] = &cleanedPolicy
+			fmt.Printf("Added policy: %s\n", cleanedPolicy.Metadata.Name) // Debug log
+		}
+	}
+
+	fmt.Printf("Total policies loaded: %d\n", len(pr.Policies)) // Debug log
+	return nil
+}
+
+func (pr *PolicyReader) GetPolicy(name string) *KubeArmorPolicy {
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+
+	return pr.Policies[name]
+}
+
+func (pr *PolicyReader) GetOptimizedPolicyYAML(name string) (string, error) {
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+
+	policy, exists := pr.Policies[name]
+	if !exists {
+		return "", fmt.Errorf("policy not found: %s", name)
+	}
+
+	return policy.OptimizedYAML()
+}
+
+func (pr *PolicyReader) PrintPolicyMap() {
+	for name, policy := range pr.Policies {
+		optimizedYAML, err := policy.OptimizedYAML()
+		if err != nil {
+			fmt.Printf("\nName: %s\nError generating optimized YAML: %v\n", name, err)
+		} else {
+			fmt.Printf("\nName: %s\nPolicy:\n%s\n", name, optimizedYAML)
+		}
+	}
+}
+
