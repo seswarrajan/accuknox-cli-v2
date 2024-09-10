@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
 	"os"
 	"os/signal"
@@ -229,7 +230,7 @@ func (s *Scan) healthCheck() bool {
 	ctx, cancel := context.WithTimeout(context.Background(), common.OneMinute)
 	defer cancel()
 
-	bigNum, _ := rand.Int(rand.Reader, big.NewInt(100))
+	bigNum, _ := rand.Int(rand.Reader, big.NewInt(math.MaxInt32))
 	check := int32(bigNum.Int64())
 
 	nonce := kaproto.NonceMessage{Nonce: check}

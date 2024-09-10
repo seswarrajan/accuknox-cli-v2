@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/accuknox/accuknox-cli-v2/pkg/common"
 )
 
 const policyDir = "/opt/kubearmor/policies"
@@ -35,7 +37,7 @@ func (pr *PolicyReader) ReadPolicies() error {
 	for _, file := range files {
 		if filepath.Ext(file.Name()) == ".yaml" {
 			fullPath := filepath.Join(policyDir, file.Name())
-			policyJSON, err := os.ReadFile(fullPath)
+			policyJSON, err := common.CleanAndRead(fullPath)
 			if err != nil {
 				fmt.Printf("warning: failed to read policy file %s: %v\n", fullPath, err)
 				continue
