@@ -231,7 +231,7 @@ func (s *Scan) healthCheck() bool {
 	defer cancel()
 
 	bigNum, _ := rand.Int(rand.Reader, big.NewInt(math.MaxInt32))
-	check := int32(bigNum.Int64())
+	check := int32(bigNum.Int64()) // #nosec G115
 
 	nonce := kaproto.NonceMessage{Nonce: check}
 
