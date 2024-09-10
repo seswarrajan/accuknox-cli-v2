@@ -101,16 +101,21 @@ type AlertPair struct {
 
 // NewAlertProcessor returns new instance of alerts processor
 func NewAlertProcessor(filters AlertFilters) *AlertProcessor {
-	policyReader, err := policy.NewPolicyReader()
-	if err != nil {
-		fmt.Printf("Failed to init policy reader, policies will not be shown in final report: %v\n", err)
+	ap := &AlertProcessor{
+		alerts:  make(map[int32]map[string]AlertPair),
+		filters: filters,
 	}
 
-	return &AlertProcessor{
-		alerts:       make(map[int32]map[string]AlertPair),
-		filters:      filters,
-		policyReader: policyReader,
+	if ap.filters.DetailedView {
+		policyReader, err := policy.NewPolicyReader()
+		if err != nil {
+			fmt.Printf("Failed to init policy reader, policies will not be shown in final report: %v\n", err)
+		} else {
+			ap.policyReader = policyReader
+		}
 	}
+
+	return ap
 }
 
 // ProcessAlerts processes alerts
@@ -214,46 +219,65 @@ func (ap *AlertProcessor) GenerateMarkdownTable() string {
 		sb.WriteString(fmt.Sprintf("### %s (%d alerts)\n\n", severity.Label, len(alerts)))
 		sb.WriteString("<details>\n<summary>Click to expand</summary>\n\n")
 
-		for _, alertPair := range alerts {
-			alert := alertPair.CustomAlert
-
-			// We need to write table headers for each row, since we also show up the collapsible view of KubeArmor JSON alert
+		if !ap.filters.DetailedView {
+			// Non-detailed view: Single table for all alerts of this severity
 			sb.WriteString("| 📜 Policy Name | 🔧 Operation | 🔢 PID | ⚡ Command | 💻 Process Name | 📣 Message | 🏷️ Tags | 🛡️ Action |\n")
 			sb.WriteString("|----------------|--------------|--------|------------|-----------------|------------|---------|------------|\n")
 
-			// Write table row
-			sb.WriteString(fmt.Sprintf("| %s | %s | %d | %s | %s | %s | %s | %s |\n",
-				alert.PolicyName,
-				alert.Operation,
-				alert.PID,
-				alert.Command,
-				alert.ProcessName,
-				alert.Message,
-				strings.Join(alert.Tags, ", "),
-				alert.Action))
-
-			// Adding collapsible JSON immediately after the row
-			jsonAlert, err := json.MarshalIndent(alertPair.KAAlert, "", "  ")
-			if err != nil {
-				sb.WriteString(fmt.Sprintf("Error marshaling alert to JSON: %v\n", err))
-			} else {
-				sb.WriteString("\n<details>\n<summary>Click to view complete alert</summary>\n\n```json\n")
-				sb.WriteString(string(jsonAlert))
-				sb.WriteString("\n```\n</details>\n\n")
+			for _, alertPair := range alerts {
+				alert := alertPair.CustomAlert
+				sb.WriteString(fmt.Sprintf("| %s | %s | %d | %s | %s | %s | %s | %s |\n",
+					alert.PolicyName,
+					alert.Operation,
+					alert.PID,
+					alert.Command,
+					alert.ProcessName,
+					alert.Message,
+					strings.Join(alert.Tags, ", "),
+					alert.Action))
 			}
+		} else {
+			// Detailed view: Separate table and details for each alert
+			for _, alertPair := range alerts {
+				alert := alertPair.CustomAlert
 
-			optimizedYAML, err := ap.policyReader.GetOptimizedPolicyYAML(alert.PolicyName)
-			if err != nil {
-				sb.WriteString("Failed to get the associated policy\n")
-			} else {
-				sb.WriteString("#### Related Policy Details\n\n")
-				sb.WriteString("<details>\n<summary>Click to view policy YAML</summary>\n\n```yaml\n")
-				sb.WriteString(optimizedYAML)
-				sb.WriteString("\n```\n</details>\n\n")
+				sb.WriteString("| 📜 Policy Name | 🔧 Operation | 🔢 PID | ⚡ Command | 💻 Process Name | 📣 Message | 🏷️ Tags | 🛡️ Action |\n")
+				sb.WriteString("|----------------|--------------|--------|------------|-----------------|------------|---------|------------|\n")
+				sb.WriteString(fmt.Sprintf("| %s | %s | %d | %s | %s | %s | %s | %s |\n",
+					alert.PolicyName,
+					alert.Operation,
+					alert.PID,
+					alert.Command,
+					alert.ProcessName,
+					alert.Message,
+					strings.Join(alert.Tags, ", "),
+					alert.Action))
+
+				// Adding collapsible JSON immediately after the row
+				jsonAlert, err := json.MarshalIndent(alertPair.KAAlert, "", "  ")
+				if err != nil {
+					sb.WriteString(fmt.Sprintf("Error marshaling alert to JSON: %v\n", err))
+				} else {
+					sb.WriteString("\n<details>\n<summary>Click to view complete alert</summary>\n\n```json\n")
+					sb.WriteString(string(jsonAlert))
+					sb.WriteString("\n```\n</details>\n\n")
+				}
+
+				if ap.policyReader != nil {
+					optimizedYAML, err := ap.policyReader.GetOptimizedPolicyYAML(alert.PolicyName)
+					if err != nil {
+						sb.WriteString("Failed to get the associated policy\n")
+					} else {
+						sb.WriteString("#### Related Policy Details\n\n")
+						sb.WriteString("<details>\n<summary>Click to view policy YAML</summary>\n\n```yaml\n")
+						sb.WriteString(optimizedYAML)
+						sb.WriteString("\n```\n</details>\n\n")
+					}
+				}
+
+				// Separator
+				sb.WriteString("\n---\n\n")
 			}
-
-			// Seperator
-			sb.WriteString("\n---\n\n")
 		}
 
 		sb.WriteString("</details>\n\n")

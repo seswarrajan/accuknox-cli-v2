@@ -49,6 +49,7 @@ func init() {
 
 	scanCmd.PersistentFlags().BoolVar(&scanOpts.FilterEventType.All, "all", false, "Collect 'all' events, may get verbose")
 	scanCmd.PersistentFlags().BoolVar(&scanOpts.FilterEventType.System, "system", false, "Collect 'system' only events")
+	scanCmd.PersistentFlags().BoolVar(&scanOpts.AlertFilters.DetailedView, "detailed-view", false, "Detailed view contains raw JSON and complete policy applied")
 	scanCmd.PersistentFlags().StringVar(&scanOpts.AlertFilters.IgnoreEvent, "ignore-alerts", "", "Ignore alerts of a specific type: 'file', 'network', or 'process'")
 	scanCmd.PersistentFlags().StringVar(&scanOpts.AlertFilters.SeverityLevel, "min-severity", "", "Minimum severity level for alerts (1-10)")
 

@@ -5,8 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 const policyDir = "/opt/kubearmor/policies"
@@ -50,33 +48,12 @@ func (pr *PolicyReader) ReadPolicies() error {
 				continue
 			}
 
-			// Convert policy to map
-			policyMap := structToMap(policy)
-
-			// Clean up empty fields
-			cleanedPolicyMap := omitEmpty(policyMap)
-
-			// Convert cleaned map back to KubeArmorPolicy
-			cleanedJSON, err := jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(cleanedPolicyMap)
-			if err != nil {
-				fmt.Printf("warning: failed to marshal cleaned policy %s: %v\n", fullPath, err)
-				continue
-			}
-
-			var cleanedPolicy KubeArmorPolicy
-			err = cleanedPolicy.CustomUnmarshalJSON(cleanedJSON)
-			if err != nil {
-				fmt.Printf("warning: failed to unmarshal cleaned policy %s: %v\n", fullPath, err)
-				continue
-			}
-
-			if cleanedPolicy.Metadata.Name == "" {
+			if policy.Metadata.Name == "" {
 				fmt.Printf("warning: policy name is empty for file %s\n", fullPath)
 				continue
 			}
 
-			pr.Policies[cleanedPolicy.Metadata.Name] = &cleanedPolicy
-			fmt.Printf("Added policy: %s\n", cleanedPolicy.Metadata.Name) // Debug log
+			pr.Policies[policy.Metadata.Name] = &policy
 		}
 	}
 
