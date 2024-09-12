@@ -186,7 +186,7 @@ func (nc *NetworkCache) GenerateMarkdownTable() string {
 				domainName = "N/A"
 			}
 
-			sb.WriteString(fmt.Sprintf("| %d | %s | %s | %s %s | %s | %s | %d |\n",
+			sb.WriteString(fmt.Sprintf("| %d | %s | ` %s ` | %s %s | %s | %s | %d |\n",
 				event.PID,
 				event.ProcessName,
 				event.Protocol,
