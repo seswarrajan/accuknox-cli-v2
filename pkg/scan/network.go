@@ -72,8 +72,8 @@ func (nc *NetworkCache) AddNetworkEvent(log *kaproto.Log) {
 
 	if strings.Contains(log.Data, "tcp_") {
 
-		event.Protocol = "TCP"
 		nc.handleNetworkEvent(event, log.Resource)
+        event.Protocol = "TCP"
 	} else if strings.Contains(log.Data, "SYS_BIND") {
 
 		nc.handleNetworkEvent(event, log.Data)
