@@ -363,7 +363,6 @@ services:
       accuknox-net:
         aliases:
           - sumengine
-  {{- if not .TlsEnabled }}
   hardening-agent:
     profiles:
       - "accuknox-agents"
@@ -390,7 +389,6 @@ services:
       accuknox-net:
         aliases:
           - hardening-agent
-  {{- end }}
 
   {{- if .DeployRMQ }}
   rabbitmq:
