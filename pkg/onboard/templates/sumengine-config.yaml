@@ -14,10 +14,12 @@ watcher:
     url: {{.RelayServerAddr}}
     port: {{.RelayServerPort}}
 {{- end }}
+{{- if and .TlsEnabled (not .WorkerNode) }}
   rabbitmq:
     enabled: true
     logs-topic: {{.LogsTopic}}
     alerts-topic: {{.AlertsTopic}}
+{{- end }}
 
 summary-engine:
   enabled: true
