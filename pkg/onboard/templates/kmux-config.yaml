@@ -30,6 +30,7 @@ rabbitmq:
     durable: true
     auto-delete: true
   debug: false
+  consumer-tag: {{.ConsumerTag}}
   tls: 
     enabled: {{.TlsEnabled}}
     cert-file: "/opt/cert/encoded.pem"

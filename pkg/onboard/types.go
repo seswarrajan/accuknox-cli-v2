@@ -273,6 +273,7 @@ type KmuxConfigTemplateArgs struct {
 	RMQPassword    string
 	TlsEnabled     bool
 	TlsCertFile    string
+	ConsumerTag    string
 }
 
 type TokenResponse struct {
