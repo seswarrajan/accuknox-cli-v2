@@ -17,6 +17,7 @@ rabbitmq:
     auto-delete: true
     durable: true
     name: ""
+  consumer-tag: {{.ConsumerTag}}
   debug: false
   tls: 
     enabled: {{.TlsEnabled}}
