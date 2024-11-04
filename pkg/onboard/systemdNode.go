@@ -60,6 +60,7 @@ func (jc *JoinConfig) JoinSystemdNode() error {
 		if !obj.InstallOnWorkerNode {
 			continue
 		}
+
 		if obj.ConfigFilePath != "" {
 			// copy template args
 			tcArgs := jc.TCArgs
@@ -78,9 +79,9 @@ func (jc *JoinConfig) JoinSystemdNode() error {
 
 		// copy kmux config
 		if obj.KmuxConfigPath != "" {
-			kmuxConfigArgs.ConsumerTag = obj.AgentName
+			populateKmuxArgs(&kmuxConfigArgs, obj.AgentName, obj.KmuxConfigFileName, jc.RMQTopicPrefix)
 			// copy generic config files
-			_, err = copyOrGenerateFile(jc.UserConfigPath, obj.AgentDir, cm.KmuxConfigFileName, jc.TemplateFuncs, obj.KmuxConfigTemplateString, kmuxConfigArgs)
+			_, err = copyOrGenerateFile(jc.UserConfigPath, obj.AgentDir, obj.KmuxConfigFileName, jc.TemplateFuncs, obj.KmuxConfigTemplateString, kmuxConfigArgs)
 			if err != nil {
 				return err
 			}

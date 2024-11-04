@@ -31,11 +31,12 @@ non-k8s:
   policy-server-port: 32770
 tls:
   enabled: {{.TlsEnabled}}
-  policy-topic:
-    container: {{.ContainerPolicyTopic}}
-    host: {{.HostPolicyTopic}}
-  state-topic: {{.StateEventTopic}}
-  kmux-config: {{.KmuxRMQConfigPathPEA}}
+  policy:
+    topic: {{.PoliciesTopic}}
+    kmux-config: {{.PoliciesKmuxConfig}}
+  state:
+    topic: {{.StateEventTopic}}
+    kmux-config: {{.StateKmuxConfig}}
 
 policy-watcher:
   enable: false

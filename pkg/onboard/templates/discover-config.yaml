@@ -6,6 +6,7 @@ discover:
       system: 1000
     time-limit: 1
     topic: {{.SummaryV2Topic}}
+    kmux-config: {{.SummaryKmuxConfig}}
   policy-client:
     server: 127.0.0.1:8090
   processor:
@@ -19,6 +20,7 @@ discover:
   sink:
     channel-size: 100
     topic: {{.PolicyV1Topic}}
+    kmux-config: {{.PolicyKmuxConfig}}
   k8s:
     enable: false
   tls:

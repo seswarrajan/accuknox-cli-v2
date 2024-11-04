@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/sprig"
 	"github.com/accuknox/accuknox-cli-v2/pkg/common"
@@ -174,7 +175,13 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	ic.TCArgs.ImagePullPolicy = string(ic.ImagePullPolicy)
 
 	ic.TCArgs.ConfigPath = configPath
-	ic.TCArgs.KmuxRMQConfigPathPEA = "/opt/pea/pea-rmq-kmux-config.yaml"
+
+	ic.TCArgs.PoliciesKmuxConfig = common.KmuxPoliciesFileName
+	ic.TCArgs.StateKmuxConfig = common.KmuxStateEventFileName
+	ic.TCArgs.AlertsKmuxConfig = common.KmuxAlertsFileName
+	ic.TCArgs.LogsKmuxConfig = common.KmuxLogsFileName
+	ic.TCArgs.SummaryKmuxConfig = common.KmuxSummaryFileName
+	ic.TCArgs.PolicyKmuxConfig = common.KmuxPolicyFileName
 
 	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
 	ic.TCArgs.ProcessOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "process")
@@ -204,10 +211,9 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	kmuxConfigArgs.RMQUsername = ic.TCArgs.RMQUsername
 	kmuxConfigArgs.RMQPassword = ic.TCArgs.RMQPassword
 	kmuxConfigArgs.TlsEnabled = ic.TCArgs.TlsEnabled
-	kmuxConfigArgs.TlsCertFile = ic.TCArgs.TlsCertFile
 
-	ic.TCArgs.ContainerPolicyTopic = getTopicName(ic.RMQTopicPrefix, "container-policy")
-	ic.TCArgs.HostPolicyTopic = getTopicName(ic.RMQTopicPrefix, "host-policy")
+	// To get routing key name with cluster-name as prefix
+	ic.TCArgs.PoliciesTopic = getTopicName(ic.RMQTopicPrefix, "policies")
 	ic.TCArgs.LogsTopic = getTopicName(ic.RMQTopicPrefix, "logs")
 	ic.TCArgs.AlertsTopic = getTopicName(ic.RMQTopicPrefix, "alerts")
 	ic.TCArgs.StateEventTopic = getTopicName(ic.RMQTopicPrefix, "state-event")
@@ -235,6 +241,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 
 		// generate config file if not empty
 		if agentObj.configFilePath != "" {
+			populateAgentArgs(&tcArgs, agentObj.configDir)
 			if _, err := copyOrGenerateFile(ic.UserConfigPath, agentConfigPath, agentObj.configFilePath, sprigFuncs, agentObj.configTemplateString, tcArgs); err != nil {
 				return err
 			}
@@ -242,7 +249,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 
 		// generate kmux config only if it exists for this agent
 		if agentObj.kmuxConfigPath != "" {
-			kmuxConfigArgs.ConsumerTag = agentObj.agentName
+			populateKmuxArgs(&kmuxConfigArgs, agentObj.agentName, agentObj.kmuxConfigFileName, ic.TCArgs.RMQTopicPrefix)
 			if _, err := copyOrGenerateFile(ic.UserConfigPath, agentConfigPath, agentObj.kmuxConfigFileName, sprigFuncs, agentObj.kmuxConfigTemplateString, kmuxConfigArgs); err != nil {
 				return err
 			}
@@ -251,6 +258,47 @@ func (ic *InitConfig) InitializeControlPlane() error {
 
 	// Diagnose if necessary and run compose command
 	return ic.runComposeCommand(composeFilePath)
+}
+
+func populateAgentArgs(tcArgs *TemplateConfigArgs, configDir string) {
+	tcArgs.PoliciesKmuxConfig = fmt.Sprintf("%s/%s/%s", common.InContainerConfigDir, configDir, common.KmuxPoliciesFileName)
+	tcArgs.StateKmuxConfig = fmt.Sprintf("%s/%s/%s", common.InContainerConfigDir, configDir, common.KmuxStateEventFileName)
+	tcArgs.AlertsKmuxConfig = fmt.Sprintf("%s/%s/%s", common.InContainerConfigDir, configDir, common.KmuxAlertsFileName)
+	tcArgs.LogsKmuxConfig = fmt.Sprintf("%s/%s/%s", common.InContainerConfigDir, configDir, common.KmuxLogsFileName)
+	tcArgs.SummaryKmuxConfig = fmt.Sprintf("%s/%s/%s", common.InContainerConfigDir, configDir, common.KmuxSummaryFileName)
+	tcArgs.PolicyKmuxConfig = fmt.Sprintf("%s/%s/%s", common.InContainerConfigDir, configDir, common.KmuxPolicyFileName)
+}
+
+func populateKmuxArgs(kmuxConfigArgs *KmuxConfigTemplateArgs, agentName, kmuxFile, prefix string) {
+	kmuxConfigArgs.ConsumerTag = agentName
+	kmuxConfigArgs.TlsCertFile = fmt.Sprintf("/opt%s/%s", common.DefaultCACertDir, common.DefaultEncodedFileName)
+	if kmuxFile == common.KmuxPoliciesFileName {
+		kmuxConfigArgs.ExchangeType = "fanout"
+		kmuxConfigArgs.ExchangeName = fmt.Sprintf("%s-fanout", prefix)
+	} else {
+		kmuxConfigArgs.ExchangeType = "direct"
+		kmuxConfigArgs.ExchangeName = prefix
+	}
+
+	if qn, ok := common.QueueName[kmuxFile]; ok {
+		kmuxConfigArgs.QueueName = fmt.Sprintf("%s-%s", prefix, qn)
+	}
+
+	if kmuxFile == common.KmuxStateEventFileName && agentName != common.VMAdapter {
+		kmuxConfigArgs.QueueName = fmt.Sprintf("%s-%s", kmuxConfigArgs.QueueName, agentName)
+	}
+
+	if agentName == common.VMAdapter && kmuxFile == common.KmuxPoliciesFileName {
+		hostname, err := os.Hostname()
+		if err != nil {
+			hostname = common.VMAdapter
+		}
+		kmuxConfigArgs.QueueName = fmt.Sprintf("%s-%s-%v", kmuxConfigArgs.QueueName, hostname, time.Now().Unix())
+
+		if len(kmuxConfigArgs.QueueName) > common.MaxQueueLength {
+			kmuxConfigArgs.QueueName = kmuxConfigArgs.QueueName[:common.MaxQueueLength]
+		}
+	}
 }
 
 // runComposeCommand runs the Docker Compose command with the necessary arguments
@@ -386,7 +434,7 @@ func getAgentConfigMeta(tlsEnabled bool) []agentConfigMeta {
 			configFilePath:           "config.yaml",
 			configTemplateString:     sumEngineConfig,
 			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "sumengine", common.KmuxConfigFileName),
-			kmuxConfigTemplateString: sumEngineKmuxConfig,
+			kmuxConfigTemplateString: kmuxConfig,
 			kmuxConfigFileName:       common.KmuxConfigFileName,
 		},
 		{
@@ -395,7 +443,7 @@ func getAgentConfigMeta(tlsEnabled bool) []agentConfigMeta {
 			configFilePath:           "config.yaml",
 			configTemplateString:     discoverConfig,
 			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "discover", common.KmuxConfigFileName),
-			kmuxConfigTemplateString: discoverKmuxConfig,
+			kmuxConfigTemplateString: kmuxConfig,
 			kmuxConfigFileName:       common.KmuxConfigFileName,
 		},
 		{
@@ -404,7 +452,7 @@ func getAgentConfigMeta(tlsEnabled bool) []agentConfigMeta {
 			configFilePath:           "config.yaml",
 			configTemplateString:     hardeningAgentConfig,
 			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "hardening-agent", common.KmuxConfigFileName),
-			kmuxConfigTemplateString: hardeningAgentKmuxConfig,
+			kmuxConfigTemplateString: kmuxConfig,
 			kmuxConfigFileName:       common.KmuxConfigFileName,
 		},
 	}
@@ -423,23 +471,135 @@ func getAgentConfigMeta(tlsEnabled bool) []agentConfigMeta {
 				configTemplateString: rabbitmqDefinitions,
 			},
 			{
-				agentName:                "pea",
-				configDir:                "pea",
-				kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "pea", "pea-rmq-kmux-config.yaml"),
-				kmuxConfigTemplateString: peaRmqKmuxConfig,
-				kmuxConfigFileName:       "pea-rmq-kmux-config.yaml",
+				agentName:                "vm-adapter",
+				configDir:                "vm-adapter",
+				kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "vm-adapter", common.KmuxAlertsFileName),
+				kmuxConfigTemplateString: kmuxPublisherConfig,
+				kmuxConfigFileName:       common.KmuxAlertsFileName,
 			},
 			{
 				agentName:                "vm-adapter",
 				configDir:                "vm-adapter",
-				kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "vm-adapter", common.KmuxConfigFileName),
-				kmuxConfigTemplateString: sumEngineKmuxConfig,
-				kmuxConfigFileName:       common.KmuxConfigFileName,
+				kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "vm-adapter", common.KmuxLogsFileName),
+				kmuxConfigTemplateString: kmuxPublisherConfig,
+				kmuxConfigFileName:       common.KmuxLogsFileName,
+			},
+			{
+				agentName:                "vm-adapter",
+				configDir:                "vm-adapter",
+				kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "vm-adapter", common.KmuxStateEventFileName),
+				kmuxConfigTemplateString: kmuxPublisherConfig,
+				kmuxConfigFileName:       common.KmuxStateEventFileName,
+			},
+			{
+				agentName:                "vm-adapter",
+				configDir:                "vm-adapter",
+				kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "vm-adapter", common.KmuxPoliciesFileName),
+				kmuxConfigTemplateString: kmuxConsumerConfig,
+				kmuxConfigFileName:       common.KmuxPoliciesFileName,
 			},
 		}...)
 	}
 
+	agentMeta = append(agentMeta, getAgentsKmuxConfigs()...)
+
 	return agentMeta
+}
+
+func getAgentsKmuxConfigs() []agentConfigMeta {
+	return []agentConfigMeta{
+		{
+			agentName:                "feeder-service",
+			configDir:                "feeder-service",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "feeder-service", common.KmuxAlertsFileName),
+			kmuxConfigTemplateString: kmuxConsumerConfig,
+			kmuxConfigFileName:       common.KmuxAlertsFileName,
+		},
+		{
+			agentName:                "feeder-service",
+			configDir:                "feeder-service",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "feeder-service", common.KmuxLogsFileName),
+			kmuxConfigTemplateString: kmuxConsumerConfig,
+			kmuxConfigFileName:       common.KmuxLogsFileName,
+		},
+		{
+			agentName:                "feeder-service",
+			configDir:                "feeder-service",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "feeder-service", common.KmuxPolicyFileName),
+			kmuxConfigTemplateString: kmuxConsumerConfig,
+			kmuxConfigFileName:       common.KmuxPolicyFileName,
+		},
+		{
+			agentName:                "feeder-service",
+			configDir:                "feeder-service",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "feeder-service", common.KmuxSummaryFileName),
+			kmuxConfigTemplateString: kmuxConsumerConfig,
+			kmuxConfigFileName:       common.KmuxSummaryFileName,
+		},
+		{
+			agentName:                "pea",
+			configDir:                "pea",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "pea", common.KmuxPoliciesFileName),
+			kmuxConfigTemplateString: kmuxPublisherConfig,
+			kmuxConfigFileName:       common.KmuxPoliciesFileName,
+		},
+		{
+			agentName:                "pea",
+			configDir:                "pea",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "pea", common.KmuxStateEventFileName),
+			kmuxConfigTemplateString: kmuxConsumerConfig,
+			kmuxConfigFileName:       common.KmuxStateEventFileName,
+		},
+		{
+			agentName:                "sumengine",
+			configDir:                "sumengine",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "sumengine", common.KmuxSummaryFileName),
+			kmuxConfigTemplateString: kmuxPublisherConfig,
+			kmuxConfigFileName:       common.KmuxSummaryFileName,
+		},
+		{
+			agentName:                "sumengine",
+			configDir:                "sumengine",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "sumengine", common.KmuxAlertsFileName),
+			kmuxConfigTemplateString: kmuxConsumerConfig,
+			kmuxConfigFileName:       common.KmuxAlertsFileName,
+		},
+		{
+			agentName:                "sumengine",
+			configDir:                "sumengine",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "sumengine", common.KmuxLogsFileName),
+			kmuxConfigTemplateString: kmuxConsumerConfig,
+			kmuxConfigFileName:       common.KmuxAlertsFileName,
+		},
+		{
+			agentName:                "discover",
+			configDir:                "discover",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "discover", common.KmuxSummaryFileName),
+			kmuxConfigTemplateString: kmuxConsumerConfig,
+			kmuxConfigFileName:       common.KmuxSummaryFileName,
+		},
+		{
+			agentName:                "discover",
+			configDir:                "discover",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "discover", common.KmuxPolicyFileName),
+			kmuxConfigTemplateString: kmuxPublisherConfig,
+			kmuxConfigFileName:       common.KmuxPolicyFileName,
+		},
+		{
+			agentName:                "hardening-agent",
+			configDir:                "hardening-agent",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "hardening-agent", common.KmuxStateEventFileName),
+			kmuxConfigTemplateString: kmuxConsumerConfig,
+			kmuxConfigFileName:       common.KmuxStateEventFileName,
+		},
+		{
+			agentName:                "hardening-agent",
+			configDir:                "hardening-agent",
+			kmuxConfigPath:           filepath.Join(common.InContainerConfigDir, "hardening-agent", common.KmuxPolicyFileName),
+			kmuxConfigTemplateString: kmuxPublisherConfig,
+			kmuxConfigFileName:       common.KmuxPolicyFileName,
+		},
+	}
 }
 
 // getTopicName Returns:
