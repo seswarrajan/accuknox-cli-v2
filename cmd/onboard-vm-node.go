@@ -98,6 +98,10 @@ var joinNodeCmd = &cobra.Command{
 			return err
 		}
 
+		if enableVMScan {
+			vmConfigs.InitRATConfig(authToken, url, tenantID, clusterID, clusterName, label, schedule, profile, benchmark, registry, registryConfigPath, insecure, plainHTTP, ratImage, ratTag, releaseVersion, preserveUpstream, vmMode)
+		}
+
 		joinConfig := onboard.JoinClusterConfig(*vmConfigs, kubeArmorAddr, relayServerAddr, siaAddr, peaAddr, hardenAddr)
 
 		defer func() {

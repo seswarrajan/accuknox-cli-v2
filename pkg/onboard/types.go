@@ -73,6 +73,7 @@ type ClusterConfig struct {
 	DiscoverImage             string `json:"discover_image,omitempty"`
 	SumEngineImage            string `json:"sumengine_image,omitempty"`
 	HardeningAgentImage       string `json:"hardening_agent_image,omitempty"`
+	RATAgentImage             string `json:"rat_agent_image,omitempty"`
 
 	CPNodeAddr string `json:"cp_node_addr,omitempty"`
 
@@ -122,6 +123,10 @@ type ClusterConfig struct {
 	SystemdServiceObjects []SystemdServiceObject `json:"-"`
 	DeploySumengine       bool                   `json:"deploy_sumengine,omitempty"`
 	RMQServer             string                 `json:"rmq_server,omitempty"`
+
+	// Risk assessment scanning
+	EnableVMScan    bool      `json:"enable_vmscan,omitempty"`
+	RATConfigObject RATConfig `json:"-"`
 
 	PlainHTTP   bool         `json:"plain_http,omitempty"`
 	InsecureTLS bool         `json:"insecure_tls,omitempty"`
@@ -275,6 +280,9 @@ type TemplateConfigArgs struct {
 	AlertsTopic     string `json:"alerts_topic,omitempty"`
 	PolicyV1Topic   string `json:"policyv1_topic,omitempty"`
 	SummaryV2Topic  string `json:"summaryv2_topic,omitempty"`
+
+	// rat configs
+	RATConfigObject RATConfig `json:"-"`
 }
 
 type KmuxConfigTemplateArgs struct {
@@ -312,6 +320,7 @@ type SystemdServiceObject struct {
 	AgentDir              string
 	ConfigFilePath        string
 	ServiceTemplateString string
+	TimerTemplateString   string
 	ConfigTemplateString  string
 
 	// TODO: Package instead of just tag
@@ -326,6 +335,20 @@ type SystemdServiceObject struct {
 	// map of file name and path
 	ExtraFilePathSrc  map[string]string
 	ExtraFilePathDest map[string]string
+}
+
+type RATConfig struct {
+	RATImage     string
+	EnableVMScan bool
+	AuthToken    string
+	Url          string
+	TenantID     string
+	ClusterName  string
+	ClusterID    string
+	Label        string
+	Schedule     string
+	Benchmark    string
+	Profile      string
 }
 
 var (
