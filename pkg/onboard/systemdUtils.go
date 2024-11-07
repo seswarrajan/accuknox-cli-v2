@@ -44,16 +44,14 @@ func (cc *ClusterConfig) createSystemdServiceObjects() {
 			},
 		},
 		{
-			AgentName:                cm.VMAdapter,
-			PackageName:              cm.KubeArmorVMAdapter,
-			ServiceName:              cm.KubeArmorVMAdapter + ".service",
-			AgentDir:                 cm.VmAdapterConfigPath,
-			ServiceTemplateString:    vmAdapterServiceFile,
-			ConfigFilePath:           "vm-adapter-config.yaml",
-			ConfigTemplateString:     vmAdapterConfig,
-			AgentImage:               cc.KubeArmorVMAdapterImage,
-			KmuxConfigPath:           filepath.Join(cm.VmAdapterConfigPath, cm.KmuxConfigFileName),
-			KmuxConfigTemplateString: sumEngineKmuxConfig,
+			AgentName:             cm.VMAdapter,
+			PackageName:           cm.KubeArmorVMAdapter,
+			ServiceName:           cm.KubeArmorVMAdapter + ".service",
+			AgentDir:              cm.VmAdapterConfigPath,
+			ServiceTemplateString: vmAdapterServiceFile,
+			ConfigFilePath:        "vm-adapter-config.yaml",
+			ConfigTemplateString:  vmAdapterConfig,
+			AgentImage:            cc.KubeArmorVMAdapterImage,
 		},
 		{
 			AgentName:             cm.RelayServer,
@@ -82,6 +80,7 @@ func (cc *ClusterConfig) createSystemdServiceObjects() {
 			ConfigTemplateString:     siaConfig,
 			KmuxConfigPath:           filepath.Join(cm.SIAconfigPath, cm.KmuxConfigFileName),
 			KmuxConfigTemplateString: kmuxConfig,
+			KmuxConfigFileName:       cm.KmuxConfigFileName,
 			AgentImage:               cc.SIAImage,
 		},
 		{
@@ -94,6 +93,7 @@ func (cc *ClusterConfig) createSystemdServiceObjects() {
 			ConfigTemplateString:     peaConfig,
 			KmuxConfigPath:           filepath.Join(cm.PEAconfigPath, cm.KmuxConfigFileName),
 			KmuxConfigTemplateString: kmuxConfig,
+			KmuxConfigFileName:       cm.KmuxConfigFileName,
 			AgentImage:               cc.PEAImage,
 		},
 		{
@@ -106,6 +106,7 @@ func (cc *ClusterConfig) createSystemdServiceObjects() {
 			ConfigTemplateString:     fsEnvVal,
 			KmuxConfigPath:           filepath.Join(cm.FSconfigPath, cm.KmuxConfigFileName),
 			KmuxConfigTemplateString: kmuxConfig,
+			KmuxConfigFileName:       cm.KmuxConfigFileName,
 			AgentImage:               cc.FeederImage,
 		},
 		{
@@ -116,9 +117,10 @@ func (cc *ClusterConfig) createSystemdServiceObjects() {
 			ConfigFilePath:           "conf/config.yaml",
 			ServiceTemplateString:    sumEngineFile,
 			ConfigTemplateString:     sumEngineConfig,
-			KmuxConfigPath:           filepath.Join(cm.SumEngineConfigPath, cm.KmuxConfigFileName),
-			KmuxConfigTemplateString: sumEngineKmuxConfig,
 			AgentImage:               cc.SumEngineImage,
+			KmuxConfigPath:           filepath.Join(cm.SumEngineConfigPath, cm.KmuxConfigFileName),
+			KmuxConfigTemplateString: kmuxConfig,
+			KmuxConfigFileName:       cm.KmuxConfigFileName,
 		},
 		{
 			AgentName:                cm.DiscoverAgent,
@@ -128,9 +130,10 @@ func (cc *ClusterConfig) createSystemdServiceObjects() {
 			ConfigFilePath:           "conf/config.yaml",
 			ServiceTemplateString:    discoverFile,
 			ConfigTemplateString:     discoverConfig,
-			KmuxConfigPath:           filepath.Join(cm.DiscoverConfigPath, cm.KmuxConfigFileName),
-			KmuxConfigTemplateString: discoverKmuxConfig,
 			AgentImage:               cc.DiscoverImage,
+			KmuxConfigPath:           filepath.Join(cm.DiscoverConfigPath, cm.KmuxConfigFileName),
+			KmuxConfigTemplateString: kmuxConfig,
+			KmuxConfigFileName:       cm.KmuxConfigFileName,
 		},
 		{
 			AgentName:                cm.HardeningAgent,
@@ -140,11 +143,14 @@ func (cc *ClusterConfig) createSystemdServiceObjects() {
 			ConfigFilePath:           "conf/config.yaml",
 			ServiceTemplateString:    hardeningAgentFile,
 			ConfigTemplateString:     hardeningAgentConfig,
-			KmuxConfigPath:           filepath.Join(cm.HardeningAgentConfigPath, cm.KmuxConfigFileName),
-			KmuxConfigTemplateString: hardeningAgentKmuxConfig,
 			AgentImage:               cc.HardeningAgentImage,
+			KmuxConfigPath:           filepath.Join(cm.HardeningAgentConfigPath, cm.KmuxConfigFileName),
+			KmuxConfigTemplateString: kmuxConfig,
+			KmuxConfigFileName:       cm.KmuxConfigFileName,
 		},
 	}
+
+	systemdObjects = append(systemdObjects, getSystemdAgentsKmuxConfigs()...)
 
 	// should be installed on control plane?
 	for i, obj := range systemdObjects {
@@ -158,6 +164,130 @@ func (cc *ClusterConfig) createSystemdServiceObjects() {
 	}
 
 	cc.SystemdServiceObjects = systemdObjects
+}
+
+func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
+	return []SystemdServiceObject{
+		{
+			AgentName:                cm.VMAdapter,
+			AgentDir:                 cm.VmAdapterConfigPath,
+			KmuxConfigPath:           filepath.Join(cm.VmAdapterConfigPath, cm.KmuxStateEventFileName),
+			KmuxConfigTemplateString: kmuxPublisherConfig,
+			KmuxConfigFileName:       cm.KmuxStateEventFileName,
+		},
+		{
+			AgentName:                cm.VMAdapter,
+			AgentDir:                 cm.VmAdapterConfigPath,
+			KmuxConfigPath:           filepath.Join(cm.VmAdapterConfigPath, cm.KmuxAlertsFileName),
+			KmuxConfigTemplateString: kmuxPublisherConfig,
+			KmuxConfigFileName:       cm.KmuxAlertsFileName,
+		},
+		{
+			AgentName:                cm.VMAdapter,
+			AgentDir:                 cm.VmAdapterConfigPath,
+			KmuxConfigPath:           filepath.Join(cm.VmAdapterConfigPath, cm.KmuxLogsFileName),
+			KmuxConfigTemplateString: kmuxPublisherConfig,
+			KmuxConfigFileName:       cm.KmuxLogsFileName,
+		},
+		{
+			AgentName:                cm.VMAdapter,
+			AgentDir:                 cm.VmAdapterConfigPath,
+			KmuxConfigPath:           filepath.Join(cm.VmAdapterConfigPath, cm.KmuxPoliciesFileName),
+			KmuxConfigTemplateString: kmuxConsumerConfig,
+			KmuxConfigFileName:       cm.KmuxPoliciesFileName,
+		},
+		{
+			AgentName:                cm.SummaryEngine,
+			AgentDir:                 cm.SumEngineConfigPath,
+			KmuxConfigPath:           filepath.Join(cm.SumEngineConfigPath, cm.KmuxSummaryFileName),
+			KmuxConfigTemplateString: kmuxPublisherConfig,
+			KmuxConfigFileName:       cm.KmuxSummaryFileName,
+		},
+		{
+			AgentName:                cm.SummaryEngine,
+			AgentDir:                 cm.SumEngineConfigPath,
+			KmuxConfigPath:           filepath.Join(cm.SumEngineConfigPath, cm.KmuxAlertsFileName),
+			KmuxConfigTemplateString: kmuxConsumerConfig,
+			KmuxConfigFileName:       cm.KmuxAlertsFileName,
+		},
+		{
+			AgentName:                cm.SummaryEngine,
+			AgentDir:                 cm.SumEngineConfigPath,
+			KmuxConfigPath:           filepath.Join(cm.SumEngineConfigPath, cm.KmuxLogsFileName),
+			KmuxConfigTemplateString: kmuxConsumerConfig,
+			KmuxConfigFileName:       cm.KmuxLogsFileName,
+		},
+		{
+			AgentName:                cm.DiscoverAgent,
+			AgentDir:                 cm.DiscoverConfigPath,
+			KmuxConfigPath:           filepath.Join(cm.DiscoverConfigPath, cm.KmuxSummaryFileName),
+			KmuxConfigTemplateString: kmuxConsumerConfig,
+			KmuxConfigFileName:       cm.KmuxSummaryFileName,
+		},
+		{
+			AgentName:                cm.DiscoverAgent,
+			AgentDir:                 cm.DiscoverConfigPath,
+			KmuxConfigPath:           filepath.Join(cm.DiscoverConfigPath, cm.KmuxPolicyFileName),
+			KmuxConfigTemplateString: kmuxPublisherConfig,
+			KmuxConfigFileName:       cm.KmuxPolicyFileName,
+		},
+		{
+			AgentName:                cm.HardeningAgent,
+			AgentDir:                 cm.HardeningAgentConfigPath,
+			KmuxConfigPath:           filepath.Join(cm.HardeningAgentConfigPath, cm.KmuxSummaryFileName),
+			KmuxConfigTemplateString: kmuxConsumerConfig,
+			KmuxConfigFileName:       cm.KmuxSummaryFileName,
+		},
+		{
+			AgentName:                cm.HardeningAgent,
+			AgentDir:                 cm.HardeningAgentConfigPath,
+			KmuxConfigPath:           filepath.Join(cm.HardeningAgentConfigPath, cm.KmuxPolicyFileName),
+			KmuxConfigTemplateString: kmuxPublisherConfig,
+			KmuxConfigFileName:       cm.KmuxPolicyFileName,
+		},
+		{
+			AgentName:                cm.PEAAgent,
+			AgentDir:                 cm.PEAconfigPath,
+			KmuxConfigPath:           filepath.Join(cm.PEAconfigPath, cm.KmuxPoliciesFileName),
+			KmuxConfigTemplateString: kmuxConsumerConfig,
+			KmuxConfigFileName:       cm.KmuxPoliciesFileName,
+		},
+		{
+			AgentName:                cm.PEAAgent,
+			AgentDir:                 cm.PEAconfigPath,
+			KmuxConfigPath:           filepath.Join(cm.PEAconfigPath, cm.KmuxStateEventFileName),
+			KmuxConfigTemplateString: kmuxPublisherConfig,
+			KmuxConfigFileName:       cm.KmuxStateEventFileName,
+		},
+		{
+			AgentName:                cm.FeederService,
+			AgentDir:                 cm.FSconfigPath,
+			KmuxConfigPath:           filepath.Join(cm.FSconfigPath, cm.KmuxAlertsFileName),
+			KmuxConfigTemplateString: kmuxConsumerConfig,
+			KmuxConfigFileName:       cm.KmuxAlertsFileName,
+		},
+		{
+			AgentName:                cm.FeederService,
+			AgentDir:                 cm.FSconfigPath,
+			KmuxConfigPath:           filepath.Join(cm.FSconfigPath, cm.KmuxLogsFileName),
+			KmuxConfigTemplateString: kmuxConsumerConfig,
+			KmuxConfigFileName:       cm.KmuxLogsFileName,
+		},
+		{
+			AgentName:                cm.FeederService,
+			AgentDir:                 cm.FSconfigPath,
+			KmuxConfigPath:           filepath.Join(cm.FSconfigPath, cm.KmuxSummaryFileName),
+			KmuxConfigTemplateString: kmuxConsumerConfig,
+			KmuxConfigFileName:       cm.KmuxSummaryFileName,
+		},
+		{
+			AgentName:                cm.FeederService,
+			AgentDir:                 cm.FSconfigPath,
+			KmuxConfigPath:           filepath.Join(cm.FSconfigPath, cm.KmuxPolicyFileName),
+			KmuxConfigTemplateString: kmuxConsumerConfig,
+			KmuxConfigFileName:       cm.KmuxPolicyFileName,
+		},
+	}
 }
 
 // placeServiceFiles copies service files
@@ -313,6 +443,9 @@ func (cc *ClusterConfig) SystemdInstall() error {
 		if cc.WorkerNode && !obj.InstallOnWorkerNode {
 			continue
 		}
+		if obj.AgentImage == "" {
+			continue
+		}
 
 		// stop existing service first otherwise errors are encountered due to
 		// busy binary
@@ -459,6 +592,9 @@ func DeboardSystemd(nodeType NodeType) error {
 	pseudoCC.createSystemdServiceObjects()
 
 	for _, obj := range pseudoCC.SystemdServiceObjects {
+		if obj.ServiceName == "" {
+			continue
+		}
 		err := StopSystemdService(obj.ServiceName, false, true)
 		if err != nil {
 			fmt.Printf("error stopping %s: %s\n", obj.ServiceName, err)

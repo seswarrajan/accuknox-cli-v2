@@ -1,40 +1,46 @@
 watcher:
-  enabled: true
-  kubearmor-event-type:
-    logs: true
-    alerts: true
-  kubearmor-relay:
+  kubearmor:
     enabled: true
-{{- if .WorkerNode }}
-    name: kubearmor
-    url: {{.KubeArmorAddr}}
-    port: {{.KubeArmorPort}}
-{{- else }}
-    name: relay-1
-    url: {{.RelayServerAddr}}
-    port: {{.RelayServerPort}}
-{{- end }}
+    event-type:
+      logs: true
+      alerts: true
+    relay:
+      enabled: true
+  {{- if .WorkerNode }}
+      name: kubearmor
+      url: {{.KubeArmorAddr}}
+      port: {{.KubeArmorPort}}
+  {{- else }}
+      name: relay-1
+      url: {{.RelayServerAddr}}
+      port: {{.RelayServerPort}}
+  {{- end }}
 {{- if and .TlsEnabled (not .WorkerNode) }}
   rabbitmq:
     enabled: true
     logs-topic: {{.LogsTopic}}
+    logs-kmux-config: {{.LogsKmuxConfig}}
     alerts-topic: {{.AlertsTopic}}
+    alerts-kmux-config: {{.AlertsKmuxConfig}}
 {{- end }}
 
 summary-engine:
-  enabled: true
-  cron-interval: "0h0m30s"
-  threshold: 10000
-  file-aggregation: true
+  kubearmor:
+    enabled: true
+    cron-interval: "0h0m30s"
+    threshold: 10000
+    file-aggregation: true
+    exclude-events:
+      operation:
+        process: {{.ProcessOperation}}
+        file: {{.FileOperation}}
+        network: {{.NetworkOperation}}
+    exclude-namespaces:
+      kubearmor: true 
   topic:
     summary-event: {{.SummaryV2Topic}}
-  exclude-events:
-    operation:
-      process: {{.ProcessOperation}}
-      file: {{.FileOperation}}
-      network: {{.NetworkOperation}}
-  exclude-namespaces:
-    kubearmor: true 
+  kmux-config:
+    summary-event: {{.SummaryKmuxConfig}}
   k8s:
     enable: false
   tls:

@@ -1,25 +1,22 @@
 kmux:
   sink:
     stream: rabbitmq
-  source:
-    stream: rabbitmq
 
 rabbitmq:
   server: {{.RMQServer}}
   username: {{.RMQUsername}}
   password: {{.RMQPassword}}
   exchange:
-    name: "agents" # exchange name
-    type: "direct" # exchange type
+    name: {{.ExchangeName}}
+    type: {{.ExchangeType}} # exchange type
     durable: true
     auto-delete: true
   queue:
     auto-delete: true
     durable: true
-    name: ""
-  consumer-tag: {{.ConsumerTag}}
+    name: {{.QueueName}}
   debug: false
   tls: 
     enabled: {{.TlsEnabled}}
-    cert-file: "/opt/cert/encoded.pem"
+    cert-file: {{.TlsCertFile}}
     skip-verify: false

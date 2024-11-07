@@ -8,20 +8,14 @@ var (
 	//go:embed templates/kmux-config.yaml
 	kmuxConfig string
 
-	//go:embed templates/discover-kmux-config.yaml
-	discoverKmuxConfig string
+	//go:embed templates/publisher-kmux-config.yaml
+	kmuxPublisherConfig string
 
-	//go:embed templates/sumengine-kmux-config.yaml
-	sumEngineKmuxConfig string
-
-	//go:embed templates/hardening-agent-kmux-config.yaml
-	hardeningAgentKmuxConfig string
+	//go:embed templates/consumer-kmux-config.yaml
+	kmuxConsumerConfig string
 
 	//go:embed templates/pea-config.yaml
 	peaConfig string
-
-	//go:embed templates/pea-rmq-kmux-config.yaml
-	peaRmqKmuxConfig string
 
 	//go:embed templates/sia-config.yaml
 	siaConfig string
