@@ -94,7 +94,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 
 		// copy kmux config
 		if obj.KmuxConfigPath != "" {
-			populateKmuxArgs(&kmuxConfigArgs, obj.AgentName, obj.KmuxConfigFileName, ic.TCArgs.RMQTopicPrefix)
+			populateKmuxArgs(&kmuxConfigArgs, obj.AgentName, obj.KmuxConfigFileName, ic.TCArgs.RMQTopicPrefix, ic.TCArgs.Hostname)
 			fmt.Printf("ic.UserConfigPath: %v\n", ic.UserConfigPath)
 			fmt.Printf("obj.AgentDir: %v\n", obj.AgentDir)
 			fmt.Printf("obj.KmuxConfigFileName: %v\n", obj.KmuxConfigFileName)

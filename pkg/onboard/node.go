@@ -31,6 +31,8 @@ func (jc *JoinConfig) CreateBaseNodeConfig() error {
 	kubeArmorPort := "32767"
 	if jc.KubeArmorAddr != "" {
 		kubeArmorURL = jc.KubeArmorAddr
+	} else if jc.ClusterConfig.Mode == VMMode_Docker {
+		kubeArmorURL = "kubearmor:32767"
 	}
 	kubeArmorAddr, kubeArmorPort, err = parseURL(kubeArmorURL)
 	if err != nil {
@@ -218,7 +220,7 @@ func (jc *JoinConfig) JoinWorkerNode() error {
 	// Generate or copy kmux config files
 	for filePath, templateString := range kmuxConfigFileTemplateMap {
 		agentName, file := strings.Split(filePath, "/")[0], strings.Split(filePath, "/")[1]
-		populateKmuxArgs(&kmuxConfigArgs, agentName, file, jc.RMQTopicPrefix)
+		populateKmuxArgs(&kmuxConfigArgs, agentName, file, jc.RMQTopicPrefix, jc.TCArgs.Hostname)
 		if _, err := copyOrGenerateFile(jc.UserConfigPath, configPath, filePath, sprigFuncs, templateString, kmuxConfigArgs); err != nil {
 			return err
 		}
