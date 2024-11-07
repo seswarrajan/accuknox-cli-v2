@@ -249,7 +249,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 
 		// generate kmux config only if it exists for this agent
 		if agentObj.kmuxConfigPath != "" {
-			populateKmuxArgs(&kmuxConfigArgs, agentObj.agentName, agentObj.kmuxConfigFileName, ic.TCArgs.RMQTopicPrefix)
+			populateKmuxArgs(&kmuxConfigArgs, agentObj.agentName, agentObj.kmuxConfigFileName, ic.TCArgs.RMQTopicPrefix, tcArgs.Hostname)
 			if _, err := copyOrGenerateFile(ic.UserConfigPath, agentConfigPath, agentObj.kmuxConfigFileName, sprigFuncs, agentObj.kmuxConfigTemplateString, kmuxConfigArgs); err != nil {
 				return err
 			}
@@ -269,7 +269,7 @@ func populateAgentArgs(tcArgs *TemplateConfigArgs, configDir string) {
 	tcArgs.PolicyKmuxConfig = fmt.Sprintf("%s/%s/%s", common.InContainerConfigDir, configDir, common.KmuxPolicyFileName)
 }
 
-func populateKmuxArgs(kmuxConfigArgs *KmuxConfigTemplateArgs, agentName, kmuxFile, prefix string) {
+func populateKmuxArgs(kmuxConfigArgs *KmuxConfigTemplateArgs, agentName, kmuxFile, prefix, hostname string) {
 	kmuxConfigArgs.ConsumerTag = agentName
 	kmuxConfigArgs.TlsCertFile = fmt.Sprintf("/opt%s/%s", common.DefaultCACertDir, common.DefaultEncodedFileName)
 	if kmuxFile == common.KmuxPoliciesFileName {
@@ -289,9 +289,12 @@ func populateKmuxArgs(kmuxConfigArgs *KmuxConfigTemplateArgs, agentName, kmuxFil
 	}
 
 	if agentName == common.VMAdapter && kmuxFile == common.KmuxPoliciesFileName {
-		hostname, err := os.Hostname()
-		if err != nil {
-			hostname = common.VMAdapter
+		if hostname == "" {
+			var err error
+			hostname, err = os.Hostname()
+			if err != nil {
+				hostname = common.VMAdapter
+			}
 		}
 		kmuxConfigArgs.QueueName = fmt.Sprintf("%s-%s-%v", kmuxConfigArgs.QueueName, hostname, time.Now().Unix())
 
