@@ -31,8 +31,6 @@ func (jc *JoinConfig) CreateBaseNodeConfig() error {
 	kubeArmorPort := "32767"
 	if jc.KubeArmorAddr != "" {
 		kubeArmorURL = jc.KubeArmorAddr
-	} else if jc.ClusterConfig.Mode == VMMode_Docker {
-		kubeArmorURL = "kubearmor:32767"
 	}
 	kubeArmorAddr, kubeArmorPort, err = parseURL(kubeArmorURL)
 	if err != nil {
@@ -229,7 +227,7 @@ func (jc *JoinConfig) JoinWorkerNode() error {
 	diagnosis := true
 
 	args := []string{"-f", composeFilePath, "--profile", "kubearmor-only"}
-	if jc.Tls.Enabled {
+	if jc.DeploySumengine {
 		args = append(args, "--profile", "accuknox-agents")
 	}
 	args = append(args, "up", "-d")

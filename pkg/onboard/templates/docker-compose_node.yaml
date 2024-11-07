@@ -129,10 +129,7 @@ services:
       - "{{.ConfigPath}}:/opt"
     restart: always
     pid: "host"
-    networks:
-      accuknox-net:
-        aliases:
-          - sumengine
+    network_mode: "host"
 
 networks:
   accuknox-net:
