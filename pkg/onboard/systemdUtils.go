@@ -311,7 +311,7 @@ func (cc *ClusterConfig) placeServiceFiles() error {
 					return err
 				}
 				//place timer file for RAT
-				_, err = copyOrGenerateFile("", cm.SystemdDir, "accuknox-rat.timer", cc.TemplateFuncs, obj.TimerTemplateString, interface{}(nil))
+				_, err = copyOrGenerateFile("", cm.SystemdDir, "accuknox-rat.timer", cc.TemplateFuncs, obj.TimerTemplateString, cc.RATConfigObject)
 				if err != nil {
 					return err
 				}
@@ -331,7 +331,6 @@ func (cc *ClusterConfig) placeServiceFiles() error {
 
 // downloadAgent downloads agents as OCI artifiacts
 func (cc *ClusterConfig) downloadAgent(agentName, agentRepo, agentTag string) (string, error) {
-	fmt.Println("downloading agent", agentName, agentRepo, agentTag)
 	fs, err := file.New(cm.DownloadDir)
 	if err != nil {
 		return "", err
@@ -427,7 +426,6 @@ func extractAgent(fileName string) error {
 // InstallAgent downloads agent using downloadAgent.
 // It disables the systemd service first if it is running
 func (cc *ClusterConfig) installAgent(agentName, agentRepo, agentTag string) error {
-	fmt.Println(agentTag)
 	fileName, err := cc.downloadAgent(agentName, agentRepo, agentTag)
 	if err != nil {
 		return err
@@ -629,9 +627,8 @@ func CheckInstalledSystemdServices() ([]string, error) {
 	allAgents := []string{"kubearmor", cm.KubeArmorVMAdapter, cm.RelayServer, cm.PEAAgent, cm.SIAAgent, cm.FeederService, cm.SpireAgent, cm.SummaryEngine, cm.DiscoverAgent, cm.HardeningAgent}
 	installedAgents := make([]string, 0)
 
-	systemdPath := "/usr/lib/systemd/system/"
 	for _, agent := range allAgents {
-		filePath := systemdPath + agent + ".service"
+		filePath := cm.SystemdPath + agent + ".service"
 		if _, err := os.Stat(filePath); err == nil {
 			// found service file means we have agents as systemd service
 			installedAgents = append(installedAgents, agent)

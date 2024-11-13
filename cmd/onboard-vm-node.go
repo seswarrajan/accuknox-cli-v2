@@ -98,10 +98,6 @@ var joinNodeCmd = &cobra.Command{
 			return err
 		}
 
-		if enableVMScan {
-			vmConfigs.InitRATConfig(authToken, url, tenantID, clusterID, clusterName, label, schedule, profile, benchmark, registry, registryConfigPath, insecure, plainHTTP, ratImage, ratTag, releaseVersion, preserveUpstream)
-		}
-
 		joinConfig := onboard.JoinClusterConfig(*vmConfigs, kubeArmorAddr, relayServerAddr, siaAddr, peaAddr, hardenAddr)
 
 		defer func() {
@@ -135,6 +131,17 @@ var joinNodeCmd = &cobra.Command{
 		default:
 			logger.Error("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
 			return err
+		}
+		if enableVMScan {
+			err := joinConfig.InitRATConfig(authToken, url, tenantID, clusterID, clusterName, label, schedule, profile, benchmark, registry, registryConfigPath, insecure, plainHTTP, ratImage, ratTag, releaseVersion, preserveUpstream)
+			if err != nil {
+				logger.Print("error creating RAT config in %s mode", vmMode)
+			} else {
+				err = joinConfig.InstallRAT()
+				if err != nil {
+					logger.Print("error installing RAT in %s mode", vmMode)
+				}
+			}
 		}
 
 		logger.Print("VM successfully joined with control-plane!")

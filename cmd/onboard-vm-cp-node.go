@@ -130,9 +130,7 @@ var cpNodeCmd = &cobra.Command{
 			logger.Error("failed to create cluster config: %s", err.Error())
 			return err
 		}
-		if enableVMScan {
-			vmConfig.InitRATConfig(authToken, url, tenantID, clusterID, clusterName, label, schedule, profile, benchmark, registry, registryConfigPath, insecure, plainHTTP, ratImage, ratTag, releaseVersion, preserveUpstream)
-		}
+
 		onboardConfig := onboard.InitCPNodeConfig(*vmConfig, joinToken, spireHost, ppsHost, knoxGateway, spireTrustBundle, enableLogs)
 
 		defer func() {
@@ -156,7 +154,6 @@ var cpNodeCmd = &cobra.Command{
 				logger.Error("failed to onboard control plane node: %s", err.Error())
 				return err
 			}
-
 		case onboard.VMMode_Docker:
 			err = onboardConfig.InitializeControlPlane()
 			if err != nil {
@@ -167,6 +164,16 @@ var cpNodeCmd = &cobra.Command{
 		default:
 			logger.Error("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
 			return err
+		}
+		if enableVMScan {
+			err := vmConfig.InitRATConfig(authToken, url, tenantID, clusterID, clusterName, label, schedule, profile, benchmark, registry, registryConfigPath, insecure, plainHTTP, ratImage, ratTag, releaseVersion, preserveUpstream)
+			if err != nil {
+				fmt.Println(color.RedString("error initializing RAT config", vmMode))
+			}
+			err = onboardConfig.InstallRAT()
+			if err != nil {
+				fmt.Println(color.RedString("error installing RAT in %s mode /n", vmMode))
+			}
 		}
 
 		logger.PrintSuccess((`VM successfully onboarded!
