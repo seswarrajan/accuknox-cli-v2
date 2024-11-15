@@ -271,6 +271,7 @@ func populateAgentArgs(tcArgs *TemplateConfigArgs, configDir string) {
 
 func populateKmuxArgs(kmuxConfigArgs *KmuxConfigTemplateArgs, agentName, kmuxFile, prefix, hostname string) {
 	kmuxConfigArgs.ConsumerTag = agentName
+	kmuxConfigArgs.QueueDurability = getQueueDurability(kmuxFile)
 	kmuxConfigArgs.TlsCertFile = fmt.Sprintf("/opt%s/%s", common.DefaultCACertDir, common.DefaultEncodedFileName)
 	if kmuxFile == common.KmuxPoliciesFileName {
 		kmuxConfigArgs.ExchangeType = "fanout"
@@ -632,4 +633,12 @@ func oldCertPaths(root string) []string {
 	}
 
 	return paths
+}
+
+func getQueueDurability(kmuxFile string) bool {
+	durable, ok := common.QueueDurability[kmuxFile]
+	if !ok {
+		return false
+	}
+	return durable
 }

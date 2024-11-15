@@ -269,18 +269,19 @@ type TemplateConfigArgs struct {
 }
 
 type KmuxConfigTemplateArgs struct {
-	ReleaseVersion string
-	StreamName     string
-	ServerURL      string
-	RMQServer      string
-	RMQUsername    string
-	RMQPassword    string
-	TlsEnabled     bool
-	TlsCertFile    string
-	ConsumerTag    string
-	ExchangeType   string
-	ExchangeName   string
-	QueueName      string
+	ReleaseVersion  string
+	StreamName      string
+	ServerURL       string
+	RMQServer       string
+	RMQUsername     string
+	RMQPassword     string
+	TlsEnabled      bool
+	TlsCertFile     string
+	ConsumerTag     string
+	ExchangeType    string
+	ExchangeName    string
+	QueueName       string
+	QueueDurability bool
 }
 
 type TokenResponse struct {

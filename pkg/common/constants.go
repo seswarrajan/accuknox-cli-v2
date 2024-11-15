@@ -196,3 +196,10 @@ var QueueName = map[string]string{
 	KmuxSummaryFileName:    "summary-v2",
 	KmuxPolicyFileName:     "policy-v1",
 }
+
+var QueueDurability = map[string]bool{
+	KmuxAlertsFileName:  true,
+	KmuxLogsFileName:    true,
+	KmuxSummaryFileName: true,
+	KmuxPolicyFileName:  true,
+}

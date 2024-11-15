@@ -13,7 +13,7 @@ rabbitmq:
     auto-delete: true
   queue:
     auto-delete: true
-    durable: true
+    durable: {{.QueueDurability}}
     name: {{.QueueName}}
   debug: false
   tls: 
