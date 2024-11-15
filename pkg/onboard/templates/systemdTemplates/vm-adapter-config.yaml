@@ -4,12 +4,14 @@ relay-server-addr: {{.RelayServerURL}}
 
 {{- if .TlsEnabled }}
 tls: {{.TlsEnabled}}
-host-policy-topic: {{.HostPolicyTopic}}
-container-policy-topic: {{.ContainerPolicyTopic}}
+policy-topic: {{.PoliciesTopic}}
 state-topic: {{.StateEventTopic}}
 alert-topic: {{.AlertsTopic}}
 logs-topic: {{.LogsTopic}}
-kmux-config: /opt/kubearmor-vm-adapter/kmux-config.yaml
+kmux-config-policy: {{.PoliciesKmuxConfig}}
+kmux-config-state: {{.StateKmuxConfig}}
+kmux-config-alerts: {{.AlertsKmuxConfig}}
+kmux-config-logs: {{.LogsKmuxConfig}}
 {{- else }}
 sia-addr: {{.SIAAddr}}
 

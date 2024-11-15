@@ -93,11 +93,14 @@ services:
       - "--relay-server-addr={{.RelayServerURL}}"
       {{- if .TlsEnabled }}
       - "--tls"
-      - "--host-policy-topic={{.HostPolicyTopic}}"
-      - "--container-policy-topic={{.ContainerPolicyTopic}}"
+      - "--policy-topic={{.PoliciesTopic}}"
       - "--state-topic={{.StateEventTopic}}"
       - "--alert-topic={{.AlertsTopic}}"
       - "--logs-topic={{.LogsTopic}}"
+      - "--kmux-config-policies=/opt/vm-adapter/{{.PoliciesKmuxConfig}}"
+      - "--kmux-config-state=/opt/vm-adapter/{{.StateKmuxConfig}}"
+      - "--kmux-config-alerts=/opt/vm-adapter/{{.AlertsKmuxConfig}}"
+      - "--kmux-config-logs=/opt/vm-adapter/{{.LogsKmuxConfig}}"
       {{- else }}
       - "--sia-addr={{.SIAAddr}}"
       - "--pea-addr={{.PEAAddr}}"
@@ -126,10 +129,7 @@ services:
       - "{{.ConfigPath}}:/opt"
     restart: always
     pid: "host"
-    networks:
-      accuknox-net:
-        aliases:
-          - sumengine
+    network_mode: "host"
 
 networks:
   accuknox-net:

@@ -87,15 +87,21 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 
 			_, err = copyOrGenerateFile(ic.UserConfigPath, obj.AgentDir, obj.ConfigFilePath, ic.TemplateFuncs, obj.ConfigTemplateString, tcArgs)
 			if err != nil {
+				fmt.Printf("err config generate: %v\n", err)
 				return err
 			}
 		}
 
 		// copy kmux config
 		if obj.KmuxConfigPath != "" {
-			kmuxConfigArgs.ConsumerTag = obj.AgentName
-			_, err = copyOrGenerateFile(ic.UserConfigPath, obj.AgentDir, cm.KmuxConfigFileName, ic.TemplateFuncs, obj.KmuxConfigTemplateString, kmuxConfigArgs)
+			populateKmuxArgs(&kmuxConfigArgs, obj.AgentName, obj.KmuxConfigFileName, ic.TCArgs.RMQTopicPrefix, ic.TCArgs.Hostname)
+			fmt.Printf("ic.UserConfigPath: %v\n", ic.UserConfigPath)
+			fmt.Printf("obj.AgentDir: %v\n", obj.AgentDir)
+			fmt.Printf("obj.KmuxConfigFileName: %v\n", obj.KmuxConfigFileName)
+
+			_, err = copyOrGenerateFile(ic.UserConfigPath, obj.AgentDir, obj.KmuxConfigFileName, ic.TemplateFuncs, obj.KmuxConfigTemplateString, kmuxConfigArgs)
 			if err != nil {
+				fmt.Printf("err kmux generate: %v\n", err)
 				return err
 			}
 		}

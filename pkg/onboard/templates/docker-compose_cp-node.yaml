@@ -177,11 +177,14 @@ services:
       - "--kubearmor-addr={{.KubeArmorURL}}"
       {{- if .TlsEnabled }}
       - "--tls"
-      - "--host-policy-topic={{.HostPolicyTopic}}"
-      - "--container-policy-topic={{.ContainerPolicyTopic}}"
+      - "--policy-topic={{.PoliciesTopic}}"
       - "--state-topic={{.StateEventTopic}}"
       - "--alert-topic={{.AlertsTopic}}"
       - "--logs-topic={{.LogsTopic}}"
+      - "--kmux-config-policies=/opt/vm-adapter/{{.PoliciesKmuxConfig}}"
+      - "--kmux-config-state=/opt/vm-adapter/{{.StateKmuxConfig}}"
+      - "--kmux-config-alerts=/opt/vm-adapter/{{.AlertsKmuxConfig}}"
+      - "--kmux-config-logs=/opt/vm-adapter/{{.LogsKmuxConfig}}"
       {{- else }}
       - "--relay-server-addr={{.RelayServerURL}}"
       - "--sia-addr={{.SIAAddr}}"
@@ -280,6 +283,11 @@ services:
       - "POLICY_TOPIC={{.PolicyV1Topic}}"
       - "SUMMARY_TOPIC={{.SummaryV2Topic}}"
       - DEPLOY_MODE="vm"
+      - "RABBITMQ_ALERTS_KMUX_CONFIG=/opt/feeder-service/{{.AlertsKmuxConfig}}"
+      - "RABBITMQ_LOGS_KMUX_CONFIG=/opt/feeder-service/{{.LogsKmuxConfig}}"
+      - "DISCOVERYENGINE_POLICY_ENABLED=false"
+      - "KMUX_CONFIG_POLICY=/opt/feeder-service/{{.PolicyKmuxConfig}}"
+      - "KMUX_CONFIG_SUMMARY=/opt/feeder-service/{{.SummaryKmuxConfig}}"
 
     pid: "host"
     networks:

@@ -125,14 +125,21 @@ func (jc *JoinConfig) CreateBaseNodeConfig() error {
 		VmMode:                      jc.Mode,
 		SecureContainers:            jc.SecureContainers,
 		TlsEnabled:                  jc.Tls.Enabled,
-		ContainerPolicyTopic:        getTopicName(jc.RMQTopicPrefix, "container-policy"),
-		HostPolicyTopic:             getTopicName(jc.RMQTopicPrefix, "host-policy"),
+		PoliciesTopic:               getTopicName(jc.RMQTopicPrefix, "policies"),
 		LogsTopic:                   getTopicName(jc.RMQTopicPrefix, "logs"),
 		AlertsTopic:                 getTopicName(jc.RMQTopicPrefix, "alerts"),
 		StateEventTopic:             getTopicName(jc.RMQTopicPrefix, "state-event"),
 		PolicyV1Topic:               getTopicName(jc.RMQTopicPrefix, "policy-v1"),
 		SummaryV2Topic:              getTopicName(jc.RMQTopicPrefix, "summary-v2"),
 	}
+
+	jc.TCArgs.PoliciesKmuxConfig = common.KmuxPoliciesFileName
+	jc.TCArgs.StateKmuxConfig = common.KmuxStateEventFileName
+	jc.TCArgs.AlertsKmuxConfig = common.KmuxAlertsFileName
+	jc.TCArgs.LogsKmuxConfig = common.KmuxLogsFileName
+	jc.TCArgs.SummaryKmuxConfig = common.KmuxSummaryFileName
+	jc.TCArgs.PolicyKmuxConfig = common.KmuxPolicyFileName
+
 	return nil
 }
 
@@ -195,17 +202,23 @@ func (jc *JoinConfig) JoinWorkerNode() error {
 		TlsCertFile:    jc.TCArgs.TlsCertFile,
 	}
 
+	populateAgentArgs(&jc.TCArgs, "sumengine")
 	if _, err := copyOrGenerateFile(jc.UserConfigPath, configPath, "sumengine/config.yaml", sprigFuncs, sumEngineConfig, jc.TCArgs); err != nil {
 		return err
 	}
 
 	kmuxConfigFileTemplateMap := map[string]string{
-		"sumengine/kmux-config.yaml":  sumEngineKmuxConfig,
-		"vm-adapter/kmux-config.yaml": sumEngineKmuxConfig,
+		"sumengine/" + common.KmuxConfigFileName:      kmuxPublisherConfig,
+		"sumengine/" + common.KmuxSummaryFileName:     kmuxPublisherConfig,
+		"vm-adapter/" + common.KmuxStateEventFileName: kmuxPublisherConfig,
+		"vm-adapter/" + common.KmuxAlertsFileName:     kmuxPublisherConfig,
+		"vm-adapter/" + common.KmuxLogsFileName:       kmuxPublisherConfig,
+		"vm-adapter/" + common.KmuxPoliciesFileName:   kmuxConsumerConfig,
 	}
 	// Generate or copy kmux config files
 	for filePath, templateString := range kmuxConfigFileTemplateMap {
-		kmuxConfigArgs.ConsumerTag = strings.Split(filePath, "/")[0]
+		agentName, file := strings.Split(filePath, "/")[0], strings.Split(filePath, "/")[1]
+		populateKmuxArgs(&kmuxConfigArgs, agentName, file, jc.RMQTopicPrefix, jc.TCArgs.Hostname)
 		if _, err := copyOrGenerateFile(jc.UserConfigPath, configPath, filePath, sprigFuncs, templateString, kmuxConfigArgs); err != nil {
 			return err
 		}
@@ -214,7 +227,7 @@ func (jc *JoinConfig) JoinWorkerNode() error {
 	diagnosis := true
 
 	args := []string{"-f", composeFilePath, "--profile", "kubearmor-only"}
-	if jc.Tls.Enabled {
+	if jc.DeploySumengine {
 		args = append(args, "--profile", "accuknox-agents")
 	}
 	args = append(args, "up", "-d")

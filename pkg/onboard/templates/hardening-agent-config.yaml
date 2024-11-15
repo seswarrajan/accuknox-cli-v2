@@ -5,6 +5,7 @@ hardening:
   recommend-host-policy: true
   template-version: "0.2.6"
   topic: {{.PolicyV1Topic}}
+  policy-kmux-config: {{.PolicyKmuxConfig}}
   delay-cron-job: "0h05m00s"
   filter-enabled: false
   exclude-namespaces:
@@ -15,4 +16,5 @@ hardening:
   state-agent:
     port: "32771"
   state-topic: {{.StateEventTopic}}
+  state-kmux-config: {{.StateKmuxConfig}}
   tls-enabled: {{.TlsEnabled}}

@@ -233,8 +233,13 @@ type TemplateConfigArgs struct {
 	NetworkCIDR string
 
 	// kmux config paths for agents
-	KmuxRMQConfigPathPEA string
-	KmuxConfigPath       string
+	PoliciesKmuxConfig string
+	StateKmuxConfig    string
+	AlertsKmuxConfig   string
+	LogsKmuxConfig     string
+	KmuxConfigPath     string
+	PolicyKmuxConfig   string
+	SummaryKmuxConfig  string
 
 	// container security
 	SecureContainers bool
@@ -255,13 +260,12 @@ type TemplateConfigArgs struct {
 	TlsCertFile string
 
 	// topic config
-	ContainerPolicyTopic string
-	HostPolicyTopic      string
-	StateEventTopic      string
-	LogsTopic            string
-	AlertsTopic          string
-	PolicyV1Topic        string
-	SummaryV2Topic       string
+	PoliciesTopic   string
+	StateEventTopic string
+	LogsTopic       string
+	AlertsTopic     string
+	PolicyV1Topic   string
+	SummaryV2Topic  string
 }
 
 type KmuxConfigTemplateArgs struct {
@@ -274,6 +278,9 @@ type KmuxConfigTemplateArgs struct {
 	TlsEnabled     bool
 	TlsCertFile    string
 	ConsumerTag    string
+	ExchangeType   string
+	ExchangeName   string
+	QueueName      string
 }
 
 type TokenResponse struct {
@@ -304,6 +311,7 @@ type SystemdServiceObject struct {
 
 	KmuxConfigPath           string
 	KmuxConfigTemplateString string
+	KmuxConfigFileName       string
 
 	// map of file name and path
 	ExtraFilePathSrc  map[string]string
