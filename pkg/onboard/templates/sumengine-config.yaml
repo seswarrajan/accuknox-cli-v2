@@ -27,7 +27,7 @@ watcher:
 summary-engine:
   kubearmor:
     enabled: true
-    cron-interval: "0h0m30s"
+    cron-interval: "0h05m00s"
     threshold: 10000
     file-aggregation: true
     exclude-events:
