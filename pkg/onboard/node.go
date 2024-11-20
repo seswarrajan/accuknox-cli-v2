@@ -89,7 +89,7 @@ func (jc *JoinConfig) CreateBaseNodeConfig() error {
 			}
 
 			if cpNodePort != "" {
-				jc.RMQServer = cpNodeServerAddr
+				jc.RMQServer = cpNodeServerAddr + ":" + cpNodePort
 			} else {
 				jc.RMQServer = cpNodeServerAddr + ":" + "5672"
 			}
@@ -220,16 +220,17 @@ func (jc *JoinConfig) JoinWorkerNode() error {
 	}
 
 	kmuxConfigFileTemplateMap := map[string]string{
-		"sumengine/" + common.KmuxConfigFileName:      kmuxPublisherConfig,
-		"sumengine/" + common.KmuxSummaryFileName:     kmuxPublisherConfig,
-		"vm-adapter/" + common.KmuxStateEventFileName: kmuxPublisherConfig,
-		"vm-adapter/" + common.KmuxAlertsFileName:     kmuxPublisherConfig,
-		"vm-adapter/" + common.KmuxLogsFileName:       kmuxPublisherConfig,
-		"vm-adapter/" + common.KmuxPoliciesFileName:   kmuxConsumerConfig,
+		"sumengine/" + common.KmuxConfigFileName:                kmuxPublisherConfig,
+		"sumengine/" + common.KmuxSummaryFileName:               kmuxPublisherConfig,
+		"kubearmor-vm-adapter/" + common.KmuxStateEventFileName: kmuxPublisherConfig,
+		"kubearmor-vm-adapter/" + common.KmuxAlertsFileName:     kmuxPublisherConfig,
+		"kubearmor-vm-adapter/" + common.KmuxLogsFileName:       kmuxPublisherConfig,
+		"kubearmor-vm-adapter/" + common.KmuxPoliciesFileName:   kmuxConsumerConfig,
 	}
 	// Generate or copy kmux config files
 	for filePath, templateString := range kmuxConfigFileTemplateMap {
 		agentName, file := strings.Split(filePath, "/")[0], strings.Split(filePath, "/")[1]
+		populateAgentArgs(&jc.TCArgs, "kubearmor-vm-adapter")
 		populateKmuxArgs(&kmuxConfigArgs, agentName, file, jc.RMQTopicPrefix, jc.TCArgs.Hostname)
 		if _, err := copyOrGenerateFile(jc.UserConfigPath, configPath, filePath, sprigFuncs, templateString, kmuxConfigArgs); err != nil {
 			return err
