@@ -19,7 +19,7 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 	imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock string,
 	alertThrottling bool, maxAlertPerSec, throttleSec int,
 	cidr string, secureContainers, skipBTF bool, systemMonitorPath string,
-	rmqAddr string, deploySumengine bool, registry, registryConfigPath string, insecureRegistryConnection, httpRegistryConnection, preserveUpstream bool, topicPrefix string, tls TLS) (*ClusterConfig, error) {
+	rmqAddr string, deploySumengine bool, registry, registryConfigPath string, insecureRegistryConnection, httpRegistryConnection, preserveUpstream bool, topicPrefix string, tls TLS, enableHostPolicyDiscoery bool) (*ClusterConfig, error) {
 
 	cc := new(ClusterConfig)
 
@@ -133,6 +133,8 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 	default:
 		return nil, fmt.Errorf("Image pull policy %s unrecognized", imagePullPolicy)
 	}
+
+	cc.EnableHostPolicyDiscovery = enableHostPolicyDiscoery
 
 	// mode specific config
 	var err error

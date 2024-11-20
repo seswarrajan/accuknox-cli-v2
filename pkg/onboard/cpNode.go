@@ -131,6 +131,8 @@ func (ic *InitConfig) CreateBaseTemplateConfig() error {
 		VmMode:         ic.Mode,
 		RMQServer:      ic.RMQServer,
 		RMQTopicPrefix: ic.RMQTopicPrefix,
+
+		EnableHostPolicyDiscovery: ic.EnableHostPolicyDiscovery,
 	}
 	return nil
 }

@@ -131,6 +131,8 @@ func (jc *JoinConfig) CreateBaseNodeConfig() error {
 		StateEventTopic:             getTopicName(jc.RMQTopicPrefix, "state-event"),
 		PolicyV1Topic:               getTopicName(jc.RMQTopicPrefix, "policy-v1"),
 		SummaryV2Topic:              getTopicName(jc.RMQTopicPrefix, "summary-v2"),
+
+		EnableHostPolicyDiscovery: jc.EnableHostPolicyDiscovery,
 	}
 
 	jc.TCArgs.PoliciesKmuxConfig = common.KmuxPoliciesFileName

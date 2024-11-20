@@ -47,6 +47,8 @@ var (
 	discoverVersionTag       string
 	sumEngineVersionTag      string
 	hardeningAgentVersionTag string
+
+	enableHostPolicyDiscovery bool
 )
 
 // cpNodeCmd represents the init command
@@ -91,7 +93,7 @@ var cpNodeCmd = &cobra.Command{
 			peaImage, feederImage, rmqImage, sumEngineImage, hardeningAgentImage, spireAgentImage, waitForItImage, discoverImage, nodeAddr, dryRun,
 			false, deployRMQ, imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock,
 			alertThrottling, maxAlertPerSec, throttleSec,
-			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine, registry, registryConfigPath, insecure, plainHTTP, preserveUpstream, topicPrefix, tls)
+			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine, registry, registryConfigPath, insecure, plainHTTP, preserveUpstream, topicPrefix, tls, enableHostPolicyDiscovery)
 		if err != nil {
 			return fmt.Errorf(color.RedString("failed to create cluster config: %s", err.Error()))
 		}
@@ -171,6 +173,9 @@ func init() {
 	cpNodeCmd.PersistentFlags().StringVar(&accessKey, "access-key", "", "access-key for onboarding")
 	cpNodeCmd.PersistentFlags().StringVar(&vmName, "vm-name", "", "vm name for onboarding")
 	cpNodeCmd.PersistentFlags().StringVar(&tokenURL, "access-key-url", "", "access-key-url for onboarding")
+
+	// dev2 config
+	cpNodeCmd.PersistentFlags().BoolVar(&enableHostPolicyDiscovery, "enable-host-policy-discovery", false, "to enable host policy auto-discovery")
 
 	err := cpNodeCmd.MarkPersistentFlagRequired("spire-host")
 	if err != nil {

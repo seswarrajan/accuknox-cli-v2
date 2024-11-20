@@ -1,5 +1,8 @@
 
 discover:
+  policy:
+    host: {{.EnableHostPolicyDiscovery}}
+    workload: {{.SecureContainers}}
   consumer:
     buffer-limit:
       network: 100
