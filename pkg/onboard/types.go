@@ -108,6 +108,8 @@ type ClusterConfig struct {
 
 	// container security
 	SecureContainers bool
+	// host policy discovery
+	EnableHostPolicyDiscovery bool
 
 	SkipBTFCheck      bool
 	SystemMonitorPath string
@@ -243,6 +245,8 @@ type TemplateConfigArgs struct {
 
 	// container security
 	SecureContainers bool
+	// host policy discovery
+	EnableHostPolicyDiscovery bool
 
 	//summary engine configuration
 	ProcessOperation bool
