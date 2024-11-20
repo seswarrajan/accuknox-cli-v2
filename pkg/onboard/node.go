@@ -83,7 +83,17 @@ func (jc *JoinConfig) CreateBaseNodeConfig() error {
 	// RMQServer that would be used by summary engine
 	if jc.DeploySumengine {
 		if jc.RMQServer == "" && jc.CPNodeAddr != "" {
-			jc.RMQServer = jc.CPNodeAddr + ":" + "5672"
+			cpNodeServerAddr, cpNodePort, err := parseURL(jc.CPNodeAddr)
+			if err != nil {
+				return err
+			}
+
+			if cpNodePort != "" {
+				jc.RMQServer = cpNodeServerAddr
+			} else {
+				jc.RMQServer = cpNodeServerAddr + ":" + "5672"
+			}
+
 		} else {
 			return fmt.Errorf("RMQ address cannot be empty")
 		}
@@ -197,7 +207,7 @@ func (jc *JoinConfig) JoinWorkerNode() error {
 
 	kmuxConfigArgs := KmuxConfigTemplateArgs{
 		ReleaseVersion: jc.AgentsVersion,
-		RMQServer:      jc.CPNodeAddr + ":5672",
+		RMQServer:      jc.RMQServer,
 		RMQUsername:    jc.TCArgs.RMQUsername,
 		RMQPassword:    jc.TCArgs.RMQPassword,
 		TlsEnabled:     jc.TCArgs.TlsEnabled,
