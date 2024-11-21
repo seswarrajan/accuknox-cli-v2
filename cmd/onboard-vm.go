@@ -107,7 +107,7 @@ func init() {
 
 	onboardVMCmd.PersistentFlags().StringVar(&tls.CommonName, "tls-cn", "accuknox", "CommonName for TLS certificates")
 
-	onboardVMCmd.PersistentFlags().StringVar(&tls.RMQCredentials, "rmq-creds", "", "rabbitmq credentials in base64 encoded key:value format")
+	onboardVMCmd.PersistentFlags().StringVar(&tls.RMQCredentials, "auth", "", "rabbitmq credentials in base64 encoded key:value format")
 	onboardVMCmd.PersistentFlags().StringArrayVar(&tls.DNS, "dns", []string{}, "DNS names for TLS certificates")
 
 	onboardVMCmd.PersistentFlags().StringArrayVar(&tls.IPs, "ips", []string{}, "List of IPs for TLS certificates")
