@@ -11,7 +11,7 @@ logs-topic: {{.LogsTopic}}
 kmux-config-policy: /opt/kubearmor-vm-adapter/policies-kmux-config.yaml
 kmux-config-state: /opt/kubearmor-vm-adapter/state-kmux-config.yaml
 kmux-config-alerts: /opt/kubearmor-vm-adapter/alerts-kmux-config.yaml
-kmux-config-logs: /opt/kubearmor-vm-adapter/alerts-kmux-config.yaml
+kmux-config-logs: /opt/kubearmor-vm-adapter/logs-kmux-config.yaml
 {{- else }}
 sia-addr: {{.SIAAddr}}
 
