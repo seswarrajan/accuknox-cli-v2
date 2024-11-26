@@ -285,7 +285,7 @@ services:
       - DEPLOY_MODE="vm"
       - "RABBITMQ_ALERTS_KMUX_CONFIG=/opt/feeder-service/{{.AlertsKmuxConfig}}"
       - "RABBITMQ_LOGS_KMUX_CONFIG=/opt/feeder-service/{{.LogsKmuxConfig}}"
-      - "DISCOVERYENGINE_POLICY_ENABLED=false"
+      - "DISCOVERYENGINE_POLICY_ENABLED=true"
       - "KMUX_CONFIG_POLICY=/opt/feeder-service/{{.PolicyKmuxConfig}}"
       - "KMUX_CONFIG_SUMMARY=/opt/feeder-service/{{.SummaryKmuxConfig}}"
 

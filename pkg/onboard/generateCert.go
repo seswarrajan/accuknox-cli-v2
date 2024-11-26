@@ -216,11 +216,21 @@ func (ic *InitConfig) GenerateOrUpdateCert(paths []string) (map[string]string, [
 	var (
 		storeData   = make(map[string]string)
 		caCertBytes []byte
+		configPath  string
 	)
 
-	caPath := fmt.Sprintf("%s%s/%s", ic.TCArgs.ConfigPath, common.DefaultRabbitMQDir, common.DefaultCAFileName)
-	certPath := fmt.Sprintf("%s%s/%s", ic.TCArgs.ConfigPath, common.DefaultRabbitMQDir, common.DefaultCertificateName)
-	keyPath := fmt.Sprintf("%s%s/%s", ic.TCArgs.ConfigPath, common.DefaultRabbitMQDir, common.DefaultKeyFileName)
+	fmt.Printf("ic.Mode: %v\n", ic.Mode)
+
+	if ic.Mode == VMMode_Systemd {
+		configPath = fmt.Sprintf("%s/opt", ic.TCArgs.ConfigPath)
+	} else if ic.Mode == VMMode_Docker {
+		fmt.Printf("ic.DefaultConfigPath: %v\n", ic.DefaultConfigPath)
+		configPath = fmt.Sprintf("%s", ic.TCArgs.ConfigPath)
+	}
+
+	caPath := fmt.Sprintf("%s%s/%s", configPath, common.DefaultRabbitMQDir, common.DefaultCAFileName)
+	certPath := fmt.Sprintf("%s%s/%s", configPath, common.DefaultRabbitMQDir, common.DefaultCertificateName)
+	keyPath := fmt.Sprintf("%s%s/%s", configPath, common.DefaultRabbitMQDir, common.DefaultKeyFileName)
 
 	if ic.Tls.Generate {
 		caCert, caKey, err := ic.GenerateCA()

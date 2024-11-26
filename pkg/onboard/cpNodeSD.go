@@ -33,7 +33,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 		}
 	}
 
-	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
+	ic.populateCommonArgs(&ic.TCArgs)
 
 	// initialize sprig for templating
 	ic.TemplateFuncs = sprig.GenericFuncMap()
@@ -95,9 +95,6 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 		// copy kmux config
 		if obj.KmuxConfigPath != "" {
 			populateKmuxArgs(&kmuxConfigArgs, obj.AgentName, obj.KmuxConfigFileName, ic.TCArgs.RMQTopicPrefix, ic.TCArgs.Hostname)
-			fmt.Printf("ic.UserConfigPath: %v\n", ic.UserConfigPath)
-			fmt.Printf("obj.AgentDir: %v\n", obj.AgentDir)
-			fmt.Printf("obj.KmuxConfigFileName: %v\n", obj.KmuxConfigFileName)
 
 			_, err = copyOrGenerateFile(ic.UserConfigPath, obj.AgentDir, obj.KmuxConfigFileName, ic.TemplateFuncs, obj.KmuxConfigTemplateString, kmuxConfigArgs)
 			if err != nil {
