@@ -33,7 +33,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 		}
 	}
 
-	ic.populateCommonArgs(&ic.TCArgs)
+	ic.populateCommonArgs()
 
 	// initialize sprig for templating
 	ic.TemplateFuncs = sprig.GenericFuncMap()

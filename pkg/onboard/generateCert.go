@@ -216,16 +216,11 @@ func (ic *InitConfig) GenerateOrUpdateCert(paths []string) (map[string]string, [
 	var (
 		storeData   = make(map[string]string)
 		caCertBytes []byte
-		configPath  string
+		configPath  = ic.TCArgs.ConfigPath
 	)
 
-	fmt.Printf("ic.Mode: %v\n", ic.Mode)
-
-	if ic.Mode == VMMode_Systemd {
-		configPath = fmt.Sprintf("%s/opt", ic.TCArgs.ConfigPath)
-	} else if ic.Mode == VMMode_Docker {
-		fmt.Printf("ic.DefaultConfigPath: %v\n", ic.DefaultConfigPath)
-		configPath = fmt.Sprintf("%s", ic.TCArgs.ConfigPath)
+	if configPath == "" {
+		configPath = "/opt"
 	}
 
 	caPath := fmt.Sprintf("%s%s/%s", configPath, common.DefaultRabbitMQDir, common.DefaultCAFileName)

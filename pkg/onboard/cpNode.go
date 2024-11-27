@@ -202,7 +202,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	kmuxConfigArgs.RMQPassword = ic.TCArgs.RMQPassword
 	kmuxConfigArgs.TlsEnabled = ic.TCArgs.TlsEnabled
 
-	ic.populateCommonArgs(&ic.TCArgs)
+	ic.populateCommonArgs()
 
 	// initialize sprig for templating
 	sprigFuncs := sprig.GenericFuncMap()
@@ -244,27 +244,27 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	return ic.runComposeCommand(composeFilePath)
 }
 
-func (ic *InitConfig) populateCommonArgs(tcArgs *TemplateConfigArgs) {
+func (ic *InitConfig) populateCommonArgs() {
 
-	tcArgs.PoliciesKmuxConfig = common.KmuxPoliciesFileName
-	tcArgs.StateKmuxConfig = common.KmuxStateEventFileName
-	tcArgs.AlertsKmuxConfig = common.KmuxAlertsFileName
-	tcArgs.LogsKmuxConfig = common.KmuxLogsFileName
-	tcArgs.SummaryKmuxConfig = common.KmuxSummaryFileName
-	tcArgs.PolicyKmuxConfig = common.KmuxPolicyFileName
+	ic.TCArgs.PoliciesKmuxConfig = common.KmuxPoliciesFileName
+	ic.TCArgs.StateKmuxConfig = common.KmuxStateEventFileName
+	ic.TCArgs.AlertsKmuxConfig = common.KmuxAlertsFileName
+	ic.TCArgs.LogsKmuxConfig = common.KmuxLogsFileName
+	ic.TCArgs.SummaryKmuxConfig = common.KmuxSummaryFileName
+	ic.TCArgs.PolicyKmuxConfig = common.KmuxPolicyFileName
 
-	tcArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
-	tcArgs.ProcessOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "process")
-	tcArgs.FileOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "file")
-	tcArgs.NetworkOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "network")
+	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
+	ic.TCArgs.ProcessOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "process")
+	ic.TCArgs.FileOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "file")
+	ic.TCArgs.NetworkOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "network")
 
 	// To get routing key name with cluster-name as prefix
-	tcArgs.PoliciesTopic = getTopicName(ic.RMQTopicPrefix, "policies")
-	tcArgs.LogsTopic = getTopicName(ic.RMQTopicPrefix, "logs")
-	tcArgs.AlertsTopic = getTopicName(ic.RMQTopicPrefix, "alerts")
-	tcArgs.StateEventTopic = getTopicName(ic.RMQTopicPrefix, "state-event")
-	tcArgs.PolicyV1Topic = getTopicName(ic.RMQTopicPrefix, "policy-v1")
-	tcArgs.SummaryV2Topic = getTopicName(ic.RMQTopicPrefix, "summary-v2")
+	ic.TCArgs.PoliciesTopic = getTopicName(ic.RMQTopicPrefix, "policies")
+	ic.TCArgs.LogsTopic = getTopicName(ic.RMQTopicPrefix, "logs")
+	ic.TCArgs.AlertsTopic = getTopicName(ic.RMQTopicPrefix, "alerts")
+	ic.TCArgs.StateEventTopic = getTopicName(ic.RMQTopicPrefix, "state-event")
+	ic.TCArgs.PolicyV1Topic = getTopicName(ic.RMQTopicPrefix, "policy-v1")
+	ic.TCArgs.SummaryV2Topic = getTopicName(ic.RMQTopicPrefix, "summary-v2")
 
 }
 
