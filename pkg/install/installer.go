@@ -85,11 +85,6 @@ func DiscoveryEngine(client *k8s.Client, o Options) error {
 		return nil
 	case <-time.After(countdownDuration):
 		fmt.Printf("Deployment timeout reached\n")
-		if !o.Debug {
-			fmt.Println("Health check timeout reached.")
-		} else {
-			fmt.Println("Health check timeout reached.")
-		}
 		return nil
 	}
 }
