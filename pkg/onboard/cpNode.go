@@ -133,6 +133,10 @@ func (ic *InitConfig) CreateBaseTemplateConfig() error {
 		RMQTopicPrefix: ic.RMQTopicPrefix,
 
 		EnableHostPolicyDiscovery: ic.EnableHostPolicyDiscovery,
+
+		ProcessOperation: ic.ProcessOperation,
+		FileOperation:    ic.FileOperation,
+		NetworkOperation: ic.NetworkOperation,
 	}
 	return nil
 }
@@ -254,9 +258,6 @@ func (ic *InitConfig) populateCommonArgs() {
 	ic.TCArgs.PolicyKmuxConfig = common.KmuxPolicyFileName
 
 	ic.TCArgs.DiscoverRules = combineVisibilities(ic.Visibility, ic.HostVisibility)
-	ic.TCArgs.ProcessOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "process")
-	ic.TCArgs.FileOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "file")
-	ic.TCArgs.NetworkOperation = isOperationDisabled(ic.Visibility, ic.HostVisibility, "network")
 
 	// To get routing key name with cluster-name as prefix
 	ic.TCArgs.PoliciesTopic = getTopicName(ic.RMQTopicPrefix, "policies")
@@ -399,16 +400,6 @@ func combineVisibilities(visibility, hostVisibility string) string {
 	}
 
 	return strings.Join(combined, ",")
-}
-
-// isOperationDisabled returns true if the operation is not included in the combined visibility settings.
-func isOperationDisabled(visibility, hostVisibility, operation string) bool {
-	visibilities := make(map[string]struct{})
-	for _, vis := range strings.Split(visibility+","+hostVisibility, ",") {
-		visibilities[vis] = struct{}{}
-	}
-	_, exists := visibilities[operation]
-	return !exists
 }
 
 func getAgentConfigMeta(tlsEnabled bool) []agentConfigMeta {

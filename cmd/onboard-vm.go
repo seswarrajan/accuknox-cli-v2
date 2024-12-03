@@ -45,6 +45,8 @@ var (
 	// declared here as common global variables
 	rmqAddress string
 	nodeAddr   string
+
+	sumengineVisibility string
 )
 
 // onboardVMCmd represents the sub-command to onboard VM clusters
@@ -80,11 +82,22 @@ func init() {
 
 	onboardVMCmd.PersistentFlags().StringVar(&imagePullPolicy, "image-pull-policy", "always", "image pull policy to use. Either of: missing | never | always")
 	onboardVMCmd.PersistentFlags().StringVar(&visibility, "viz", "process,network", "Kubearmor visibility. Possible values: \"none\" or any combo of [process,network,file]")
-	onboardVMCmd.PersistentFlags().StringVar(&hostVisibility, "hostViz", "process,network", "Kubearmor host visibility. Possible values: \"none\" or any combo of [process,network,file,capabilities]")
 	onboardVMCmd.PersistentFlags().StringVar(&audit, "audit", "", "Kubearmor container audit posture. Possible values: \"all\" or combo of [file,network,capabilities]")
 	onboardVMCmd.PersistentFlags().StringVar(&block, "block", "", "Kubearmor container block posture. Possible values: \"all\" or combo of [file,network,capabilities]")
+
+	// deprecated but kept for backwards compat
+	onboardVMCmd.PersistentFlags().StringVar(&hostVisibility, "hostViz", "process,network", "Kubearmor host visibility. Possible values: \"none\" or any combo of [process,network,file,capabilities]")
 	onboardVMCmd.PersistentFlags().StringVar(&hostAudit, "hostAudit", "", "Kubearmor host audit posture. Possible values: \"all\" or combo of [file,network,capabilities]")
 	onboardVMCmd.PersistentFlags().StringVar(&hostBlock, "hostBlock", "", "Kubearmor host block posture. Possible values: \"all\" or combo of [file,network,capabilities]")
+
+	// earlier flags were not POSIX compliant
+	onboardVMCmd.PersistentFlags().StringVar(&hostVisibility, "host-viz", "process,network", "Kubearmor host visibility. Possible values: \"none\" or any combo of [process,network,file,capabilities]")
+	onboardVMCmd.PersistentFlags().StringVar(&hostAudit, "host-audit", "", "Kubearmor host audit posture. Possible values: \"all\" or combo of [file,network,capabilities]")
+	onboardVMCmd.PersistentFlags().StringVar(&hostBlock, "host-block", "", "Kubearmor host block posture. Possible values: \"all\" or combo of [file,network,capabilities]")
+
+	onboardVMCmd.MarkFlagsMutuallyExclusive("hostViz", "host-viz")
+	onboardVMCmd.MarkFlagsMutuallyExclusive("hostAudit", "host-audit")
+	onboardVMCmd.MarkFlagsMutuallyExclusive("hostBlock", "host-block")
 
 	onboardVMCmd.PersistentFlags().BoolVarP(&alertThrottling, "alert-throttling", "", true, "to toggle alert-throttling")
 	onboardVMCmd.PersistentFlags().IntVarP(&maxAlertPerSec, "max-alerts-per-sec", "", 10, "specifes maximum alert rate past which throttling will be triggered")
@@ -113,6 +126,8 @@ func init() {
 	onboardVMCmd.PersistentFlags().StringArrayVar(&tls.IPs, "ips", []string{}, "List of IPs for TLS certificates")
 
 	onboardVMCmd.MarkFlagsMutuallyExclusive("tls-gen", "ca-path")
+
+	onboardVMCmd.PersistentFlags().StringVar(&sumengineVisibility, "sumengine-viz", "process,network,file", "Events other than these won't be processed by summary engine. Possible values: \"none\" or any combo of [process,network,file]")
 
 	onboardCmd.AddCommand(onboardVMCmd)
 }

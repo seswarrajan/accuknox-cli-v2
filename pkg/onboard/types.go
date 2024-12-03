@@ -95,6 +95,11 @@ type ClusterConfig struct {
 	MaxAlertsPerSec           int
 	ThrottleSec               int
 
+	// summary engine config
+	ProcessOperation bool
+	FileOperation    bool
+	NetworkOperation bool
+
 	CIDR string
 
 	TemplateFuncs map[string]interface{}
