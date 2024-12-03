@@ -826,3 +826,37 @@ func DumpSystemdKnoxctlDir(sysdumpDir string) {
 		logger.Warn("Failed to copy files form %s to %s: %s", knoxctlDir, sysdumpDir, err.Error())
 	}
 }
+
+// ConvertCronToSystemd converts a crontab schedule into a systemd timer schedule format.
+func ConvertCronToSystemd(schedule string) (string, error) {
+
+	fields := strings.Fields(schedule)
+
+	// Validate that the schedule has exactly 5 fields.
+	if len(fields) != 5 {
+		return "", fmt.Errorf("invalid schedule format: expected 5 fields (minute, hour, day, month, weekday)")
+	}
+
+	weekDays := map[string]string{
+		"0": "Sun",
+		"1": "Mon",
+		"2": "Tue",
+		"3": "Wed",
+		"4": "Thu",
+		"5": "Fri",
+		"6": "Sat",
+		"7": "Sun",
+	}
+
+	minute := fields[0]
+	hour := fields[1]
+	day := fields[2]
+	month := fields[3]
+	weekDay := weekDays[fields[4]]
+
+	// Construct the systemd schedule using the template.
+	scheduleTemplate := "%s *-%s-%s %s:%s:00"
+	finalSchedule := fmt.Sprintf(scheduleTemplate, weekDay, month, day, hour, minute)
+
+	return finalSchedule, nil
+}
