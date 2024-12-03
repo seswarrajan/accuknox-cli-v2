@@ -16,7 +16,7 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 	kubearmorVersion, releaseVersion, kubearmorImage, kubearmorInitImage,
 	vmAdapterImage, relayServerImage, siaImage, peaImage,
 	feederImage, rmqImage, sumEngineImage, hardeningAgentImage, spireImage, waitForItImage, discoverImage, nodeAddress string, dryRun, workerNode, deployRMQ bool,
-	imagePullPolicy, visibility, hostVisibility, audit, block, hostAudit, hostBlock string,
+	imagePullPolicy, visibility, hostVisibility, sumengineViz, audit, block, hostAudit, hostBlock string,
 	alertThrottling bool, maxAlertPerSec, throttleSec int,
 	cidr string, secureContainers, skipBTF bool, systemMonitorPath string,
 	rmqAddr string, deploySumengine bool, registry, registryConfigPath string, insecureRegistryConnection, httpRegistryConnection, preserveUpstream bool, topicPrefix string, tls TLS, enableHostPolicyDiscoery bool) (*ClusterConfig, error) {
@@ -96,6 +96,10 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 		return nil, fmt.Errorf("Unknown image tag %s", releaseVersion)
 	}
 	cc.AgentsVersion = releaseVersion
+
+	cc.ProcessOperation = isOperationDisabled(sumengineViz, cc.Visibility, cc.HostVisibility, "process")
+	cc.FileOperation = isOperationDisabled(sumengineViz, cc.Visibility, cc.HostVisibility, "file")
+	cc.NetworkOperation = isOperationDisabled(sumengineViz, cc.Visibility, cc.HostVisibility, "network")
 
 	cc.DeployRMQ = deployRMQ
 	if rmqAddr != "" {
@@ -375,4 +379,20 @@ func getDefaultPosture(auditPostureVal, blockPostureVal, ruleType string) string
 
 	// unrecognized or default
 	return "audit"
+}
+
+// isOperationDisabled returns true if the operation is not included in the combined visibility settings.
+func isOperationDisabled(sumengineViz, visibility, hostVisibility, operation string) bool {
+	visibilities := make(map[string]struct{})
+	for _, vis := range strings.Split(visibility+","+hostVisibility, ",") {
+		visibilities[vis] = struct{}{}
+	}
+	_, exists := visibilities[operation]
+
+	// if sumengine visibility is disabled for this operation, then return not exists
+	if exists && !strings.Contains(sumengineViz, operation) {
+		return true
+	}
+
+	return !exists
 }

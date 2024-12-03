@@ -143,6 +143,10 @@ func (jc *JoinConfig) CreateBaseNodeConfig() error {
 		SummaryV2Topic:              getTopicName(jc.RMQTopicPrefix, "summary-v2"),
 
 		EnableHostPolicyDiscovery: jc.EnableHostPolicyDiscovery,
+
+		ProcessOperation: jc.ProcessOperation,
+		FileOperation:    jc.FileOperation,
+		NetworkOperation: jc.NetworkOperation,
 	}
 
 	jc.TCArgs.PoliciesKmuxConfig = common.KmuxPoliciesFileName
