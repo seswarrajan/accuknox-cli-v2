@@ -6,12 +6,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"slices"
 	"strings"
 
+	"github.com/accuknox/accuknox-cli-v2/pkg/common"
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
 	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/fatih/color"
@@ -25,7 +28,7 @@ var (
 	cpNodeAgents     = []string{cm.SpireAgent, cm.SIAAgent, cm.PEAAgent, cm.FeederService, cm.SummaryEngine, cm.DiscoverAgent, cm.HardeningAgent}
 )
 
-func (cc *ClusterConfig) createSystemdServiceObjects() {
+func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 	systemdObjects := []SystemdServiceObject{
 		{
 			AgentName:             cm.KubeArmor,
@@ -589,7 +592,7 @@ func Deletedir(dirName string) {
 
 func DeboardSystemd(nodeType NodeType) error {
 	pseudoCC := new(ClusterConfig)
-	pseudoCC.createSystemdServiceObjects()
+	pseudoCC.CreateSystemdServiceObjects()
 
 	for _, obj := range pseudoCC.SystemdServiceObjects {
 		if obj.ServiceName == "" {
@@ -623,4 +626,142 @@ func CheckInstalledSystemdServices() ([]string, error) {
 	}
 
 	return installedAgents, nil
+}
+
+// wraps around journalctl
+// could've used bindings from systemd-go but they require CGO, adding which
+// would make it impossible to run knoxctl in any environment
+func runJournalCTLCommand(args ...string) ([]byte, error) {
+	journalCTLCommand := exec.Command("journalctl", args...)
+
+	data, err := journalCTLCommand.CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func DumpSystemdLogs(sysdumpDir string, services []string) {
+	for _, service := range services {
+		logs, err := runJournalCTLCommand("--no-pager", "-u", service)
+		if err != nil {
+			fmt.Println(color.YellowString("Error while getting logs from %s: %s", service, err.Error()))
+		} else {
+			filename := filepath.Join(sysdumpDir, service+".log")
+			err := os.WriteFile(filename, logs, 0644)
+			if err != nil {
+				fmt.Println(color.YellowString("Error while writing logs to file %s: %s", filename, err.Error()))
+				continue
+			}
+		}
+	}
+}
+
+// takes in full paths, reads files from source recursively and dumps them
+// to destination
+func readAndDumpDir(sourceDirPath, destDirPath string) error {
+	err := filepath.WalkDir(sourceDirPath, func(path string, d fs.DirEntry, err error) error {
+		if d == nil {
+			return nil
+		}
+
+		relativePath, err := filepath.Rel(sourceDirPath, path)
+		if err != nil {
+			return err
+		}
+
+		var sysdumpFullPath string
+		sysdumpFullPath = filepath.Join(destDirPath, relativePath)
+
+		if d.Name() == "/" || relativePath == "/" {
+			return fmt.Errorf("Invalid path %s", d.Name())
+		}
+
+		if d.IsDir() {
+			if err := os.MkdirAll(sysdumpFullPath, 0755); err != nil {
+				return err
+			}
+
+			return nil
+		}
+
+		fileinfo, err := d.Info()
+		if err != nil {
+			return err
+		}
+
+		// skip binaries etc
+		if !d.Type().IsRegular() || strings.Contains(fileinfo.Mode().String(), "x") {
+			fmt.Println(color.YellowString("Skipping file %s", path))
+			return nil
+		}
+
+		fileContent, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		if err := os.WriteFile(sysdumpFullPath, fileContent, 0644); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// takes in full paths and copies the given file
+func readAndDumpFile(sourceFilePath, destFilePath string) error {
+	if sourceFilePath == "/" || destFilePath == "/" {
+		return fmt.Errorf("Invalid path '\\/'")
+	}
+
+	_, err := os.Stat(sourceFilePath)
+	if err != nil {
+		return err
+	}
+
+	sourceFileContent, err := os.ReadFile(sourceFilePath)
+	if err != nil {
+		return err
+	}
+
+	if err = os.WriteFile(destFilePath, sourceFileContent, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DumpSystemdAgentInstallation(sysdumpDir string) {
+	pseudoCC := new(ClusterConfig)
+	pseudoCC.CreateSystemdServiceObjects()
+
+	for _, service := range pseudoCC.SystemdServiceObjects {
+		if service.AgentDir != "" {
+			if err := readAndDumpDir(service.AgentDir, filepath.Join(sysdumpDir, service.AgentName)); err != nil && !os.IsNotExist(err) {
+				fmt.Println(color.YellowString("Failed to copy files form %s to %s: %s", service.AgentDir, sysdumpDir, err.Error()))
+			}
+		}
+
+		if service.ServiceName != "" {
+			systemdServicePath := filepath.Join(common.SystemdDir, service.ServiceName)
+			sysdumpServicePath := filepath.Join(sysdumpDir, service.ServiceName)
+			if err := readAndDumpFile(systemdServicePath, sysdumpServicePath); err != nil && !os.IsNotExist(err) {
+				fmt.Println(color.YellowString("Failed to copy files form %s to %s: %s", systemdServicePath, sysdumpServicePath, err.Error()))
+			}
+		}
+	}
+}
+
+func DumpSystemdKnoxctlDir(sysdumpDir string) {
+	knoxctlDir := "/opt/knoxctl"
+	if err := readAndDumpDir(knoxctlDir, filepath.Join(sysdumpDir, "knoxctl")); err != nil {
+		fmt.Println(color.YellowString("Failed to copy files form %s to %s: %s", knoxctlDir, sysdumpDir, err.Error()))
+	}
 }

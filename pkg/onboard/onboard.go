@@ -312,7 +312,7 @@ func CreateClusterConfig(clusterType ClusterType, userConfigPath string, vmMode 
 		}
 
 		// create systemd service objects
-		cc.createSystemdServiceObjects()
+		cc.CreateSystemdServiceObjects()
 
 		// prepare OAuth credentials
 		loginOptions := LoginOptions{

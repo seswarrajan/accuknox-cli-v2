@@ -13,15 +13,15 @@ var policyOptions vm.PolicyOptions
 // vmPolicyCmd represents the vm command for policy enforcement
 var vmPolicyCmd = &cobra.Command{
 	Use:   "policy",
-	Short: "policy handling for bare-metal vm/kvms control plane vm",
-	Long:  `policy handling for bare-metal vm/kvms control plane vm`,
+	Short: "policy handling for non-k8s",
+	Long:  "policy handling for non-k8s",
 }
 
 // vmPolicyAddCmd represents the vm add policy command for policy enforcement
 var vmPolicyAddCmd = &cobra.Command{
 	Use:   "add",
-	Short: "add policy for bare-metal vm/kvms control plane vm",
-	Long:  `add policy for bare-metal vm/kvms control plane vm`,
+	Short: "add policy for non-k8s",
+	Long:  "add policy for non-k8s",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
 			return errors.New("requires a path to valid policy YAML as argument")
@@ -32,7 +32,7 @@ var vmPolicyAddCmd = &cobra.Command{
 		// Create http address
 		httpAddress := "http://" + net.JoinHostPort(HTTPIP, HTTPPort)
 
-		if err := vm.PolicyHandling("ADDED", args[0], policyOptions, httpAddress, IsKvmsEnv); err != nil {
+		if err := vm.PolicyHandling("ADDED", args[0], policyOptions, httpAddress, false); err != nil {
 			return err
 		}
 		return nil
@@ -42,8 +42,8 @@ var vmPolicyAddCmd = &cobra.Command{
 // vmPolicyDeleteCmd represents the vm delete policy command for policy enforcement
 var vmPolicyDeleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "delete policy for bare-metal vm/kvms control plane vm",
-	Long:  `delete policy for bare-metal vm/kvms control plane vm`,
+	Short: "delete policy for non-k8s",
+	Long:  "delete policy for non-k8s",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
 			return errors.New("requires a path to valid policy YAML as argument")
@@ -53,7 +53,7 @@ var vmPolicyDeleteCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		httpAddress := "http://" + net.JoinHostPort(HTTPIP, HTTPPort)
 
-		if err := vm.PolicyHandling("DELETED", args[0], policyOptions, httpAddress, IsKvmsEnv); err != nil {
+		if err := vm.PolicyHandling("DELETED", args[0], policyOptions, httpAddress, false); err != nil {
 			return err
 		}
 		return nil
