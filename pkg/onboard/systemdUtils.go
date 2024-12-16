@@ -595,6 +595,9 @@ func DeboardSystemd(nodeType NodeType) error {
 
 		Deletedir(obj.AgentDir)
 	}
+
+	os.Remove(filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlConfigFilename))
+
 	return nil
 }
 

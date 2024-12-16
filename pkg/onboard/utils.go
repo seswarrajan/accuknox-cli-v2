@@ -20,6 +20,19 @@ import (
 	"golang.org/x/mod/semver"
 )
 
+func DumpConfig(config interface{}, path string) error {
+	byteData, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(path, byteData, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // path for writing configuration files
 func createDefaultConfigPath() (string, error) {
 	configPath, err := cm.GetDefaultConfigPath()

@@ -58,15 +58,22 @@ var joinNodeCmd = &cobra.Command{
 			return err
 		}
 
+		var configDumpPath string
 		switch vmMode {
 		case onboard.VMMode_Systemd:
 			if err := os.Mkdir(common.SystemdKnoxctlDir, 0755); err != nil && !os.IsExist(err) {
 				return err
 			}
-			logger.SetOut(filepath.Join(common.SystemdKnoxctlDir, "knoxctl.log"))
+
+			configDumpPath = filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlConfigFilename)
+			logger.SetOut(filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlLogFilename))
 			logger.Debug("===\n%s - Running %s", time.Now().Format(time.RFC3339), strings.Join(os.Args, " "))
 		case onboard.VMMode_Docker:
 			// TODO
+			defaultConfigPath, err := common.GetDefaultConfigPath()
+			if err == nil {
+				configDumpPath = filepath.Join(defaultConfigPath, common.KnoxctlConfigFilename)
+			}
 		}
 
 		vmConfigs, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, vmMode,
@@ -78,10 +85,19 @@ var joinNodeCmd = &cobra.Command{
 			alertThrottling, maxAlertPerSec, throttleSec,
 			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine, registry, registryConfigPath, insecure, plainHTTP, preserveUpstream, topicPrefix, tls, enableHostPolicyDiscovery)
 		if err != nil {
+			onboard.DumpConfig(vmConfigs, configDumpPath)
 			logger.Error("failed to create VM config: %s", err.Error())
 			return err
 		}
+
 		joinConfig := onboard.JoinClusterConfig(*vmConfigs, kubeArmorAddr, relayServerAddr, siaAddr, peaAddr, hardenAddr)
+
+		defer func() {
+			err := onboard.DumpConfig(joinConfig, configDumpPath)
+			if err != nil {
+				logger.Warn("Failed to create config dump at %s: %s", configDumpPath, err.Error())
+			}
+		}()
 
 		err = joinConfig.CreateBaseNodeConfig()
 		if err != nil {
@@ -89,27 +105,29 @@ var joinNodeCmd = &cobra.Command{
 			return err
 		}
 
-		switch vmMode {
+		/*
+			switch vmMode {
 
-		case onboard.VMMode_Systemd:
-			if err := joinConfig.JoinSystemdNode(); err != nil {
-				logger.Error("failed to join worker node: %s", err.Error())
+			case onboard.VMMode_Systemd:
+				if err := joinConfig.JoinSystemdNode(); err != nil {
+					logger.Error("failed to join worker node: %s", err.Error())
+					return err
+				}
+
+			case onboard.VMMode_Docker:
+				err = joinConfig.JoinWorkerNode()
+				if err != nil {
+					logger.Error("failed to join worker node: %s", err.Error())
+					return err
+				}
+
+			default:
+				logger.Error("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
 				return err
 			}
+		*/
 
-		case onboard.VMMode_Docker:
-			err = joinConfig.JoinWorkerNode()
-			if err != nil {
-				logger.Error("failed to join worker node: %s", err.Error())
-				return err
-			}
-
-		default:
-			logger.Error("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
-			return err
-		}
-
-		logger.Print("VM successfully joined with control-plane!===")
+		logger.Print("VM successfully joined with control-plane!")
 		return nil
 	},
 }

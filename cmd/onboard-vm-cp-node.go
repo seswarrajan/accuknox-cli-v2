@@ -3,7 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
+	"github.com/accuknox/accuknox-cli-v2/pkg/common"
 	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
 	"github.com/spf13/cobra"
@@ -87,6 +91,26 @@ var cpNodeCmd = &cobra.Command{
 			return err
 		}
 
+		var configDumpPath string
+		switch vmMode {
+		case onboard.VMMode_Systemd:
+			if err := os.Mkdir(common.SystemdKnoxctlDir, 0755); err != nil && !os.IsExist(err) {
+				return err
+			}
+
+			configDumpPath = filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlConfigFilename)
+			logger.SetOut(filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlLogFilename))
+			logger.Debug("===\n%s - Running %s", time.Now().Format(time.RFC3339), strings.Join(os.Args, " "))
+		case onboard.VMMode_Docker:
+			// TODO
+			defaultConfigPath, err := common.GetDefaultConfigPath()
+			if err == nil {
+				configDumpPath = filepath.Join(defaultConfigPath, common.KnoxctlConfigFilename)
+			}
+		}
+
+		defer onboard.DumpConfig(cc, configDumpPath)
+
 		vmConfig, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, vmMode,
 			vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag,
 			feederVersionTag, sumEngineVersionTag, discoverVersionTag, hardeningAgentVersionTag, kubearmorVersion, releaseVersion, kubeArmorImage,
@@ -96,11 +120,19 @@ var cpNodeCmd = &cobra.Command{
 			alertThrottling, maxAlertPerSec, throttleSec,
 			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine, registry, registryConfigPath, insecure, plainHTTP, preserveUpstream, topicPrefix, tls, enableHostPolicyDiscovery)
 		if err != nil {
+			onboard.DumpConfig(vmConfig, configDumpPath)
 			logger.Error("failed to create cluster config: %s", err.Error())
 			return err
 		}
 
 		onboardConfig := onboard.InitCPNodeConfig(*vmConfig, joinToken, spireHost, ppsHost, knoxGateway, spireTrustBundle, enableLogs)
+
+		defer func() {
+			err := onboard.DumpConfig(onboardConfig, configDumpPath)
+			if err != nil {
+				logger.Warn("Failed to create config dump at %s: %s", configDumpPath, err.Error())
+			}
+		}()
 
 		err = onboardConfig.CreateBaseTemplateConfig()
 		if err != nil {

@@ -129,7 +129,9 @@ const (
 	DefaultEncodedFileName = "encoded.pem"
 	DefaultCACertDir       = "/cert"
 
-	SystemdKnoxctlDir = "/opt/knoxctl"
+	SystemdKnoxctlDir     = "/opt/knoxctl"
+	KnoxctlConfigFilename = "knoxctl-config.json"
+	KnoxctlLogFilename    = "knoxctl.log"
 )
 
 var (

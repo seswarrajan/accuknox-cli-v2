@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/accuknox/accuknox-cli-v2/pkg/common"
+	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
 	"github.com/kubearmor/kubearmor-client/k8s"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -37,16 +39,29 @@ func PrintVersion(c *k8s.Client, o Option) error {
 	if o.LatestRelease {
 		fmt.Printf("knoxctl release version: [%v]\n", releaseVer)
 	}
-	kubearmorVersion, err := getKubeArmorVersion(c)
-	if err != nil {
-		return nil
-	}
-	if kubearmorVersion == "" {
-		fmt.Printf("kubearmor not running\n")
-		return nil
+
+	systemdVersions, err := onboard.DetermineAgentVersions()
+	if err != nil && !os.IsNotExist(err) {
+		return err
 	}
 
-	fmt.Printf("kubearmor image (running) version: [%s]\n", kubearmorVersion)
+	for agent, version := range systemdVersions {
+		fmt.Printf("%s: %s\n", agent, version)
+	}
+
+	/*
+		// knoxctl based kubernetes installation is not done right now
+		kubearmorVersion, err := getKubeArmorVersion(c)
+		if err != nil {
+			return nil
+		}
+		if kubearmorVersion == "" {
+			fmt.Printf("kubearmor not running\n")
+			return nil
+		}
+
+		fmt.Printf("kubearmor image (running) version: [%s]\n", kubearmorVersion)
+	*/
 	return nil
 }
 
