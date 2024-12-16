@@ -7,7 +7,7 @@ import (
 
 	"github.com/Masterminds/sprig"
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
-	"github.com/fatih/color"
+	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 )
 
 func (jc *JoinConfig) JoinSystemdNode() error {
@@ -15,10 +15,10 @@ func (jc *JoinConfig) JoinSystemdNode() error {
 	jc.TemplateFuncs = sprig.GenericFuncMap()
 
 	// Download and install agents
-	fmt.Println(color.MagentaString("Downloading agents..."))
+	logger.Info2("Downloading agents...")
 	err := jc.SystemdInstall()
 	if err != nil {
-		fmt.Println(color.RedString("Installation failed!! Error: %s.\nCleaning up downloaded assets...", err.Error()))
+		logger.Error("Installation failed!! Error: %s.\nCleaning up downloaded assets...", err.Error())
 		Deletedir(cm.DownloadDir)
 		DeboardSystemd(NodeType_WorkerNode) // #nosec G104
 		return err
@@ -55,7 +55,7 @@ func (jc *JoinConfig) JoinSystemdNode() error {
 		TlsCertFile:    jc.TCArgs.TlsCertFile,
 	}
 
-	fmt.Println(color.MagentaString("\nConfiguring services..."))
+	logger.Info2("\nConfiguring services...")
 	for _, obj := range jc.SystemdServiceObjects {
 		if !obj.InstallOnWorkerNode {
 			continue
@@ -95,7 +95,7 @@ func (jc *JoinConfig) JoinSystemdNode() error {
 
 			destPath, ok := obj.ExtraFilePathDest[filename]
 			if !ok {
-				fmt.Println(color.YellowString("Warning! No destination for extra file %s", filename))
+				logger.Warn("Warning! No destination for extra file %s", filename)
 				continue
 			}
 
@@ -110,20 +110,20 @@ func (jc *JoinConfig) JoinSystemdNode() error {
 	}
 
 	// Start services
-	fmt.Println(color.MagentaString("\nEnabling services..."))
+	logger.Info2("\nEnabling services...")
 	for _, obj := range jc.SystemdServiceObjects {
 		if !obj.InstallOnWorkerNode {
 			continue
 		}
 		err = StartSystemdService(obj.ServiceName)
 		if err != nil {
-			fmt.Printf("failed to start service %s: %s\n", obj.ServiceName, err.Error())
+			logger.Debug("failed to start service %s: %s\n", obj.ServiceName, err.Error())
 			return err
 		}
 	}
-	fmt.Println(color.GreenString("\nAll services enabled successfully."))
+	logger.PrintSuccess("\nAll services enabled successfully.")
 
-	fmt.Println(color.BlueString("\nCleaning up downloaded assets..."))
+	logger.Info1("\nCleaning up downloaded assets...")
 	Deletedir(cm.DownloadDir)
 	return nil
 }

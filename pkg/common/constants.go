@@ -128,6 +128,8 @@ const (
 	DefaultKeyFileName     = "key.pem"
 	DefaultEncodedFileName = "encoded.pem"
 	DefaultCACertDir       = "/cert"
+
+	SystemdKnoxctlDir = "/opt/knoxctl"
 )
 
 var (

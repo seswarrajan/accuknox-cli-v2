@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
+	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 )
 
 // TODO: THIS FUNCTION IS UNUSABLE!!!
@@ -361,7 +362,7 @@ func (cc *ClusterConfig) PrintJoinCommand() {
 
 	command = fmt.Sprintf("%s --version=%s --cp-node-addr=%s", command, cc.AgentsVersion, cpNodeAddr)
 
-	fmt.Println(command)
+	logger.Print(command)
 }
 
 func getDefaultPosture(auditPostureVal, blockPostureVal, ruleType string) string {

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -66,7 +66,8 @@ var cpNodeCmd = &cobra.Command{
 		if accessKey != "" {
 			joinToken, err = onboard.GetJoinTokenFromAccessKey(accessKey, vmName, tokenURL, insecure)
 			if err != nil {
-				return fmt.Errorf(color.RedString(err.Error()))
+				logger.Error(err.Error())
+				return err
 			}
 		}
 
@@ -76,14 +77,14 @@ var cpNodeCmd = &cobra.Command{
 			if err == nil {
 				vmMode = onboard.VMMode_Docker
 			} else {
-				fmt.Printf(
-					color.YellowString("warning: Docker requirements did not match:\n%s.\nFalling back to systemd mode for installation.\n", err.Error()))
+				logger.Warn("warning: Docker requirements did not match:\n%s.\nFalling back to systemd mode for installation.\n", err.Error())
 				vmMode = onboard.VMMode_Systemd
 			}
 
 		} else if vmMode == onboard.VMMode_Docker && err != nil {
 			// docker mode specified explicitly but requirements didn't match
-			return fmt.Errorf(color.RedString("failed to validate environment:\n%s", err.Error()))
+			logger.Error("failed to validate environment:\n%s", err.Error())
+			return err
 		}
 
 		vmConfig, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, vmMode,
@@ -95,14 +96,16 @@ var cpNodeCmd = &cobra.Command{
 			alertThrottling, maxAlertPerSec, throttleSec,
 			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine, registry, registryConfigPath, insecure, plainHTTP, preserveUpstream, topicPrefix, tls, enableHostPolicyDiscovery)
 		if err != nil {
-			return fmt.Errorf(color.RedString("failed to create cluster config: %s", err.Error()))
+			logger.Error("failed to create cluster config: %s", err.Error())
+			return err
 		}
 
 		onboardConfig := onboard.InitCPNodeConfig(*vmConfig, joinToken, spireHost, ppsHost, knoxGateway, spireTrustBundle, enableLogs)
 
 		err = onboardConfig.CreateBaseTemplateConfig()
 		if err != nil {
-			return fmt.Errorf(color.RedString("failed to create base template config: %s", err.Error()))
+			logger.Error("failed to create base template config: %s", err.Error())
+			return err
 		}
 
 		switch vmMode {
@@ -110,21 +113,23 @@ var cpNodeCmd = &cobra.Command{
 		case onboard.VMMode_Systemd:
 			err = onboardConfig.InitializeControlPlaneSD()
 			if err != nil {
-				return fmt.Errorf(color.RedString("failed to onboard control plane node: %s", err.Error()))
+				logger.Error("failed to onboard control plane node: %s", err.Error())
+				return err
 			}
 
 		case onboard.VMMode_Docker:
 			err = onboardConfig.InitializeControlPlane()
 			if err != nil {
-				return fmt.Errorf(color.RedString("failed to onboard control plane node: %s", err.Error()))
+				logger.Error("failed to onboard control plane node: %s", err.Error())
+				return err
 			}
 
 		default:
-			return fmt.Errorf(color.RedString("vm mode: %s invalid, accepted values (docker/systemd)", vmMode))
+			logger.Error("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
+			return err
 		}
 
-		fmt.Println(color.GreenString(
-			`VM successfully onboarded!
+		logger.PrintSuccess((`VM successfully onboarded!
 
 Now run the below command to onboard any worker nodes.
 Please assign appropriate IP address to --cp-node-addr to make sure
