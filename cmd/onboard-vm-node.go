@@ -105,27 +105,25 @@ var joinNodeCmd = &cobra.Command{
 			return err
 		}
 
-		/*
-			switch vmMode {
+		switch vmMode {
 
-			case onboard.VMMode_Systemd:
-				if err := joinConfig.JoinSystemdNode(); err != nil {
-					logger.Error("failed to join worker node: %s", err.Error())
-					return err
-				}
-
-			case onboard.VMMode_Docker:
-				err = joinConfig.JoinWorkerNode()
-				if err != nil {
-					logger.Error("failed to join worker node: %s", err.Error())
-					return err
-				}
-
-			default:
-				logger.Error("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
+		case onboard.VMMode_Systemd:
+			if err := joinConfig.JoinSystemdNode(); err != nil {
+				logger.Error("failed to join worker node: %s", err.Error())
 				return err
 			}
-		*/
+
+		case onboard.VMMode_Docker:
+			err = joinConfig.JoinWorkerNode()
+			if err != nil {
+				logger.Error("failed to join worker node: %s", err.Error())
+				return err
+			}
+
+		default:
+			logger.Error("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
+			return err
+		}
 
 		logger.Print("VM successfully joined with control-plane!")
 		return nil
