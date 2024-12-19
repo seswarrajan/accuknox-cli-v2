@@ -1,7 +1,7 @@
 package onboard
 
 import (
-	"crypto/md5"
+	"crypto/md5" // #nosec G501 only used for calculating existing file hash
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -22,7 +22,7 @@ type LegacyVersionSchema struct {
 
 func DetermineAgentVersions() (map[string]string, error) {
 	configFileNotExist := false
-	knoxctlConfigPath := filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlConfigFilename)
+	knoxctlConfigPath := filepath.Clean(filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlConfigFilename))
 	_, err := os.Stat(knoxctlConfigPath)
 	if err != nil && os.IsNotExist(err) {
 		configFileNotExist = true
@@ -80,7 +80,7 @@ func DetermineAgentVersions() (map[string]string, error) {
 }
 
 func DetermineKAVersionLegacy() (string, error) {
-	kubearmorBinaryPath := filepath.Join(common.KAconfigPath, "kubearmor")
+	kubearmorBinaryPath := filepath.Clean(filepath.Join(common.KAconfigPath, "kubearmor"))
 	_, err := os.Stat(kubearmorBinaryPath)
 	if err != nil {
 		return "", err
@@ -91,7 +91,7 @@ func DetermineKAVersionLegacy() (string, error) {
 		return "", err
 	}
 
-	md5Sum := md5.Sum(kubearmorBinaryData)
+	md5Sum := md5.Sum(kubearmorBinaryData) // #nosec G401 (this is something already present on the system)
 	md5SumString := hex.EncodeToString(md5Sum[:16])
 
 	resp, err := http.Get("https://raw.githubusercontent.com/accuknox/pkgversions/refs/heads/main/versions.json")

@@ -26,7 +26,8 @@ func DumpConfig(config interface{}, path string) error {
 		return err
 	}
 
-	if err := os.WriteFile(path, byteData, 0644); err != nil {
+	err = os.WriteFile(path, byteData, 0644) // #nosec G306 need perms to be this for archiving
+	if err != nil {
 		return err
 	}
 

@@ -94,12 +94,16 @@ var cpNodeCmd = &cobra.Command{
 		var configDumpPath string
 		switch vmMode {
 		case onboard.VMMode_Systemd:
-			if err := os.Mkdir(common.SystemdKnoxctlDir, 0755); err != nil && !os.IsExist(err) {
+			err := os.Mkdir(common.SystemdKnoxctlDir, 0755) // #nosec G301 need for archiving and file operations
+			if err != nil && !os.IsExist(err) {
 				return err
 			}
 
 			configDumpPath = filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlConfigFilename)
-			logger.SetOut(filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlLogFilename))
+			err = logger.SetOut(filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlLogFilename))
+			if err != nil {
+				logger.Warn("failed to set log output file: %s", err.Error())
+			}
 			logger.Debug("===\n%s - Running %s", time.Now().Format(time.RFC3339), strings.Join(os.Args, " "))
 		case onboard.VMMode_Docker:
 			// TODO
@@ -108,8 +112,6 @@ var cpNodeCmd = &cobra.Command{
 				configDumpPath = filepath.Join(defaultConfigPath, common.KnoxctlConfigFilename)
 			}
 		}
-
-		defer onboard.DumpConfig(cc, configDumpPath)
 
 		vmConfig, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, vmMode,
 			vmAdapterTag, kubeArmorRelayServerTag, peaVersionTag, siaVersionTag,
@@ -120,7 +122,11 @@ var cpNodeCmd = &cobra.Command{
 			alertThrottling, maxAlertPerSec, throttleSec,
 			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine, registry, registryConfigPath, insecure, plainHTTP, preserveUpstream, topicPrefix, tls, enableHostPolicyDiscovery)
 		if err != nil {
-			onboard.DumpConfig(vmConfig, configDumpPath)
+			errConfig := onboard.DumpConfig(vmConfig, configDumpPath)
+			if err != nil {
+				logger.Warn("Failed to create config dump at %s: %s", configDumpPath, errConfig.Error())
+			}
+
 			logger.Error("failed to create cluster config: %s", err.Error())
 			return err
 		}

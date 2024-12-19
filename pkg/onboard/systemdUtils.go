@@ -596,7 +596,11 @@ func DeboardSystemd(nodeType NodeType) error {
 		Deletedir(obj.AgentDir)
 	}
 
-	os.Remove(filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlConfigFilename))
+	knoxctlDir := filepath.Clean(filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlConfigFilename))
+	err := os.Remove(knoxctlDir)
+	if err != nil {
+		logger.Warn("Failed to remove dir %s: %s", knoxctlDir, err.Error())
+	}
 
 	return nil
 }
@@ -641,7 +645,7 @@ func DumpSystemdLogs(sysdumpDir string, services []string) {
 			logger.Warn("Error while getting logs from %s: %s", service, err.Error())
 		} else {
 			filename := filepath.Join(sysdumpDir, service+".log")
-			err := os.WriteFile(filename, logs, 0644)
+			err := os.WriteFile(filename, logs, 0644) // #nosec G306 need perms for archiving
 			if err != nil {
 				logger.Warn("Error while writing logs to file %s: %s", filename, err.Error())
 				continue
@@ -671,8 +675,9 @@ func readAndDumpDir(sourceDirPath, destDirPath string) error {
 		}
 
 		if d.IsDir() {
-			if err := os.MkdirAll(sysdumpFullPath, 0755); err != nil {
-				return err
+			errMkdir := os.MkdirAll(sysdumpFullPath, 0755) // #nosec G301 perms needed for archiving
+			if errMkdir != nil {
+				return errMkdir
 			}
 
 			return nil
@@ -689,12 +694,18 @@ func readAndDumpDir(sourceDirPath, destDirPath string) error {
 			return nil
 		}
 
-		fileContent, err := os.ReadFile(path)
+		fileContent, err := os.ReadFile(filepath.Clean(path))
 		if err != nil {
 			return err
 		}
 
-		if err := os.WriteFile(sysdumpFullPath, fileContent, 0644); err != nil {
+		if len(fileContent) == 0 {
+			logger.Warn("Skipping empty file %s", path)
+			return nil
+		}
+
+		err = os.WriteFile(sysdumpFullPath, fileContent, 0644) // #nosec G306 need perms for archiving
+		if err != nil {
 			return err
 		}
 
@@ -718,12 +729,13 @@ func readAndDumpFile(sourceFilePath, destFilePath string) error {
 		return err
 	}
 
-	sourceFileContent, err := os.ReadFile(sourceFilePath)
+	sourceFileContent, err := os.ReadFile(filepath.Clean(sourceFilePath))
 	if err != nil {
 		return err
 	}
 
-	if err = os.WriteFile(destFilePath, sourceFileContent, 0644); err != nil {
+	err = os.WriteFile(destFilePath, sourceFileContent, 0644) // #nosec G306 perms needed for archiving
+	if err != nil {
 		return err
 	}
 

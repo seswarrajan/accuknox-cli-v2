@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/fatih/color"
 	"github.com/mattn/go-colorable"
@@ -44,7 +45,7 @@ type NoColorWriter struct {
 
 func (lgr *Logger) setOut(outputFile string) error {
 	if outputFile != "" {
-		newWriter, err := os.OpenFile(outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		newWriter, err := os.OpenFile(filepath.Clean(outputFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644) // #nosec G302
 		if err != nil && !os.IsExist(err) {
 			return err
 		}

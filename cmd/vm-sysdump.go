@@ -78,7 +78,7 @@ var sysdumpVMCmd = &cobra.Command{
 		}
 
 		tarFileName := filepath.Base(tmpDir) + ".tar.gz"
-		tarFile, err := os.OpenFile(tarFileName, os.O_CREATE|os.O_WRONLY, 0644)
+		tarFile, err := os.OpenFile(filepath.Clean(tarFileName), os.O_CREATE|os.O_WRONLY, 0644) // #nosec G302 file permissions needed for archiving
 		if err != nil {
 			return err
 		}
@@ -113,7 +113,7 @@ var sysdumpVMCmd = &cobra.Command{
 			}
 
 			if !d.IsDir() {
-				fileContent, err := os.ReadFile(path)
+				fileContent, err := os.ReadFile(filepath.Clean(path))
 				if err != nil {
 					return err
 				}
