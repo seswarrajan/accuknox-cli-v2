@@ -4,6 +4,23 @@ watcher:
     event-type:
       logs: true
       alerts: true
+    allowList:
+      enabled: true
+      protocolFamily:
+      - AF_INET
+      - AF_INET6
+      operations:
+      - CONNECT
+      - ACCEPT
+      - BIND
+    denyList:
+      enabled: true
+      urls:
+      - "localhost"
+      - "127.0.0.1"
+      - "::1"
+      ports:
+      - 53
     relay:
       enabled: true
   {{- if .WorkerNode }}
@@ -36,7 +53,7 @@ summary-engine:
         file: {{.FileOperation}}
         network: {{.NetworkOperation}}
     exclude-namespaces:
-      kubearmor: true 
+      kubearmor: true
   topic:
     summary-event: {{.SummaryV2Topic}}
   kmux-config:

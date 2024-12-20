@@ -6,15 +6,18 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"slices"
 	"strings"
 
+	"github.com/accuknox/accuknox-cli-v2/pkg/common"
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
+	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 	"github.com/coreos/go-systemd/v22/dbus"
-	"github.com/fatih/color"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
@@ -25,7 +28,7 @@ var (
 	cpNodeAgents     = []string{cm.SpireAgent, cm.SIAAgent, cm.PEAAgent, cm.FeederService, cm.SummaryEngine, cm.DiscoverAgent, cm.HardeningAgent}
 )
 
-func (cc *ClusterConfig) createSystemdServiceObjects() {
+func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 	systemdObjects := []SystemdServiceObject{
 		{
 			AgentName:             cm.KubeArmor,
@@ -425,10 +428,10 @@ func (cc *ClusterConfig) SystemdInstall() error {
 	btfPresent, err := verifyBTF()
 	if (cc.SkipBTFCheck && cc.SystemMonitorPath != "") || cc.SystemMonitorPath != "" {
 		// skip explicitly specified with system monitor OR system montior specified
-		fmt.Println(color.YellowString("Skipping BTF check. Using system monitor at: %s", cc.SystemMonitorPath))
+		logger.Warn("Skipping BTF check. Using system monitor at: %s", cc.SystemMonitorPath)
 	} else if cc.SkipBTFCheck {
 		// we don't care about system monitor or BTF
-		fmt.Println(color.YellowString("Skipping BTF check..."))
+		logger.Warn("Skipping BTF check...")
 	} else {
 		// BTF not present, we need to fail
 		if err != nil {
@@ -451,10 +454,10 @@ func (cc *ClusterConfig) SystemdInstall() error {
 		// busy binary
 		err := StopSystemdService(obj.ServiceName, true, false)
 		if err != nil {
-			fmt.Println(color.YellowString("Failed to stop existing systemd service %s: %s", obj.ServiceName, err.Error()))
+			logger.Warn("Failed to stop existing systemd service %s: %s", obj.ServiceName, err.Error())
 		}
 
-		fmt.Printf(color.CyanString("Downloading Agent - %s | Image - %s\n", obj.AgentName, obj.AgentImage))
+		logger.Print("Downloading Agent - %s | Image - %s", obj.AgentName, obj.AgentImage)
 		packageMeta := splitLast(obj.AgentImage, ":")
 
 		err = cc.installAgent(obj.AgentName, packageMeta[0], packageMeta[1])
@@ -463,7 +466,7 @@ func (cc *ClusterConfig) SystemdInstall() error {
 			return err
 		}
 
-		fmt.Printf(color.CyanString("%s version %s downloaded successfully\n\n", obj.AgentName, packageMeta[1]))
+		logger.Print("%s version %s downloaded successfully\n", obj.AgentName, packageMeta[1])
 	}
 
 	err = cc.placeServiceFiles(cc.WorkerNode)
@@ -472,18 +475,7 @@ func (cc *ClusterConfig) SystemdInstall() error {
 		return err
 	}
 
-	// copy custom system monitor
-	/*
-		if cc.SystemMonitorPath != "" {
-			targetPath := filepath.Join(cm.KAconfigPath, "BPF")
-			_, err = copyOrGenerateFile(cc.SystemMonitorPath, targetPath, "system_monitor.bpf.o", nil, "", nil)
-			if err != nil {
-				return fmt.Errorf("Failed to copy custom system monitor: %s", err.Error())
-			}
-		}
-	*/
-
-	fmt.Println(color.GreenString("All agents downloaded successfully."))
+	logger.PrintSuccess("All agents downloaded successfully.")
 
 	return nil
 }
@@ -516,7 +508,7 @@ func StartSystemdService(serviceName string) error {
 	if _, err := conn.RestartUnitContext(ctx, serviceName, "replace", ch); err != nil {
 		return fmt.Errorf("failed to start %s: %v", serviceName, err)
 	}
-	fmt.Printf(color.CyanString("Started %s\n", serviceName))
+	logger.Print("Started %s", serviceName)
 
 	return nil
 }
@@ -546,25 +538,25 @@ func StopSystemdService(serviceName string, skipDeleteDisable, force bool) error
 			return fmt.Errorf("Failed to stop existing %s service: %v\n", serviceName, err)
 		}
 	} else {
-		fmt.Printf(color.BlueString("Stopping existing %s...\n", serviceName))
+		logger.Info1("Stopping existing %s...", serviceName)
 		<-stopChan
-		fmt.Printf(color.BlueString("%s stopped successfully.\n", serviceName))
+		logger.Info1("%s stopped successfully.", serviceName)
 	}
 
 	if !skipDeleteDisable {
 		if _, err := conn.DisableUnitFilesContext(ctx, []string{serviceName}, false); err != nil {
 			if !strings.Contains(err.Error(), "does not exist") {
-				fmt.Printf("Failed to disable %s : %v\n", serviceName, err)
+				logger.Error("Failed to disable %s : %v", serviceName, err)
 				return err
 			}
 		} else {
-			fmt.Printf("Disabled %s\n", serviceName)
+			logger.Info1("Disabled %s", serviceName)
 		}
 
 		svcfilePath := cm.SystemdDir + serviceName
 		if err := os.Remove(svcfilePath); err != nil {
 			if !os.IsNotExist(err) {
-				fmt.Printf("Failed to delete %s file: %v\n", serviceName, err)
+				logger.Error("Failed to delete %s file: %v", serviceName, err)
 				return err
 			}
 		}
@@ -583,13 +575,13 @@ func Deletedir(dirName string) {
 	err := os.RemoveAll(dirName)
 	if err != nil && !os.IsNotExist(err) {
 		// Check if the error is due to the directory not existing
-		fmt.Printf("error deleting %s : %v\n", dirName, err)
+		logger.Error("error deleting %s : %v", dirName, err)
 	}
 }
 
 func DeboardSystemd(nodeType NodeType) error {
 	pseudoCC := new(ClusterConfig)
-	pseudoCC.createSystemdServiceObjects()
+	pseudoCC.CreateSystemdServiceObjects()
 
 	for _, obj := range pseudoCC.SystemdServiceObjects {
 		if obj.ServiceName == "" {
@@ -597,12 +589,19 @@ func DeboardSystemd(nodeType NodeType) error {
 		}
 		err := StopSystemdService(obj.ServiceName, false, true)
 		if err != nil {
-			fmt.Printf("error stopping %s: %s\n", obj.ServiceName, err)
+			logger.Error("error stopping %s: %s", obj.ServiceName, err)
 			return err
 		}
 
 		Deletedir(obj.AgentDir)
 	}
+
+	knoxctlDir := filepath.Clean(filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlConfigFilename))
+	err := os.Remove(knoxctlDir)
+	if err != nil {
+		logger.Warn("Failed to remove dir %s: %s", knoxctlDir, err.Error())
+	}
+
 	return nil
 }
 
@@ -617,10 +616,156 @@ func CheckInstalledSystemdServices() ([]string, error) {
 			// found service file means we have agents as systemd service
 			installedAgents = append(installedAgents, agent)
 		} else if !os.IsNotExist(err) {
-			fmt.Println(color.YellowString("Error checking service file %s: %v", filePath, err))
+			logger.Warn("Error checking service file %s: %v", filePath, err)
 			continue
 		}
 	}
 
 	return installedAgents, nil
+}
+
+// wraps around journalctl
+// could've used bindings from systemd-go but they require CGO, adding which
+// would make it impossible to run knoxctl in any environment
+func runJournalCTLCommand(args ...string) ([]byte, error) {
+	journalCTLCommand := exec.Command("journalctl", args...)
+
+	data, err := journalCTLCommand.CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func DumpSystemdLogs(sysdumpDir string, services []string) {
+	for _, service := range services {
+		logs, err := runJournalCTLCommand("--no-pager", "-u", service)
+		if err != nil {
+			logger.Warn("Error while getting logs from %s: %s", service, err.Error())
+		} else {
+			filename := filepath.Join(sysdumpDir, service+".log")
+			err := os.WriteFile(filename, logs, 0644) // #nosec G306 need perms for archiving
+			if err != nil {
+				logger.Warn("Error while writing logs to file %s: %s", filename, err.Error())
+				continue
+			}
+		}
+	}
+}
+
+// takes in full paths, reads files from source recursively and dumps them
+// to destination
+func readAndDumpDir(sourceDirPath, destDirPath string) error {
+	err := filepath.WalkDir(sourceDirPath, func(path string, d fs.DirEntry, err error) error {
+		if d == nil {
+			return nil
+		}
+
+		relativePath, err := filepath.Rel(sourceDirPath, path)
+		if err != nil {
+			return err
+		}
+
+		var sysdumpFullPath string
+		sysdumpFullPath = filepath.Join(destDirPath, relativePath)
+
+		if d.Name() == "/" || relativePath == "/" {
+			return fmt.Errorf("Invalid path %s", d.Name())
+		}
+
+		if d.IsDir() {
+			errMkdir := os.MkdirAll(sysdumpFullPath, 0755) // #nosec G301 perms needed for archiving
+			if errMkdir != nil {
+				return errMkdir
+			}
+
+			return nil
+		}
+
+		fileinfo, err := d.Info()
+		if err != nil {
+			return err
+		}
+
+		// skip binaries etc
+		if !d.Type().IsRegular() || strings.Contains(fileinfo.Mode().String(), "x") {
+			logger.Warn("Skipping file %s", path)
+			return nil
+		}
+
+		fileContent, err := os.ReadFile(filepath.Clean(path))
+		if err != nil {
+			return err
+		}
+
+		if len(fileContent) == 0 {
+			logger.Warn("Skipping empty file %s", path)
+			return nil
+		}
+
+		err = os.WriteFile(sysdumpFullPath, fileContent, 0644) // #nosec G306 need perms for archiving
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// takes in full paths and copies the given file
+func readAndDumpFile(sourceFilePath, destFilePath string) error {
+	if sourceFilePath == "/" || destFilePath == "/" {
+		return fmt.Errorf("Invalid path '\\/'")
+	}
+
+	_, err := os.Stat(sourceFilePath)
+	if err != nil {
+		return err
+	}
+
+	sourceFileContent, err := os.ReadFile(filepath.Clean(sourceFilePath))
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(destFilePath, sourceFileContent, 0644) // #nosec G306 perms needed for archiving
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DumpSystemdAgentInstallation(sysdumpDir string) {
+	pseudoCC := new(ClusterConfig)
+	pseudoCC.CreateSystemdServiceObjects()
+
+	for _, service := range pseudoCC.SystemdServiceObjects {
+		if service.AgentDir != "" {
+			if err := readAndDumpDir(service.AgentDir, filepath.Join(sysdumpDir, service.AgentName)); err != nil && !os.IsNotExist(err) {
+				logger.Warn("Failed to copy files form %s to %s: %s", service.AgentDir, sysdumpDir, err.Error())
+			}
+		}
+
+		if service.ServiceName != "" {
+			systemdServicePath := filepath.Join(common.SystemdDir, service.ServiceName)
+			sysdumpServicePath := filepath.Join(sysdumpDir, service.ServiceName)
+			if err := readAndDumpFile(systemdServicePath, sysdumpServicePath); err != nil && !os.IsNotExist(err) {
+				logger.Warn("Failed to copy files form %s to %s: %s", systemdServicePath, sysdumpServicePath, err.Error())
+			}
+		}
+	}
+}
+
+func DumpSystemdKnoxctlDir(sysdumpDir string) {
+	knoxctlDir := "/opt/knoxctl"
+	if err := readAndDumpDir(knoxctlDir, filepath.Join(sysdumpDir, "knoxctl")); err != nil {
+		logger.Warn("Failed to copy files form %s to %s: %s", knoxctlDir, sysdumpDir, err.Error())
+	}
 }

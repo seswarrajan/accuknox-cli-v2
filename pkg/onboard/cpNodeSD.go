@@ -6,7 +6,7 @@ import (
 
 	"github.com/Masterminds/sprig"
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
-	"github.com/fatih/color"
+	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 )
 
 func (ic *InitConfig) InitializeControlPlaneSD() error {
@@ -39,10 +39,10 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 	ic.TemplateFuncs = sprig.GenericFuncMap()
 
 	// download and extract systemd packages
-	fmt.Println(color.MagentaString("Downloading agents..."))
+	logger.Info2(("Downloading agents..."))
 	err := ic.SystemdInstall()
 	if err != nil {
-		fmt.Println(color.RedString("Installation failed!! Cleaning up downloaded assets..."))
+		logger.Error("Installation failed!! Cleaning up downloaded assets...")
 		// ignoring G104 - can't send nil in installation failed case
 		Deletedir(cm.DownloadDir)
 		DeboardSystemd(NodeType_ControlPlane) // #nosec G104
@@ -73,7 +73,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 		kmuxConfigArgs.RMQServer = "0.0.0.0:5672"
 	}
 
-	fmt.Println(color.MagentaString("\nConfiguring services..."))
+	logger.Info2("\nConfiguring services...")
 	for _, obj := range ic.SystemdServiceObjects {
 		// copy generic config files
 		if obj.ConfigFilePath != "" {
@@ -87,7 +87,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 
 			_, err = copyOrGenerateFile(ic.UserConfigPath, obj.AgentDir, obj.ConfigFilePath, ic.TemplateFuncs, obj.ConfigTemplateString, tcArgs)
 			if err != nil {
-				fmt.Printf("err config generate: %v\n", err)
+				logger.Error("err config generate: %v\n", err)
 				return err
 			}
 		}
@@ -98,7 +98,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 
 			_, err = copyOrGenerateFile(ic.UserConfigPath, obj.AgentDir, obj.KmuxConfigFileName, ic.TemplateFuncs, obj.KmuxConfigTemplateString, kmuxConfigArgs)
 			if err != nil {
-				fmt.Printf("err kmux generate: %v\n", err)
+				logger.Error("err kmux generate: %v\n", err)
 				return err
 			}
 		}
@@ -111,7 +111,7 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 
 			destPath, ok := obj.ExtraFilePathDest[filename]
 			if !ok {
-				fmt.Println(color.YellowString("Warning! No destination for extra file %s", filename))
+				logger.Warn("Warning! No destination for extra file %s", filename)
 				continue
 			}
 
@@ -127,18 +127,18 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 	}
 
 	// FINALLY START THE SYSTEMD SERVICES //
-	fmt.Println(color.MagentaString("\nEnabling services..."))
+	logger.Info2("\nEnabling services...")
 	for _, obj := range ic.SystemdServiceObjects {
 		err = StartSystemdService(obj.ServiceName)
 		if err != nil {
-			fmt.Printf("failed to start service %s: %s\n", obj.ServiceName, err.Error())
+			logger.Warn("failed to start service %s: %s\n", obj.ServiceName, err.Error())
 			return err
 		}
 
 	}
 
 	// Clean Up
-	fmt.Println(color.BlueString("\nCleaning up downloaded assets..."))
+	logger.Info1("\nCleaning up downloaded assets...")
 	Deletedir(cm.DownloadDir)
 	return nil
 }

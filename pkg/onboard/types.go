@@ -52,245 +52,245 @@ const (
 )
 
 type ClusterConfig struct {
-	DefaultConfigPath  string
-	UserConfigPath     string
-	RegistryConfigPath string
+	DefaultConfigPath  string `json:"default_config_path,omitempty"`
+	UserConfigPath     string `json:"user_config_path,omitempty"`
+	RegistryConfigPath string `json:"registry_config_path,omitempty"`
 
-	ClusterType      ClusterType
-	KubeArmorVersion string
-	AgentsVersion    string
+	ClusterType      ClusterType `json:"cluster_type,omitempty"`
+	KubeArmorVersion string      `json:"kubearmor_version,omitempty"`
+	AgentsVersion    string      `json:"agents_version,omitempty"`
 
-	KubeArmorImage            string
-	KubeArmorInitImage        string
-	KubeArmorVMAdapterImage   string
-	KubeArmorRelayServerImage string
-	SPIREAgentImage           string
-	WaitForItImage            string
-	SIAImage                  string
-	PEAImage                  string
-	FeederImage               string
-	RMQImage                  string
-	DiscoverImage             string
-	SumEngineImage            string
-	HardeningAgentImage       string
+	KubeArmorImage            string `json:"kubearmor_image,omitempty"`
+	KubeArmorInitImage        string `json:"kubearmor_init_image,omitempty"`
+	KubeArmorVMAdapterImage   string `json:"kubearmor_vm_adapter_image,omitempty"`
+	KubeArmorRelayServerImage string `json:"kubearmor_relay_server_image,omitempty"`
+	SPIREAgentImage           string `json:"spire_agent_image,omitempty"`
+	WaitForItImage            string `json:"wait_for_it_image,omitempty"`
+	SIAImage                  string `json:"sia_image,omitempty"`
+	PEAImage                  string `json:"pea_image,omitempty"`
+	FeederImage               string `json:"feeder_image,omitempty"`
+	RMQImage                  string `json:"rmq_image,omitempty"`
+	DiscoverImage             string `json:"discover_image,omitempty"`
+	SumEngineImage            string `json:"sumengine_image,omitempty"`
+	HardeningAgentImage       string `json:"hardening_agent_image,omitempty"`
 
-	CPNodeAddr string
+	CPNodeAddr string `json:"cp_node_addr,omitempty"`
 
-	WorkerNode bool
-	DryRun     bool
-	DeployRMQ  bool
+	WorkerNode bool `json:"worker_node,omitempty"`
+	DryRun     bool `json:"dry_run,omitempty"`
+	DeployRMQ  bool `json:"deploy_rmq,omitempty"`
 
-	ImagePullPolicy ImagePullPolicy
+	ImagePullPolicy ImagePullPolicy `json:"image_pull_policy,omitempty"`
 
 	// KubeArmor config
-	Visibility                string
-	HostVisibility            string
-	DefaultFilePosture        string
-	DefaultNetworkPosture     string
-	DefaultCapPosture         string
-	DefaultHostFilePosture    string
-	DefaultHostNetworkPosture string
-	DefaultHostCapPosture     string
-	AlertThrottling           bool
-	MaxAlertsPerSec           int
-	ThrottleSec               int
+	Visibility                string `json:"visibility,omitempty"`
+	HostVisibility            string `json:"host_visibility,omitempty"`
+	DefaultFilePosture        string `json:"default_file_posture,omitempty"`
+	DefaultNetworkPosture     string `json:"default_network_posture,omitempty"`
+	DefaultCapPosture         string `json:"default_cap_posture,omitempty"`
+	DefaultHostFilePosture    string `json:"default_host_file_posture,omitempty"`
+	DefaultHostNetworkPosture string `json:"default_host_network_posture,omitempty"`
+	DefaultHostCapPosture     string `json:"default_host_cap_posture,omitempty"`
+	AlertThrottling           bool   `json:"alert_throttling,omitempty"`
+	MaxAlertsPerSec           int    `json:"max_alerts_per_sec,omitempty"`
+	ThrottleSec               int    `json:"throttle_sec,omitempty"`
 
 	// summary engine config
-	ProcessOperation bool
-	FileOperation    bool
-	NetworkOperation bool
+	ProcessOperation bool `json:"process_operation,omitempty"`
+	FileOperation    bool `json:"file_operation,omitempty"`
+	NetworkOperation bool `json:"network_operation,omitempty"`
 
-	CIDR string
+	CIDR string `json:"cidr,omitempty"`
 
-	TemplateFuncs map[string]interface{}
+	TemplateFuncs map[string]interface{} `json:"-"`
 
 	// internal
 	composeCmd     string
 	composeVersion string
 
 	//kubearmor systemd configs
-	Mode VMMode
+	Mode VMMode `json:"mode,omitempty"`
 
 	// container security
-	SecureContainers bool
+	SecureContainers bool `json:"secure_containers,omitempty"`
 	// host policy discovery
-	EnableHostPolicyDiscovery bool
+	EnableHostPolicyDiscovery bool `json:"enable_host_policy_discovery,omitempty"`
 
-	SkipBTFCheck      bool
-	SystemMonitorPath string
+	SkipBTFCheck      bool   `json:"skip_btf_check,omitempty"`
+	SystemMonitorPath string `json:"system_monitor_path,omitempty"`
 
-	SystemdServiceObjects []SystemdServiceObject
-	DeploySumengine       bool
-	RMQServer             string
+	SystemdServiceObjects []SystemdServiceObject `json:"-"`
+	DeploySumengine       bool                   `json:"deploy_sumengine,omitempty"`
+	RMQServer             string                 `json:"rmq_server,omitempty"`
 
-	PlainHTTP   bool
-	InsecureTLS bool
-	ORASClient  *auth.Client
+	PlainHTTP   bool         `json:"plain_http,omitempty"`
+	InsecureTLS bool         `json:"insecure_tls,omitempty"`
+	ORASClient  *auth.Client `json:"-"`
 
 	// tls configs
-	CaCert         string
-	RMQCredentials string
+	CaCert         string `json:"ca_cert,omitempty"`
+	RMQCredentials string `json:"rmq_credentials,omitempty"`
 
-	RMQTopicPrefix string
+	RMQTopicPrefix string `json:"rmq_topic_prefix,omitempty"`
 
-	Tls TLS
+	Tls TLS `json:"tls,omitempty"`
 }
 
 type InitConfig struct {
 	// basic
-	ClusterConfig
-	JoinToken   string
-	SpireHost   string
-	PPSHost     string
-	KnoxGateway string
+	ClusterConfig `json:"cluster_config,omitempty"`
+	JoinToken     string `json:"join_token,omitempty"`
+	SpireHost     string `json:"spire_host,omitempty"`
+	PPSHost       string `json:"pps_host,omitempty"`
+	KnoxGateway   string `json:"knox_gateway,omitempty"`
 
 	// advanced
-	SpireTrustBundleURL string
-	EnableLogs          bool
+	SpireTrustBundleURL string `json:"spire_trust_bundle_url,omitempty"`
+	EnableLogs          bool   `json:"enable_logs,omitempty"`
 
 	// internal
-	TCArgs TemplateConfigArgs
+	TCArgs TemplateConfigArgs `json:"tc_args,omitempty"`
 }
 
 type JoinConfig struct {
-	ClusterConfig
-	KubeArmorAddr   string
-	RelayServerAddr string
-	SIAAddr         string
-	PEAAddr         string
-	HardenAddr      string
+	ClusterConfig   `json:"cluster_config,omitempty"`
+	KubeArmorAddr   string `json:"kubearmor_addr,omitempty"`
+	RelayServerAddr string `json:"relay_server_addr,omitempty"`
+	SIAAddr         string `json:"sia_addr,omitempty"`
+	PEAAddr         string `json:"pea_addr,omitempty"`
+	HardenAddr      string `json:"harden_addr,omitempty"`
 
 	// internal
-	TCArgs TemplateConfigArgs
+	TCArgs TemplateConfigArgs `json:"tc_args,omitempty"`
 }
 
 type TemplateConfigArgs struct {
-	ReleaseVersion string
+	ReleaseVersion string `json:"release_version,omitempty"`
 
 	// kubearmor configuration
-	KubeArmorImage            string
-	KubeArmorInitImage        string
-	KubeArmorVMAdapterImage   string
-	KubeArmorRelayServerImage string
+	KubeArmorImage            string `json:"kubearmor_image,omitempty"`
+	KubeArmorInitImage        string `json:"kubearmor_init_image,omitempty"`
+	KubeArmorVMAdapterImage   string `json:"kubearmor_vm_adapter_image,omitempty"`
+	KubeArmorRelayServerImage string `json:"kubearmor_relay_server_image,omitempty"`
 
-	KubeArmorVisibility     string
-	KubeArmorHostVisibility string
+	KubeArmorVisibility     string `json:"kubearmor_visibility,omitempty"`
+	KubeArmorHostVisibility string `json:"kubearmor_host_visibility,omitempty"`
 
-	KubeArmorFilePosture    string
-	KubeArmorNetworkPosture string
-	KubeArmorCapPosture     string
+	KubeArmorFilePosture    string `json:"kubearmor_file_posture,omitempty"`
+	KubeArmorNetworkPosture string `json:"kubearmor_network_posture,omitempty"`
+	KubeArmorCapPosture     string `json:"kubearmor_cap_posture,omitempty"`
 
-	KubeArmorHostFilePosture    string
-	KubeArmorHostNetworkPosture string
-	KubeArmorHostCapPosture     string
+	KubeArmorHostFilePosture    string `json:"kubearmor_host_file_posture,omitempty"`
+	KubeArmorHostNetworkPosture string `json:"kubearmor_host_network_posture,omitempty"`
+	KubeArmorHostCapPosture     string `json:"kubearmor_host_cap_posture,omitempty"`
 
-	KubeArmorAlertThrottling bool
-	KubeArmorMaxAlertsPerSec int
-	KubeArmorThrottleSec     int
+	KubeArmorAlertThrottling bool `json:"kubearmor_alert_throttling,omitempty"`
+	KubeArmorMaxAlertsPerSec int  `json:"kubearmor_max_alerts_per_sec,omitempty"`
+	KubeArmorThrottleSec     int  `json:"kubearmor_throttle_sec,omitempty"`
 
-	SPIREAgentImage string
-	WaitForItImage  string
+	SPIREAgentImage string `json:"spire_agent_image,omitempty"`
+	WaitForItImage  string `json:"wait_for_it_image,omitempty"`
 
-	SIAImage            string
-	PEAImage            string
-	FeederImage         string
-	RMQImage            string
-	DiscoverImage       string
-	SumEngineImage      string
-	HardeningAgentImage string
+	SIAImage            string `json:"sia_image,omitempty"`
+	PEAImage            string `json:"pea_image,omitempty"`
+	FeederImage         string `json:"feeder_image,omitempty"`
+	RMQImage            string `json:"rmq_image,omitempty"`
+	DiscoverImage       string `json:"discover_image,omitempty"`
+	SumEngineImage      string `json:"sumengine_image,omitempty"`
+	HardeningAgentImage string `json:"hardening_agent_image,omitempty"`
 
-	DiscoverRules   string
-	ImagePullPolicy string
+	DiscoverRules   string `json:"discover_rules,omitempty"`
+	ImagePullPolicy string `json:"image_pull_policy,omitempty"`
 
-	KubeArmorAddr string
-	KubeArmorPort string
-	Hostname      string
+	KubeArmorAddr string `json:"kubearmor_addr,omitempty"`
+	KubeArmorPort string `json:"kubearmor_port,omitempty"`
+	Hostname      string `json:"hostname,omitempty"`
 
 	// vm-adapter configuration
-	KubeArmorURL   string
-	RelayServerURL string
-	SIAAddr        string
-	PEAAddr        string
-	HardenAddr     string
-	RMQAddr        string
+	KubeArmorURL   string `json:"kubearmor_url,omitempty"`
+	RelayServerURL string `json:"relay_server_url,omitempty"`
+	SIAAddr        string `json:"sia_addr,omitempty"`
+	PEAAddr        string `json:"pea_addr,omitempty"`
+	HardenAddr     string `json:"harden_addr,omitempty"`
+	RMQAddr        string `json:"rmq_addr,omitempty"`
 
-	WorkerNode bool
-	DeployRMQ  bool
+	WorkerNode bool `json:"worker_node,omitempty"`
+	DeployRMQ  bool `json:"deploy_rmq,omitempty"`
 
-	VmMode VMMode
+	VmMode VMMode `json:"vm_mode,omitempty"`
 
 	// generic agent configuration
-	ConfigPath string
+	ConfigPath string `json:"config_path,omitempty"`
 
 	// feeder service configuration
-	RelayServerAddr string
-	RelayServerPort string
-	EnableLogs      bool
+	RelayServerAddr string `json:"relay_server_addr,omitempty"`
+	RelayServerPort string `json:"relay_server_port,omitempty"`
+	EnableLogs      bool   `json:"enable_logs,omitempty"`
 
 	// policy-enforcement-agent config
-	PPSHost string
+	PPSHost string `json:"pps_host,omitempty"`
 
 	// spire agent
-	JoinToken           string
-	SpireHostAddr       string
-	SpireHostPort       string
-	SpireTrustBundleURL string
+	JoinToken           string `json:"join_token,omitempty"`
+	SpireHostAddr       string `json:"spire_host_addr,omitempty"`
+	SpireHostPort       string `json:"spire_host_port,omitempty"`
+	SpireTrustBundleURL string `json:"spire_trust_bundle_url,omitempty"`
 
 	// docker config
-	NetworkCIDR string
+	NetworkCIDR string `json:"network_cidr,omitempty"`
 
 	// kmux config paths for agents
-	PoliciesKmuxConfig string
-	StateKmuxConfig    string
-	AlertsKmuxConfig   string
-	LogsKmuxConfig     string
-	KmuxConfigPath     string
-	PolicyKmuxConfig   string
-	SummaryKmuxConfig  string
+	PoliciesKmuxConfig string `json:"policies_kmux_config,omitempty"`
+	StateKmuxConfig    string `json:"state_kmux_config,omitempty"`
+	AlertsKmuxConfig   string `json:"alerts_kmux_config,omitempty"`
+	LogsKmuxConfig     string `json:"logs_kmux_config,omitempty"`
+	KmuxConfigPath     string `json:"kmux_config_path,omitempty"`
+	PolicyKmuxConfig   string `json:"policy_kmux_config,omitempty"`
+	SummaryKmuxConfig  string `json:"summary_kmux_config,omitempty"`
 
 	// container security
-	SecureContainers bool
+	SecureContainers bool `json:"secure_containers,omitempty"`
 	// host policy discovery
-	EnableHostPolicyDiscovery bool
+	EnableHostPolicyDiscovery bool `json:"enable_host_policy_discovery,omitempty"`
 
 	//summary engine configuration
-	ProcessOperation bool
-	FileOperation    bool
-	NetworkOperation bool
+	ProcessOperation bool `json:"process_operation,omitempty"`
+	FileOperation    bool `json:"file_operation,omitempty"`
+	NetworkOperation bool `json:"network_operation,omitempty"`
 
-	RMQTlsPort      string
-	RMQPasswordHash string
-	RMQUsername     string
-	RMQPassword     string
-	RMQServer       string
-	RMQTopicPrefix  string
+	RMQTlsPort      string `json:"rmq_tls_port,omitempty"`
+	RMQPasswordHash string `json:"rmq_password_hash,omitempty"`
+	RMQUsername     string `json:"rmq_username,omitempty"`
+	RMQPassword     string `json:"rmq_password,omitempty"`
+	RMQServer       string `json:"rmq_server,omitempty"`
+	RMQTopicPrefix  string `json:"rmq_topic_prefix,omitempty"`
 
-	TlsEnabled  bool
-	TlsCertFile string
+	TlsEnabled  bool   `json:"tls_enabled,omitempty"`
+	TlsCertFile string `json:"tls_cert_file,omitempty"`
 
 	// topic config
-	PoliciesTopic   string
-	StateEventTopic string
-	LogsTopic       string
-	AlertsTopic     string
-	PolicyV1Topic   string
-	SummaryV2Topic  string
+	PoliciesTopic   string `json:"policies_topic,omitempty"`
+	StateEventTopic string `json:"state_event_topic,omitempty"`
+	LogsTopic       string `json:"logs_topic,omitempty"`
+	AlertsTopic     string `json:"alerts_topic,omitempty"`
+	PolicyV1Topic   string `json:"policyv1_topic,omitempty"`
+	SummaryV2Topic  string `json:"summaryv2_topic,omitempty"`
 }
 
 type KmuxConfigTemplateArgs struct {
-	ReleaseVersion  string
-	StreamName      string
-	ServerURL       string
-	RMQServer       string
-	RMQUsername     string
-	RMQPassword     string
-	TlsEnabled      bool
-	TlsCertFile     string
-	ConsumerTag     string
-	ExchangeType    string
-	ExchangeName    string
-	QueueName       string
-	QueueDurability bool
+	ReleaseVersion  string `json:"release_version,omitempty"`
+	StreamName      string `json:"stream_name,omitempty"`
+	ServerURL       string `json:"server_url,omitempty"`
+	RMQServer       string `json:"rmq_server,omitempty"`
+	RMQUsername     string `json:"rmq_username,omitempty"`
+	RMQPassword     string `json:"rmq_password,omitempty"`
+	TlsEnabled      bool   `json:"tls_enabled,omitempty"`
+	TlsCertFile     string `json:"tls_cert_file,omitempty"`
+	ConsumerTag     string `json:"consumer_tag,omitempty"`
+	ExchangeType    string `json:"exchange_type,omitempty"`
+	ExchangeName    string `json:"exchange_name,omitempty"`
+	QueueName       string `json:"queue_name,omitempty"`
+	QueueDurability bool   `json:"queue_durability,omitempty"`
 }
 
 type TokenResponse struct {
@@ -335,13 +335,13 @@ var (
 const AccessKeyEndpoint = "/access-token/api/v1/process"
 
 type TLS struct {
-	CaPath         string
-	Generate       bool
-	Enabled        bool
-	CaCert         string
-	RMQCredentials string
-	Organization   []string
-	CommonName     string
-	IPs            []string
-	DNS            []string
+	CaPath         string   `json:"ca_path,omitempty"`
+	Generate       bool     `json:"generate,omitempty"`
+	Enabled        bool     `json:"enabled,omitempty"`
+	CaCert         string   `json:"ca_cert,omitempty"`
+	RMQCredentials string   `json:"rmq_credentials,omitempty"`
+	Organization   []string `json:"organization,omitempty"`
+	CommonName     string   `json:"common_name,omitempty"`
+	IPs            []string `json:"ips,omitempty"`
+	DNS            []string `json:"dns,omitempty"`
 }

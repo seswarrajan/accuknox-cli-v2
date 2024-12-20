@@ -9,6 +9,7 @@ import (
 
 	"github.com/Masterminds/sprig"
 	"github.com/accuknox/accuknox-cli-v2/pkg/common"
+	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 	"golang.org/x/mod/semver"
 )
 
@@ -147,7 +148,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(dockerStatus)
+	logger.Info1(dockerStatus)
 
 	configPath, err := createDefaultConfigPath()
 	if err != nil {

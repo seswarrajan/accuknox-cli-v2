@@ -1,10 +1,14 @@
 package cmd
 
 import (
-	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
+	"github.com/accuknox/accuknox-cli-v2/pkg/common"
+	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -24,30 +28,56 @@ var joinNodeCmd = &cobra.Command{
 	Short: "Join this worker node with the control plane node for onboarding onto SaaS",
 	Long:  "Join this worker node with the control plane node for onboarding onto SaaS",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+
 		// need at least either one of the below flags
 		if nodeAddr == "" {
 			if siaAddr == "" || relayServerAddr == "" || peaAddr == "" || hardenAddr == "" {
-				return fmt.Errorf(color.RedString("cp-node-addr (control-plane address) or address of each agent must be specified"))
+				logger.Error("cp-node-addr (control-plane address) or address of each agent must be specified")
+				return err
 			}
 
 			if deploySumegine && rmqAddress == "" {
-				return fmt.Errorf(color.RedString("cp-node-addr (control-plane address) or address of control plane RabbitMQ server must be specified"))
+				logger.Error("cp-node-addr (control-plane address) or address of control plane RabbitMQ server must be specified")
+				return err
 			}
 		}
 		// validate environment for pre-requisites
 		var cc onboard.ClusterConfig
-		_, err := cc.ValidateEnv()
+		_, err = cc.ValidateEnv()
 		if vmMode == "" {
 			if err == nil {
 				vmMode = onboard.VMMode_Docker
 			} else {
-				fmt.Printf(
-					color.YellowString("Warning: Docker requirements did not match:\n%s.\nFalling back to systemd mode for installation.\n", err.Error()))
+				logger.Warn("Warning: Docker requirements did not match:\n%s.\nFalling back to systemd mode for installation.\n", err.Error())
 				vmMode = onboard.VMMode_Systemd
 			}
 		} else if vmMode == onboard.VMMode_Docker && err != nil {
 			// docker mode specified explicitly but requirements didn't match
-			return fmt.Errorf(color.RedString("failed to validate environment: %s", err.Error()))
+			logger.Error("failed to validate environment: %s", err.Error())
+			return err
+		}
+
+		var configDumpPath string
+		switch vmMode {
+		case onboard.VMMode_Systemd:
+			err := os.Mkdir(common.SystemdKnoxctlDir, 0755) // #nosec G301 need for archiving and file operations
+			if err != nil && !os.IsExist(err) {
+				return err
+			}
+
+			configDumpPath = filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlConfigFilename)
+			err = logger.SetOut(filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlLogFilename))
+			if err != nil {
+				logger.Warn("failed to set log output file: %s", err.Error())
+			}
+			logger.Debug("===\n%s - Running %s", time.Now().Format(time.RFC3339), strings.Join(os.Args, " "))
+		case onboard.VMMode_Docker:
+			// TODO
+			defaultConfigPath, err := common.GetDefaultConfigPath()
+			if err == nil {
+				configDumpPath = filepath.Join(defaultConfigPath, common.KnoxctlConfigFilename)
+			}
 		}
 
 		vmConfigs, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, vmMode,
@@ -59,33 +89,51 @@ var joinNodeCmd = &cobra.Command{
 			alertThrottling, maxAlertPerSec, throttleSec,
 			cidr, secureContainers, skipBTF, systemMonitorPath, rmqAddress, deploySumegine, registry, registryConfigPath, insecure, plainHTTP, preserveUpstream, topicPrefix, tls, enableHostPolicyDiscovery)
 		if err != nil {
-			return fmt.Errorf(color.RedString("failed to create VM config: %s", err.Error()))
+			errConfig := onboard.DumpConfig(vmConfigs, configDumpPath)
+			if err != nil {
+				logger.Warn("Failed to create config dump at %s: %s", configDumpPath, errConfig.Error())
+			}
+
+			logger.Error("failed to create VM config: %s", err.Error())
+			return err
 		}
+
 		joinConfig := onboard.JoinClusterConfig(*vmConfigs, kubeArmorAddr, relayServerAddr, siaAddr, peaAddr, hardenAddr)
+
+		defer func() {
+			err := onboard.DumpConfig(joinConfig, configDumpPath)
+			if err != nil {
+				logger.Warn("Failed to create config dump at %s: %s", configDumpPath, err.Error())
+			}
+		}()
 
 		err = joinConfig.CreateBaseNodeConfig()
 		if err != nil {
-			return fmt.Errorf(color.RedString("failed to create VM config: %s", err.Error()))
+			logger.Error("failed to create VM config: %s", err.Error())
+			return err
 		}
 
 		switch vmMode {
 
 		case onboard.VMMode_Systemd:
 			if err := joinConfig.JoinSystemdNode(); err != nil {
-				return fmt.Errorf(color.RedString("failed to join worker node: %s", err.Error()))
+				logger.Error("failed to join worker node: %s", err.Error())
+				return err
 			}
 
 		case onboard.VMMode_Docker:
 			err = joinConfig.JoinWorkerNode()
 			if err != nil {
-				return fmt.Errorf(color.RedString("failed to join worker node: %s", err.Error()))
+				logger.Error("failed to join worker node: %s", err.Error())
+				return err
 			}
 
 		default:
-			return fmt.Errorf(color.RedString("vm mode: %s invalid, accepted values (docker/systemd)", vmMode))
+			logger.Error("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
+			return err
 		}
 
-		fmt.Println(color.GreenString("VM successfully joined with control-plane!"))
+		logger.Print("VM successfully joined with control-plane!")
 		return nil
 	},
 }

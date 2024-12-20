@@ -20,6 +20,20 @@ import (
 	"golang.org/x/mod/semver"
 )
 
+func DumpConfig(config interface{}, path string) error {
+	byteData, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(path, byteData, 0644) // #nosec G306 need perms to be this for archiving
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // path for writing configuration files
 func createDefaultConfigPath() (string, error) {
 	configPath, err := cm.GetDefaultConfigPath()
