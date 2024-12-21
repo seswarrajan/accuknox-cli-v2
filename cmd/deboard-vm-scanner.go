@@ -1,11 +1,10 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/accuknox/accuknox-cli-v2/pkg/deboard"
-	"github.com/fatih/color"
+	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -18,12 +17,13 @@ var deboardRATScanner = &cobra.Command{
 		err := deboard.UninstallRAT()
 		if err != nil {
 			if os.IsNotExist(err) {
-				fmt.Println(color.BlueString("RAT Installation not found"))
+				logger.Info1("RAT Installation not found")
 			} else {
-				return fmt.Errorf("error removing RAT installation:%s", err.Error())
+				logger.Error("error removing RAT installation:%s", err.Error())
+				return err
 			}
 		} else {
-			fmt.Println(color.GreenString("RAT uninstalled successfully."))
+			logger.PrintSuccess("RAT uninstalled successfully.")
 		}
 		return nil
 	},

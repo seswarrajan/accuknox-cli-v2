@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
+	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
 	dockerTypes "github.com/docker/docker/api/types"
 	dockerContainerTypes "github.com/docker/docker/api/types/container"
@@ -179,7 +180,7 @@ func UninstallRAT() error {
 		for _, file := range ratFiles {
 			err := onboard.StopSystemdService(file, false, true)
 			if err != nil {
-				fmt.Printf("error stopping %s: %s\n", file, err)
+				logger.Error("error stopping %s: %s\n", file, err)
 				return err
 			}
 			onboard.Deletedir(cm.RATPath)
@@ -190,7 +191,7 @@ func UninstallRAT() error {
 	//check for RAT docker installation
 	ratObj, err := getRATContainerObject()
 	if err != nil {
-		fmt.Printf("error:%s", err.Error())
+		logger.Warn("error:%s", err.Error())
 	}
 	if len(ratObj) > 0 {
 		fmt.Println(color.BlueString("RAT docker installation found"))

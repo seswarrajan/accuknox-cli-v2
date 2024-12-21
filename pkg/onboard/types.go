@@ -73,7 +73,7 @@ type ClusterConfig struct {
 	DiscoverImage             string `json:"discover_image,omitempty"`
 	SumEngineImage            string `json:"sumengine_image,omitempty"`
 	HardeningAgentImage       string `json:"hardening_agent_image,omitempty"`
-	RATAgentImage             string `json:"rat_agent_image,omitempty"`
+	RATImage                  string `json:"rat_image,omitempty"`
 
 	CPNodeAddr string `json:"cp_node_addr,omitempty"`
 
