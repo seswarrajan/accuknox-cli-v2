@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/accuknox/accuknox-cli-v2/pkg/deboard"
+	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -21,7 +22,8 @@ var deboardNodeCmd = &cobra.Command{
 			// look for systemd and docker mode
 			installedSystemdServices, err := onboard.CheckInstalledSystemdServices()
 			if err != nil {
-				return fmt.Errorf(color.RedString("error checking systemd files: %s", err.Error()))
+				logger.Error("error checking systemd files: %s", err.Error())
+				return err
 			}
 
 			if len(installedSystemdServices) > 0 {
@@ -35,20 +37,33 @@ var deboardNodeCmd = &cobra.Command{
 		case onboard.VMMode_Systemd:
 			_, err := deboard.Deboard(onboard.NodeType_WorkerNode, vmMode, dryRun)
 			if err != nil {
-				return fmt.Errorf(color.RedString("Failed to deboard worker node: %s", err.Error()))
+				logger.Error("Failed to deboard worker node: %s", err.Error())
+				return err
 			}
 		case onboard.VMMode_Docker:
 			configPath, err := deboard.Deboard(onboard.NodeType_WorkerNode, vmMode, dryRun)
 			if err != nil && os.IsPermission(err) {
-				fmt.Println(color.YellowString("Please remove any remaining resources at %s", configPath))
+				logger.Warn("Please remove any remaining resources at %s", configPath)
 			} else if err != nil {
 				return fmt.Errorf(color.RedString("Failed to deboard worker node: %s", err.Error()))
 			}
 		default:
 			return fmt.Errorf(color.RedString("vm mode: %s invalid, accepted values (docker/systemd)", vmMode))
 		}
-
-		fmt.Println(color.GreenString("Worker node deboarded successfully."))
+		if disableVMScan {
+			logger.Info1("Removing RAT installation if it exists")
+			err := deboard.UninstallRAT()
+			if err != nil {
+				if os.IsNotExist(err) {
+					logger.Info1("RAT Installation not found")
+				} else {
+					logger.Warn("error removing RAT installation:%s", err.Error())
+				}
+			} else {
+				logger.PrintSuccess("RAT uninstalled successfully.")
+			}
+		}
+		logger.PrintSuccess("Worker node deboarded successfully.")
 		return nil
 	},
 }

@@ -1,12 +1,11 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/accuknox/accuknox-cli-v2/pkg/deboard"
+	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 	"github.com/accuknox/accuknox-cli-v2/pkg/onboard"
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +19,8 @@ var deboardCpNodeCmd = &cobra.Command{
 		if vmMode == "" {
 			installedSystemdServices, err := onboard.CheckInstalledSystemdServices()
 			if err != nil {
-				return fmt.Errorf(color.RedString("error checking systemd files"))
+				logger.Error("error checking systemd files: %s", err.Error())
+				return err
 			}
 
 			if len(installedSystemdServices) > 0 {
@@ -34,22 +34,37 @@ var deboardCpNodeCmd = &cobra.Command{
 		case onboard.VMMode_Systemd:
 			_, err := deboard.Deboard(onboard.NodeType_ControlPlane, vmMode, dryRun)
 			if err != nil {
-				return fmt.Errorf(color.RedString("Failed to deboard control plane node: %s", err.Error()))
+				logger.Error("Failed to deboard control plane node: %s", err.Error())
+				return err
 			}
 
 		case onboard.VMMode_Docker:
 			configPath, err := deboard.Deboard(onboard.NodeType_ControlPlane, vmMode, dryRun)
 			if err != nil && os.IsPermission(err) {
-				fmt.Println(color.YellowString("Please remove any remaining resources at %s", configPath))
+				logger.Warn("Please remove any remaining resources at %s", configPath)
 			} else if err != nil {
-				return fmt.Errorf(color.RedString("Failed to deboard control plane node: %s", err.Error()))
+				logger.Error("Failed to deboard control plane node: %s", err.Error())
+				return err
 			}
 
 		default:
-			fmt.Printf(color.RedString("vm mode: %s invalid, accepted values (docker/systemd)", vmMode))
+			logger.Error("vm mode: %s invalid, accepted values (docker/systemd)", vmMode)
 		}
-
-		fmt.Println(color.GreenString("Control plane node deboarded successfully."))
+		if disableVMScan {
+			logger.Info1("Removing RAT installation if it exists")
+			err := deboard.UninstallRAT()
+			if err != nil {
+				if os.IsNotExist(err) {
+					logger.Info1("RAT Installation not found")
+				} else {
+					logger.Error("error removing RAT installation:%s", err.Error())
+					return err
+				}
+			} else {
+				logger.PrintSuccess("RAT uninstalled successfully.")
+			}
+		}
+		logger.PrintSuccess("Control plane node deboarded successfully.")
 		return nil
 	},
 }
