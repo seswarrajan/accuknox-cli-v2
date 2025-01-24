@@ -35,7 +35,9 @@ require (
 	github.com/gdamore/tcell/v2 v2.6.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-github v17.0.0+incompatible
+	github.com/itchyny/gojq v0.12.17
 	github.com/jedib0t/go-pretty v4.3.0+incompatible
+	github.com/joho/Godotenv v1.3.0
 	github.com/json-iterator/go v1.1.12
 	github.com/kubearmor/KubeArmor/KubeArmor v0.0.0-20231019102803-e4e0e68a457b
 	github.com/kubearmor/KubeArmor/protobuf v0.0.0-20240122063757-2bac1d1364d9
@@ -48,6 +50,7 @@ require (
 	github.com/rs/zerolog v1.31.0
 	github.com/schollz/progressbar/v3 v3.14.1
 	github.com/spf13/cobra v1.8.0
+	github.com/spf13/viper v1.18.2
 	golang.org/x/mod v0.17.0
 	golang.org/x/net v0.29.0
 	golang.org/x/oauth2 v0.21.0
@@ -220,6 +223,7 @@ require (
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/in-toto/in-toto-golang v0.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/itchyny/timefmt-go v0.1.6 // indirect
 	github.com/jedisct1/go-minisign v0.0.0-20230410063418-3d885d71f62c // indirect
 	github.com/jinzhu/copier v0.3.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -289,7 +293,7 @@ require (
 	github.com/r3labs/diff v1.1.0 // indirect
 	github.com/rabbitmq/amqp091-go v1.8.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
-	github.com/rivo/uniseg v0.4.4 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
@@ -313,7 +317,6 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spf13/viper v1.18.2 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.1.4 // indirect
 	github.com/stretchr/objx v0.5.1 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
