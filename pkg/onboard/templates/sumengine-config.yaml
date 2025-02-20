@@ -9,6 +9,7 @@ watcher:
       protocolFamily:
       - AF_INET
       - AF_INET6
+      - TCP
       operations:
       - CONNECT
       - ACCEPT
