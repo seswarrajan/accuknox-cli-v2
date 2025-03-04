@@ -63,8 +63,9 @@ var (
 
 	rmqConnectionName string
 
-	sumEngineVisibility string
-	sumEngineCronTime   string
+	sumEngineVisibility  string
+	sumEngineCronTime    string
+	nodeStateRefreshTime int
 )
 
 // onboardVMCmd represents the sub-command to onboard VM clusters
@@ -172,6 +173,8 @@ func init() {
 	onboardVMCmd.PersistentFlags().BoolVar(&splunk.SkipTls, "splunk-skip-tls", false, "Skip tls verification")
 
 	onboardVMCmd.PersistentFlags().StringVar(&rmqConnectionName, "rmq-connection-name", "", "Rabbitmq connection name")
+
+	onboardVMCmd.PersistentFlags().IntVar(&nodeStateRefreshTime, "node-state-refresh-time", 10, "Refresh time for node state (default 10 minutes)")
 
 	onboardCmd.AddCommand(onboardVMCmd)
 }

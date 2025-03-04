@@ -135,11 +135,12 @@ func (ic *InitConfig) CreateBaseTemplateConfig() error {
 
 		EnableHostPolicyDiscovery: ic.EnableHostPolicyDiscovery,
 
-		ProcessOperation:  ic.ProcessOperation,
-		FileOperation:     ic.FileOperation,
-		NetworkOperation:  ic.NetworkOperation,
-		RATConfigObject:   ic.RATConfigObject,
-		SumEngineCronTime: ic.SumEngineCronTime,
+		ProcessOperation:     ic.ProcessOperation,
+		FileOperation:        ic.FileOperation,
+		NetworkOperation:     ic.NetworkOperation,
+		RATConfigObject:      ic.RATConfigObject,
+		SumEngineCronTime:    ic.SumEngineCronTime,
+		NodeStateRefreshTime: ic.NodeStateRefreshTime,
 	}
 	return nil
 }
@@ -208,6 +209,8 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	kmuxConfigArgs.RMQUsername = ic.TCArgs.RMQUsername
 	kmuxConfigArgs.RMQPassword = ic.TCArgs.RMQPassword
 	kmuxConfigArgs.TlsEnabled = ic.TCArgs.TlsEnabled
+
+	ic.TCArgs.NodeStateRefreshTime = ic.NodeStateRefreshTime
 
 	ic.populateCommonArgs()
 

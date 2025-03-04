@@ -142,8 +142,9 @@ type ClusterConfig struct {
 	RMQTopicPrefix    string `json:"rmq_topic_prefix,omitempty"`
 	RMQConnectionName string `json:"rmq_connection_name,omitempty"`
 
-	Tls    TLS          `json:"tls,omitempty"`
-	Splunk SplunkConfig `json:"splunk,omitempty"`
+	Tls                  TLS          `json:"tls,omitempty"`
+	Splunk               SplunkConfig `json:"splunk,omitempty"`
+	NodeStateRefreshTime int          `json:"node_state_refresh_time,omitempty"`
 }
 
 type InitConfig struct {
@@ -293,6 +294,8 @@ type TemplateConfigArgs struct {
 	SplunkConfigObject SplunkConfig `json:"-"`
 
 	SumEngineCronTime time.Duration `json:"sumengine_cron_time,omitempty"`
+
+	NodeStateRefreshTime int `json:"node_state_refresh_time,omitempty"`
 }
 
 type KmuxConfigTemplateArgs struct {

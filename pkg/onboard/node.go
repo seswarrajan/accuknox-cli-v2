@@ -144,10 +144,11 @@ func (jc *JoinConfig) CreateBaseNodeConfig() error {
 
 		EnableHostPolicyDiscovery: jc.EnableHostPolicyDiscovery,
 
-		ProcessOperation:  jc.ProcessOperation,
-		FileOperation:     jc.FileOperation,
-		NetworkOperation:  jc.NetworkOperation,
-		SumEngineCronTime: jc.SumEngineCronTime,
+		ProcessOperation:     jc.ProcessOperation,
+		FileOperation:        jc.FileOperation,
+		NetworkOperation:     jc.NetworkOperation,
+		SumEngineCronTime:    jc.SumEngineCronTime,
+		NodeStateRefreshTime: jc.NodeStateRefreshTime,
 	}
 
 	jc.TCArgs.PoliciesKmuxConfig = common.KmuxPoliciesFileName

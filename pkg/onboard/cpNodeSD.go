@@ -25,6 +25,8 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 
 	ic.TCArgs.VmMode = ic.Mode
 
+	ic.TCArgs.NodeStateRefreshTime = ic.NodeStateRefreshTime
+
 	if ic.Tls.Enabled {
 		ic.TCArgs.TlsEnabled = ic.Tls.Enabled
 		ic.TCArgs.TlsCertFile = fmt.Sprintf("%s%s%s/%s", ic.UserConfigPath, "/opt", cm.DefaultCACertDir, cm.DefaultEncodedFileName)
