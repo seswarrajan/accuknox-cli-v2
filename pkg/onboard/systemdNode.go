@@ -84,10 +84,9 @@ func (jc *JoinConfig) JoinSystemdNode() error {
 				return err
 			}
 		}
-
 		// copy kmux config
 		if obj.KmuxConfigPath != "" {
-			populateKmuxArgs(&kmuxConfigArgs, obj.AgentName, obj.KmuxConfigFileName, jc.RMQTopicPrefix, jc.TCArgs.Hostname)
+			populateKmuxArgs(&kmuxConfigArgs, obj.AgentName, obj.KmuxConfigFileName, jc.RMQTopicPrefix, jc.TCArgs.Hostname, jc.RMQConnectionName)
 			// copy generic config files
 			_, err = copyOrGenerateFile(jc.UserConfigPath, obj.AgentDir, obj.KmuxConfigFileName, jc.TemplateFuncs, obj.KmuxConfigTemplateString, kmuxConfigArgs)
 			if err != nil {

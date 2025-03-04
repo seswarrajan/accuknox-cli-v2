@@ -97,10 +97,9 @@ func (ic *InitConfig) InitializeControlPlaneSD() error {
 				return err
 			}
 		}
-
 		// copy kmux config
 		if obj.KmuxConfigPath != "" {
-			populateKmuxArgs(&kmuxConfigArgs, obj.AgentName, obj.KmuxConfigFileName, ic.TCArgs.RMQTopicPrefix, ic.TCArgs.Hostname)
+			populateKmuxArgs(&kmuxConfigArgs, obj.AgentName, obj.KmuxConfigFileName, ic.TCArgs.RMQTopicPrefix, ic.TCArgs.Hostname, ic.RMQConnectionName)
 
 			_, err = copyOrGenerateFile(ic.UserConfigPath, obj.AgentDir, obj.KmuxConfigFileName, ic.TemplateFuncs, obj.KmuxConfigTemplateString, kmuxConfigArgs)
 			if err != nil {
