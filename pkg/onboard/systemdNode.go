@@ -68,6 +68,9 @@ func (jc *JoinConfig) JoinSystemdNode() error {
 		if !obj.InstallOnWorkerNode {
 			continue
 		}
+		if obj.AgentName == cm.SummaryEngine && !jc.DeploySumengine {
+			continue
+		}
 
 		if obj.ConfigFilePath != "" {
 			// copy template args
@@ -120,6 +123,9 @@ func (jc *JoinConfig) JoinSystemdNode() error {
 	logger.Info2("\nEnabling services...")
 	for _, obj := range jc.SystemdServiceObjects {
 		if !obj.InstallOnWorkerNode {
+			continue
+		}
+		if obj.AgentName == cm.SummaryEngine && !jc.DeploySumengine {
 			continue
 		}
 		err = StartSystemdService(obj.ServiceName)
