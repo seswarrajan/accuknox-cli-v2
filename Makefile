@@ -13,6 +13,9 @@ GIT_INFO := $(shell govvv -flags -pkg $(PKG))
 
 .PHONY: build
 build:
+	git submodule update --init --recursive
+	ls $(CURDIR)/pkg/vm/RRA
+	cd $(CURDIR)/pkg/vm/RRA; go mod tidy; CGO_ENABLED=0 go build -ldflags "-w -s ${GIT_INFO}" -o $(CURDIR)/pkg/vm/rra
 	cd $(CURDIR); go mod tidy; CGO_ENABLED=0 go build -ldflags "-w -s ${GIT_INFO}" -o knoxctl
 
 .PHONY: debug
