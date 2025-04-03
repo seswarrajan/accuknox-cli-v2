@@ -1,15 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2022 Authors of KubeArmor
-
 CURDIR     := $(shell pwd)
 INSTALLDIR := $(shell go env GOPATH)/bin/
 
 # Compile RRA submodule beforehand for embeding in Knoxctl
 RRADIR := $(CURDIR)/pkg/vm
 prebuild:
-	@git submodule update --init --recursive
-	@cd $(RRADIR)/RRA; go mod tidy; CGO_ENABLED=0 go build -ldflags "-w -s ${GIT_INFO}" -o $(RRADIR)/rra
-
+	git submodule update --init --recursive
+	cd $(RRADIR)/RRA; go mod tidy; CGO_ENABLED=0 go build -ldflags "-w -s ${GIT_INFO}" -o $(RRADIR)/rra
 
 ifeq (, $(shell which govvv))
 $(shell go install github.com/ahmetb/govvv@latest)

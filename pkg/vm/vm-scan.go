@@ -13,44 +13,48 @@ import (
 
 //go:embed rra
 var rraBinary []byte
+var rra string = "rra"
 
-var fileName = "accuknox-rra_%s_result.json"
+var fileName = "accuknox-%s_%s_result.json"
 
-func PrepareRRACommand(profile, benchmark, authToken, label, url, tenantID, clusterName, clusterID string) string {
-	command := fmt.Sprintf(`analyze \
-    --profile %s \
-    --benchmark %s \
-    --auth-token %s \
-    --url %s \
-    --tenant-id %s \
-    --cluster-name %s \
-    --label %s`,
-		profile, benchmark, authToken, url, tenantID, clusterName, label,
-	)
-	if clusterID != "" {
-		command += fmt.Sprintf(" --cluster-id %s", clusterID)
+func PrepareRRACommand(profile, benchmark, authToken, label, url, tenantID, clusterName, clusterID string) []string {
+
+	args := []string{
+		"analyze",
+		"--profile", profile,
+		"--benchmark", benchmark,
+		"--auth-token", authToken,
+		"--url", url,
+		"--tenant-id", tenantID,
+		"--cluster-name", clusterName,
+		"--label", label,
 	}
-	command += " --json"
 
-	return command
+	if clusterID != "" {
+		args = append(args, "--cluster-id", clusterID)
+	}
+
+	args = append(args, "--json")
+
+	return args
 }
-func ExecCommand(command, path, benchmark string, save bool) error {
-	tmpDir, _ := os.MkdirTemp("", "rra")
+func ExecCommand(commandArgs []string, path, benchmark string, save bool) error {
+	tmpDir, _ := os.MkdirTemp("", rra)
 	defer os.RemoveAll(tmpDir)
 
-	rraPath := filepath.Join(tmpDir, "rra")
+	rraPath := filepath.Join(tmpDir, rra)
 	err := os.WriteFile(rraPath, rraBinary, 0700) // #nosec G306 need perms for write and execute
 	if err != nil {
 		return fmt.Errorf("failed to write RRA binary: %v", err)
 	}
-	command = fmt.Sprintf("%s %s", rraPath, strings.TrimSpace(command))
+	fullCmd := fmt.Sprintf("%s %s", rraPath, strings.Join(commandArgs, " "))
 
-	cmd := exec.Command("/bin/sh", "-c", command)
+	cmd := exec.Command("/bin/sh", "-c", fullCmd)
 
 	filePath := ""
 
 	if save {
-		filePath = filepath.Join(path, fmt.Sprintf(fileName, benchmark))
+		filePath = filepath.Join(path, fmt.Sprintf(fileName, rra, benchmark))
 		file, err := os.Create(filePath)
 		if err != nil {
 			return fmt.Errorf("failed to create output file: %v", err)
@@ -58,11 +62,10 @@ func ExecCommand(command, path, benchmark string, save bool) error {
 		logger.Info1("Output file created at %s", filePath)
 		defer file.Close()
 		cmd.Stdout = file
-		cmd.Stderr = file
 	} else {
 		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
 	}
+	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
 		return fmt.Errorf("Unable to execute RRA: %s", err.Error())

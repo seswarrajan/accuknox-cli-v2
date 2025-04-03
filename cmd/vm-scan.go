@@ -19,7 +19,7 @@ var vmScanCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		var err error
-		rracmd := vm.PrepareRRACommand(profile, benchmark, authToken, label, url, tenantID, clusterName, clusterID)
+		rracmdArgs := vm.PrepareRRACommand(profile, benchmark, authToken, label, url, tenantID, clusterName, clusterID)
 
 		// set homedir as path to store result if no path has been provided by the user
 		if path == "" {
@@ -29,7 +29,7 @@ var vmScanCmd = &cobra.Command{
 			}
 		}
 		logger.Info1("Running RRA tests")
-		err = vm.ExecCommand(rracmd, path, benchmark, save)
+		err = vm.ExecCommand(rracmdArgs, path, benchmark, save)
 		if err != nil {
 			logger.Error(err.Error())
 			return err
