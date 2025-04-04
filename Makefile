@@ -3,11 +3,14 @@
 CURDIR     := $(shell pwd)
 INSTALLDIR := $(shell go env GOPATH)/bin/
 
+GOOS   ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
+
 # Compile RRA submodule beforehand for embeding in Knoxctl
 RRADIR := $(CURDIR)/pkg/vm
 prebuild:
 	git submodule update --init --recursive
-	cd $(RRADIR)/RRA; go mod tidy; CGO_ENABLED=0 go build -ldflags "-w -s ${GIT_INFO}" -o $(RRADIR)/rra
+	cd $(RRADIR)/RRA; go mod tidy; CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags "-w -s ${GIT_INFO}" -o $(RRADIR)/rra
 
 ifeq (, $(shell which govvv))
 $(shell go install github.com/ahmetb/govvv@latest)
