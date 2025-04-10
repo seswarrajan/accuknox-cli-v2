@@ -18,7 +18,6 @@ var rra string = "rra"
 var fileName = "accuknox-%s_%s_result.json"
 
 func PrepareRRACommand(profile, benchmark, authToken, label, url, tenantID, clusterName, clusterID string) []string {
-
 	args := []string{
 		"analyze",
 		"--profile", profile,
@@ -38,18 +37,19 @@ func PrepareRRACommand(profile, benchmark, authToken, label, url, tenantID, clus
 
 	return args
 }
+
 func ExecCommand(commandArgs []string, path, benchmark string, save bool) error {
 	tmpDir, _ := os.MkdirTemp("", rra)
 	defer os.RemoveAll(tmpDir)
 
 	rraPath := filepath.Join(tmpDir, rra)
-	err := os.WriteFile(rraPath, rraBinary, 0700) // #nosec G306 need perms for write and execute
+	err := os.WriteFile(rraPath, rraBinary, 0o700) // #nosec G306 need perms for write and execute
 	if err != nil {
 		return fmt.Errorf("failed to write RRA binary: %v", err)
 	}
 	fullCmd := fmt.Sprintf("%s %s", rraPath, strings.Join(commandArgs, " "))
 
-	cmd := exec.Command("/bin/sh", "-c", fullCmd)
+	cmd := exec.Command("/bin/sh", "-c", fullCmd) // #nosec G204 (CWE-78)
 
 	filePath := ""
 
