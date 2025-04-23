@@ -116,6 +116,7 @@ const (
 
 	//systemd path
 	SystemdDir         string = "/usr/lib/systemd/system/"
+	LogrotateDir       string = "/etc/logrotate.d/"
 	KmuxConfigFileName string = "kmux-config.yaml"
 
 	// KubeArmor gRPC service port

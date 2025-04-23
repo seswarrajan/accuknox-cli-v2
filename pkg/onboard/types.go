@@ -145,6 +145,8 @@ type ClusterConfig struct {
 	Tls                  TLS          `json:"tls,omitempty"`
 	Splunk               SplunkConfig `json:"splunk,omitempty"`
 	NodeStateRefreshTime int          `json:"node_state_refresh_time,omitempty"`
+	// logrotateString
+	LogRotateTemplateString string
 }
 
 type InitConfig struct {

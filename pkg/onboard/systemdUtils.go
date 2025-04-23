@@ -168,6 +168,7 @@ func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 	}
 
 	cc.SystemdServiceObjects = systemdObjects
+	cc.LogRotateTemplateString = logRotateFile
 }
 
 func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
@@ -321,8 +322,12 @@ func (cc *ClusterConfig) placeServiceFiles() error {
 				if err != nil {
 					return err
 				}
+				_, err = copyOrGenerateFile("", cm.LogrotateDir, obj.PackageName, cc.TemplateFuncs, cc.LogRotateTemplateString, obj)
+				if err != nil {
+					fmt.Println(err.Error())
+					return err
+				}
 			}
-
 		}
 	}
 
@@ -493,7 +498,6 @@ func (cc *ClusterConfig) SystemdInstall() error {
 
 	err = cc.placeServiceFiles()
 	if err != nil {
-		//fmt.Println(err)
 		return err
 	}
 
@@ -616,6 +620,8 @@ func DeboardSystemd(nodeType NodeType) error {
 		}
 
 		Deletedir(obj.AgentDir)
+		// Delete Logrotate Files
+		Deletedir(cm.LogrotateDir + obj.PackageName)
 	}
 
 	knoxctlDir := filepath.Clean(filepath.Join(common.SystemdKnoxctlDir, common.KnoxctlConfigFilename))
