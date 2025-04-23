@@ -146,7 +146,8 @@ type ClusterConfig struct {
 	Splunk               SplunkConfig `json:"splunk,omitempty"`
 	NodeStateRefreshTime int          `json:"node_state_refresh_time,omitempty"`
 	// logrotateString
-	LogRotateTemplateString string
+	LogRotateTemplateString string `json:"-"`
+	LogRotate               string `json:"logrotate,omitempty"`
 }
 
 type InitConfig struct {
@@ -351,6 +352,8 @@ type SystemdServiceObject struct {
 	// map of file name and path
 	ExtraFilePathSrc  map[string]string
 	ExtraFilePathDest map[string]string
+
+	LogRotate string
 }
 
 type RATConfig struct {

@@ -1,5 +1,5 @@
 {{.AgentDir}}{{.PackageName}}.log {
-    size 50M               
+    size {{.LogRotate}}              
     rotate 1               
     compress             
     copytruncate          
