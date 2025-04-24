@@ -311,7 +311,9 @@ func (cc *ClusterConfig) placeServiceFiles() error {
 		if cc.WorkerNode && !obj.InstallOnWorkerNode {
 			continue
 		}
-
+		if obj.AgentName == cm.SummaryEngine && !cc.DeploySumengine {
+			continue
+		}
 		if obj.ServiceTemplateString != "" {
 
 			if obj.AgentName == cm.RAT {
