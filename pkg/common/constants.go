@@ -213,3 +213,10 @@ var QueueDurability = map[string]bool{
 	KmuxSummaryFileName: true,
 	KmuxPolicyFileName:  true,
 }
+
+var LastOldAgentVersion = map[string]string{
+	KubeArmorVMAdapter: "v0.1.8",
+	VMAdapter:          "v0.1.8",
+	SummaryEngine:      "v0.3.0",
+	"sumengine":        "v0.3.0",
+}

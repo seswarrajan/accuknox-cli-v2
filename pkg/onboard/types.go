@@ -316,6 +316,7 @@ type KmuxConfigTemplateArgs struct {
 	QueueName       string `json:"queue_name,omitempty"`
 	QueueDurability bool   `json:"queue_durability,omitempty"`
 	ConnectionName  string `json:"connection_name,omitempty"`
+	UseCaFile       bool   `json:"use_ca_file,omitempty"`
 }
 
 type TokenResponse struct {
