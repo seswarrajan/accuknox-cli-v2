@@ -164,7 +164,7 @@ func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 		},
 	}
 
-	systemdObjects = append(systemdObjects, getSystemdAgentsKmuxConfigs()...)
+	systemdObjects = append(systemdObjects, getSystemdAgentsKmuxConfigs(cc)...)
 
 	// should be installed on control plane?
 	for i, obj := range systemdObjects {
@@ -181,7 +181,7 @@ func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 	cc.LogRotateTemplateString = logRotateFile
 }
 
-func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
+func getSystemdAgentsKmuxConfigs(cc *ClusterConfig) []SystemdServiceObject {
 	return []SystemdServiceObject{
 		{
 			AgentName:                cm.VMAdapter,
@@ -189,6 +189,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.VmAdapterConfigPath, cm.KmuxStateEventFileName),
 			KmuxConfigTemplateString: kmuxPublisherConfig,
 			KmuxConfigFileName:       cm.KmuxStateEventFileName,
+			AgentImage:               cc.KubeArmorVMAdapterImage,
 		},
 		{
 			AgentName:                cm.VMAdapter,
@@ -196,6 +197,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.VmAdapterConfigPath, cm.KmuxAlertsFileName),
 			KmuxConfigTemplateString: kmuxPublisherConfig,
 			KmuxConfigFileName:       cm.KmuxAlertsFileName,
+			AgentImage:               cc.KubeArmorVMAdapterImage,
 		},
 		{
 			AgentName:                cm.VMAdapter,
@@ -203,6 +205,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.VmAdapterConfigPath, cm.KmuxLogsFileName),
 			KmuxConfigTemplateString: kmuxPublisherConfig,
 			KmuxConfigFileName:       cm.KmuxLogsFileName,
+			AgentImage:               cc.KubeArmorVMAdapterImage,
 		},
 		{
 			AgentName:                cm.VMAdapter,
@@ -210,6 +213,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.VmAdapterConfigPath, cm.KmuxPoliciesFileName),
 			KmuxConfigTemplateString: kmuxConsumerConfig,
 			KmuxConfigFileName:       cm.KmuxPoliciesFileName,
+			AgentImage:               cc.KubeArmorVMAdapterImage,
 		},
 		{
 			AgentName:                cm.SummaryEngine,
@@ -217,6 +221,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.SumEngineConfigPath, cm.KmuxSummaryFileName),
 			KmuxConfigTemplateString: kmuxPublisherConfig,
 			KmuxConfigFileName:       cm.KmuxSummaryFileName,
+			AgentImage:               cc.SumEngineImage,
 		},
 		{
 			AgentName:                cm.SummaryEngine,
@@ -224,6 +229,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.SumEngineConfigPath, cm.KmuxAlertsFileName),
 			KmuxConfigTemplateString: kmuxConsumerConfig,
 			KmuxConfigFileName:       cm.KmuxAlertsFileName,
+			AgentImage:               cc.SumEngineImage,
 		},
 		{
 			AgentName:                cm.SummaryEngine,
@@ -231,6 +237,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.SumEngineConfigPath, cm.KmuxLogsFileName),
 			KmuxConfigTemplateString: kmuxConsumerConfig,
 			KmuxConfigFileName:       cm.KmuxLogsFileName,
+			AgentImage:               cc.SumEngineImage,
 		},
 		{
 			AgentName:                cm.DiscoverAgent,
@@ -238,6 +245,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.DiscoverConfigPath, cm.KmuxSummaryFileName),
 			KmuxConfigTemplateString: kmuxConsumerConfig,
 			KmuxConfigFileName:       cm.KmuxSummaryFileName,
+			AgentImage:               cc.DiscoverImage,
 		},
 		{
 			AgentName:                cm.DiscoverAgent,
@@ -245,6 +253,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.DiscoverConfigPath, cm.KmuxPolicyFileName),
 			KmuxConfigTemplateString: kmuxPublisherConfig,
 			KmuxConfigFileName:       cm.KmuxPolicyFileName,
+			AgentImage:               cc.DiscoverImage,
 		},
 		{
 			AgentName:                cm.HardeningAgent,
@@ -252,6 +261,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.HardeningAgentConfigPath, cm.KmuxSummaryFileName),
 			KmuxConfigTemplateString: kmuxConsumerConfig,
 			KmuxConfigFileName:       cm.KmuxSummaryFileName,
+			AgentImage:               cc.HardeningAgentImage,
 		},
 		{
 			AgentName:                cm.HardeningAgent,
@@ -259,6 +269,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.HardeningAgentConfigPath, cm.KmuxPolicyFileName),
 			KmuxConfigTemplateString: kmuxPublisherConfig,
 			KmuxConfigFileName:       cm.KmuxPolicyFileName,
+			AgentImage:               cc.HardeningAgentImage,
 		},
 		{
 			AgentName:                cm.PEAAgent,
@@ -266,6 +277,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.PEAconfigPath, cm.KmuxPoliciesFileName),
 			KmuxConfigTemplateString: kmuxConsumerConfig,
 			KmuxConfigFileName:       cm.KmuxPoliciesFileName,
+			AgentImage:               cc.PEAImage,
 		},
 		{
 			AgentName:                cm.PEAAgent,
@@ -273,6 +285,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.PEAconfigPath, cm.KmuxStateEventFileName),
 			KmuxConfigTemplateString: kmuxPublisherConfig,
 			KmuxConfigFileName:       cm.KmuxStateEventFileName,
+			AgentImage:               cc.PEAImage,
 		},
 		{
 			AgentName:                cm.FeederService,
@@ -280,6 +293,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.FSconfigPath, cm.KmuxAlertsFileName),
 			KmuxConfigTemplateString: kmuxConsumerConfig,
 			KmuxConfigFileName:       cm.KmuxAlertsFileName,
+			AgentImage:               cc.FeederImage,
 		},
 		{
 			AgentName:                cm.FeederService,
@@ -287,6 +301,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.FSconfigPath, cm.KmuxLogsFileName),
 			KmuxConfigTemplateString: kmuxConsumerConfig,
 			KmuxConfigFileName:       cm.KmuxLogsFileName,
+			AgentImage:               cc.FeederImage,
 		},
 		{
 			AgentName:                cm.FeederService,
@@ -294,6 +309,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.FSconfigPath, cm.KmuxSummaryFileName),
 			KmuxConfigTemplateString: kmuxConsumerConfig,
 			KmuxConfigFileName:       cm.KmuxSummaryFileName,
+			AgentImage:               cc.FeederImage,
 		},
 		{
 			AgentName:                cm.FeederService,
@@ -301,6 +317,7 @@ func getSystemdAgentsKmuxConfigs() []SystemdServiceObject {
 			KmuxConfigPath:           filepath.Join(cm.FSconfigPath, cm.KmuxPolicyFileName),
 			KmuxConfigTemplateString: kmuxConsumerConfig,
 			KmuxConfigFileName:       cm.KmuxPolicyFileName,
+			AgentImage:               cc.FeederImage,
 		},
 	}
 }
@@ -481,7 +498,7 @@ func (cc *ClusterConfig) SystemdInstall() error {
 		if cc.WorkerNode && !obj.InstallOnWorkerNode {
 			continue
 		}
-		if obj.AgentImage == "" {
+		if obj.AgentImage == "" || obj.PackageName == "" {
 			continue
 		}
 
