@@ -46,6 +46,7 @@ func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 			ExtraFilePathDest: map[string]string{
 				"system_monitor.bpf.o": cm.KASystemMonitorPath,
 			},
+			LogRotate: cc.LogRotate,
 		},
 		{
 			AgentName:             cm.VMAdapter,
@@ -56,6 +57,7 @@ func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 			ConfigFilePath:        "vm-adapter-config.yaml",
 			ConfigTemplateString:  vmAdapterConfig,
 			AgentImage:            cc.KubeArmorVMAdapterImage,
+			LogRotate:             cc.LogRotate,
 		},
 		{
 			AgentName:             cm.RelayServer,
@@ -64,6 +66,7 @@ func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 			AgentDir:              cm.RelayServerConfigPath,
 			ServiceTemplateString: relayServerServiceFile,
 			AgentImage:            cc.KubeArmorRelayServerImage,
+			LogRotate:             cc.LogRotate,
 		},
 		{
 			AgentName:            cm.SpireAgent,
@@ -73,6 +76,7 @@ func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 			ConfigFilePath:       "conf/agent/agent.conf",
 			ConfigTemplateString: spireAgentConfig,
 			AgentImage:           cc.SPIREAgentImage,
+			LogRotate:            cc.LogRotate,
 		},
 		{
 			AgentName:                cm.SIAAgent,
@@ -86,6 +90,7 @@ func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 			KmuxConfigTemplateString: kmuxConfig,
 			KmuxConfigFileName:       cm.KmuxConfigFileName,
 			AgentImage:               cc.SIAImage,
+			LogRotate:                cc.LogRotate,
 		},
 		{
 			AgentName:                cm.PEAAgent,
@@ -99,6 +104,7 @@ func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 			KmuxConfigTemplateString: kmuxConfig,
 			KmuxConfigFileName:       cm.KmuxConfigFileName,
 			AgentImage:               cc.PEAImage,
+			LogRotate:                cc.LogRotate,
 		},
 		{
 			AgentName:                cm.FeederService,
@@ -112,6 +118,7 @@ func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 			KmuxConfigTemplateString: kmuxConfig,
 			KmuxConfigFileName:       cm.KmuxConfigFileName,
 			AgentImage:               cc.FeederImage,
+			LogRotate:                cc.LogRotate,
 		},
 		{
 			AgentName:                cm.SummaryEngine,
@@ -125,6 +132,7 @@ func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 			KmuxConfigPath:           filepath.Join(cm.SumEngineConfigPath, cm.KmuxConfigFileName),
 			KmuxConfigTemplateString: kmuxConfig,
 			KmuxConfigFileName:       cm.KmuxConfigFileName,
+			LogRotate:                cc.LogRotate,
 		},
 		{
 			AgentName:                cm.DiscoverAgent,
@@ -138,6 +146,7 @@ func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 			KmuxConfigPath:           filepath.Join(cm.DiscoverConfigPath, cm.KmuxConfigFileName),
 			KmuxConfigTemplateString: kmuxConfig,
 			KmuxConfigFileName:       cm.KmuxConfigFileName,
+			LogRotate:                cc.LogRotate,
 		},
 		{
 			AgentName:                cm.HardeningAgent,
@@ -151,6 +160,7 @@ func (cc *ClusterConfig) CreateSystemdServiceObjects() {
 			KmuxConfigPath:           filepath.Join(cm.HardeningAgentConfigPath, cm.KmuxConfigFileName),
 			KmuxConfigTemplateString: kmuxConfig,
 			KmuxConfigFileName:       cm.KmuxConfigFileName,
+			LogRotate:                cc.LogRotate,
 		},
 	}
 
@@ -301,7 +311,9 @@ func (cc *ClusterConfig) placeServiceFiles() error {
 		if cc.WorkerNode && !obj.InstallOnWorkerNode {
 			continue
 		}
-
+		if obj.AgentName == cm.SummaryEngine && !cc.DeploySumengine {
+			continue
+		}
 		if obj.ServiceTemplateString != "" {
 
 			if obj.AgentName == cm.RAT {
