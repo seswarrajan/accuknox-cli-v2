@@ -50,7 +50,7 @@ parse_args() {
 # network, either nothing will happen or will syntax error
 # out preventing half-done work
 execute() {
-  tmpdir=$(mktemp -d)
+  tmp=$(mktemp $TMPDIR)
   log_debug "downloading files into ${tmpdir}"
   http_download "${tmpdir}/${TARBALL}" "${TARBALL_URL}"
   http_download "${tmpdir}/${CHECKSUM}" "${CHECKSUM_URL}"
@@ -398,6 +398,23 @@ hash_sha256_verify() {
   fi
 }
 
+# Use /tmp/ as temp directory if write access available else use current
+# working directory.
+# [Background]:
+# A curl installed using snap does not have permissions to write to
+# /tmp/ directory since snap requires apps to use their own directories to write
+# temp file and not use system wide /tmp dir. However, a curl installed using apt
+# or other package mgmt tool can write to /tmp/ dir.
+# Ref: https://github.com/kubearmor/kubearmor-client/pull/490
+get_temp_dir() {
+  tmpf=$(mktemp -d)
+  if [ ! -z "$tmpf" ]; then
+	TMPDIR="-p $PWD"
+  else
+    rm -f $tmpf
+  fi
+}
+
 cat /dev/null <<EOF
 ------------------------------------------------------------------------
 End of functions from https://github.com/client9/shlib
@@ -422,6 +439,7 @@ PLATFORM="${OS}/${ARCH}"
 
 S3_DOWNLOAD="https://knoxctl.accuknox.com/binaries"
 GITHUB_DOWNLOAD="https://github.com/${OWNER}/${REPO}/releases/download"
+get_temp_dir
 
 uname_os_check "$OS"
 uname_arch_check "$ARCH"
