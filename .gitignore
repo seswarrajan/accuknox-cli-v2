@@ -1,0 +1,38 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+kubearmor
+accuknoxcli
+out/
+knoxctl_out/*
+.vscode
+.idea
+*.tar.gz
+# Test binary, built with `go test -c`
+*.test
+!kubearmor-config.yaml
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+GIT-KEY
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# local binaries
+accuknoxD 
+accuknoxR
+accuknoxS
+accuknox-cli-v2
+knoxctl
+
+*.pprof
+*.prof 
+*.pdf
+*.json
+*.md
+*.yaml
+!docker-compose_rra.yaml
+rra
