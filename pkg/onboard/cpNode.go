@@ -136,7 +136,7 @@ func (ic *InitConfig) InitializeControlPlane() error {
 	if err != nil {
 		return err
 	}
-	logger.Info1(dockerStatus)
+	logger.Info1("%s", dockerStatus)
 
 	configPath, err := createDefaultConfigPath()
 	if err != nil {

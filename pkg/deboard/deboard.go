@@ -47,7 +47,7 @@ func Deboard(nodeType onboard.NodeType, vmMode onboard.VMMode, dryRun bool) (str
 
 		if verifyInstallation {
 			fmt.Println(color.YellowString("Docker compose file not found at %s. Checking installation of each agent...", composeFilePath))
-			installedContainers, installedVolumes, err := getInstalledObjects()
+			installedContainers, installedVolumes, err := GetInstalledObjects()
 			if err != nil {
 				return "", err
 			}
@@ -92,7 +92,7 @@ func Deboard(nodeType onboard.NodeType, vmMode onboard.VMMode, dryRun bool) (str
 }
 
 // returns installed containers and volumes
-func getInstalledObjects() (map[string]dockerContainerTypes.Summary, []string, error) {
+func GetInstalledObjects() (map[string]dockerContainerTypes.Summary, []string, error) {
 	allContainers := onboard.GetKnownContainerMap()
 	installedContainers := make(map[string]dockerContainerTypes.Summary, 0)
 
