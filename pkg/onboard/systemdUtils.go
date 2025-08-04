@@ -929,3 +929,24 @@ func ConvertCronToSystemd(schedule string) (string, error) {
 
 	return finalSchedule, nil
 }
+func GetSystemdServiceStatus(name string) (string, error) {
+	ctx := context.Background()
+	status := ""
+	// Connect to systemd dbus
+	conn, err := dbus.NewWithContext(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to connect to systemd: %v", err)
+	}
+	defer conn.Close()
+
+	props, err := conn.GetUnitPropertiesContext(ctx, name)
+	if err != nil {
+		return "", fmt.Errorf("failed to get properties for service %s: %v", name, err)
+	}
+	status, ok := props["ActiveState"].(string)
+	if !ok {
+		return "", fmt.Errorf("could not interpret ActiveState for %s", name)
+	}
+
+	return status, nil
+}

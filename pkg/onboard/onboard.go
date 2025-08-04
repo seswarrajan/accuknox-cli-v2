@@ -385,7 +385,7 @@ func (cc *ClusterConfig) PrintJoinCommand() {
 
 	command = fmt.Sprintf("%s --version=%s --cp-node-addr=%s", command, cc.AgentsVersion, cpNodeAddr)
 
-	logger.Print(command)
+	logger.Print("%s", command)
 }
 
 func getDefaultPosture(auditPostureVal, blockPostureVal, ruleType string) string {

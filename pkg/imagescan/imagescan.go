@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"syscall"
 
 	kubesheildDiscovery "github.com/accuknox/kubeshield/pkg/discovery"
@@ -32,6 +31,16 @@ func DiscoverAndScan(conf kubesheildConfig.Config, hostName, runtime string) err
 		}
 	}()
 
+	// Install trivy if it is not exists
+	if !IsTrivyInstalled() {
+		if err := installTrivy(); err != nil {
+			return fmt.Errorf("error while installing container image scanner: %v", err)
+		}
+		zapLogger.Info("Dowloaded container image scanner successfully")
+		// Remove trivy binary, if it is installed by knoxctl
+		defer cleanupInstalledBinaryPath()
+	}
+
 	conf.Images = discoverImages(zapLogger.Sugar(), hostName, runtime)
 	if len(conf.Images) == 0 {
 		return fmt.Errorf("no images found for scanning")
@@ -50,6 +59,7 @@ func DiscoverAndScan(conf kubesheildConfig.Config, hostName, runtime string) err
 
 	// Additional fields added along with the scan results while calling artifact API
 	conf.ScanConfig.AdditionalData = map[string]any{"host_name": hostName}
+	conf.ScanConfig.ScanTool = "trivy" // Default scanning tool
 
 	imageScanner := kubesheildScanner.New(conf)
 
@@ -92,11 +102,4 @@ func discoverImages(logger *zap.SugaredLogger, hostName, runtime string) []kubes
 		}
 	}
 	return images
-}
-
-func IsTrivyInstalled() error {
-	if _, err := exec.LookPath("trivy"); err != nil {
-		return fmt.Errorf("Trivy is not installed or not found in $PATH. Please install Trivy to enable image scanning")
-	}
-	return nil
 }
