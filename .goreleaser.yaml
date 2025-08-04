@@ -3,7 +3,7 @@ project_name: knoxctl
 builds:
   - binary: knoxctl
     goos:
-      - darwin
+      # - darwin
       - linux
     goarch:
       - amd64
