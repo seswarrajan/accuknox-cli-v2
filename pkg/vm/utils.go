@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/accuknox/accuknox-cli-v2/pkg/deboard"
@@ -169,15 +168,11 @@ func GetAvailableLsms() []string {
 }
 
 func GetKernelVersion() (string, error) {
-	var uname syscall.Utsname
-	err := syscall.Uname(&uname)
+	info, err := host.Info()
 	if err != nil {
-		logger.Error("failed to get uname: %v", err)
 		return "", err
 	}
-	kernel := charsToString(uname.Release)
-
-	return kernel, nil
+	return info.KernelVersion, nil
 }
 
 func charsToString(ca [65]int8) string {
