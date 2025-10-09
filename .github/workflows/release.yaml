@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GOPRIVATE: github.com/accuknox/
-      GH_ACCESS_TOKEN: ${{ secrets.AK_PAT_REPO_SCOPE }}
+      GH_ACCESS_TOKEN: ${{ secrets.GH_ORG_TOKEN }}
       GIT_KEY: ${{ secrets.GIT_KEY }}
     steps:
       -
@@ -63,7 +63,7 @@ jobs:
           name: "${{ steps.get_tag.outputs.tag }}"
           body: "Release ${{ steps.get_tag.outputs.TAG_NAME }} for knoxctl a.k.a accuknox-cli."
           repository: accuknox/knoxctl-website
-          token: ${{ secrets.AK_PAT_REPO_SCOPE }}
+          token: ${{ secrets.GH_ORG_TOKEN }}
           make_latest: true
           files: |
             dist/*.tar.gz
