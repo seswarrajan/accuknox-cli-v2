@@ -18,21 +18,21 @@ jobs:
       GH_ACCESS_TOKEN: ${{ secrets.GH_ORG_TOKEN }}
       GIT_KEY: ${{ secrets.GIT_KEY }}
     steps:
-      - name: Checkout
+      -
+        name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      - name: Set up Go
+      -
+        name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@main
-
-      - name: Verify Cosign version  
-        run: cosign version
+        uses: sigstore/cosign-installer@v3.9.2
+        with:
+          cosign-release: 'v2.5.3'
 
       - name: Setup access for private go modules
         env:
@@ -41,7 +41,6 @@ jobs:
           TOKEN: ${{ secrets.GH_ORG_TOKEN }}
         run: |
           git config --global url."https://${USER}:${TOKEN}@github.com".insteadOf "https://github.com"
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
@@ -53,15 +52,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Fetch Tag Name  
+      - name: Fetch Tag Name
         id: get_tag
-        run: echo "TAG_NAME=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+        run: echo "::set-output name=TAG_NAME::$(git describe --tags --abbrev=0)"
 
       # create release in knoxctl-website repo
       - name: Create release of knoxctl-website repo
+        # recommended action by GitHub actions/create-release after archive
         uses: softprops/action-gh-release@v2
         with:
-          name: "${{ steps.get_tag.outputs.TAG_NAME }}"
+          name: "${{ steps.get_tag.outputs.tag }}"
           body: "Release ${{ steps.get_tag.outputs.TAG_NAME }} for knoxctl a.k.a accuknox-cli."
           repository: accuknox/knoxctl-website
           token: ${{ secrets.GH_ORG_TOKEN }}
