@@ -115,10 +115,10 @@ jobs:
             fi
 
             echo "Uploading $OUTPUT_DEB to Nexus"
-            curl -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
-              --fail --show-error \
-              --upload-file "$OUTPUT_DEB" \
-              "${NEXUS_URL%/}/$OUTPUT_DEB"
+            curl -v -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
+              -X POST \
+              ${NEXUS_URL%/}/service/rest/v1/components?repository=Knox \
+              -F "apt.asset=@$OUTPUT_DEB"
 
             echo "Uploaded $OUTPUT_DEB"
 

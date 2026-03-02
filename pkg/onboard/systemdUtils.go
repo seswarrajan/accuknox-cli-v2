@@ -4,10 +4,13 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"maps"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -19,8 +22,10 @@ import (
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
 	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 	"github.com/coreos/go-systemd/v22/dbus"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"golang.org/x/mod/semver"
 	"oras.land/oras-go/v2"
+	"oras.land/oras-go/v2/content"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
 )
@@ -435,13 +440,14 @@ func (cc *ClusterConfig) placeServiceFiles() error {
 	return nil
 }
 
-// downloadAgent downloads agents as OCI artifacts
-func (cc *ClusterConfig) downloadAgent(agentName, agentRepo, agentTag string) (string, error) {
-	fs, err := file.New(cm.DownloadDir)
-	if err != nil {
-		return "", err
+// DownloadAgent downloads agents as OCI artifacts
+func (cc *ClusterConfig) DownloadAgent(agentName, agentRepo, agentTag, downloadDir string) (string, error) {
+
+	if downloadDir == "" {
+		downloadDir = cm.DownloadDir
 	}
-	defer fs.Close()
+
+	fileName := path.Join(downloadDir, agentName+"_"+agentTag+".tar.gz")
 
 	// 1. Connect to a remote repository
 	ctx := context.Background()
@@ -453,17 +459,91 @@ func (cc *ClusterConfig) downloadAgent(agentName, agentRepo, agentTag string) (s
 	repo.Client = cc.ORASClient
 	repo.PlainHTTP = cc.PlainHTTP
 
-	_, err = oras.Copy(ctx, repo, agentTag, fs, agentTag, oras.DefaultCopyOptions)
+	desc, err := repo.Resolve(ctx, agentTag)
 	if err != nil {
 		return "", err
 	}
 
-	filepath := path.Join(cm.DownloadDir, agentName+"_"+agentTag+".tar.gz")
-	return filepath, nil
+	manifestBytes, err := content.FetchAll(ctx, repo, desc)
+	if err != nil {
+		return "", err
+	}
+
+	var manifest ocispec.Manifest
+	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
+		return "", err
+	}
+	if len(manifest.Layers) == 0 {
+		return "", errors.New("no layers in manifest")
+	}
+
+	layer := manifest.Layers[0]
+
+	var offset int64
+	if info, err := os.Stat(fileName); err == nil {
+		offset = info.Size()
+	}
+
+	if offset >= layer.Size {
+		return fileName, nil
+	}
+
+	schema := "http"
+	if !repo.PlainHTTP {
+		schema = "https"
+	}
+
+	registry := repo.Reference.Registry
+	if registry == cm.DockerHubRegisty {
+		registry = cm.DockerHubRegistyReplace
+	}
+
+	blobURL := fmt.Sprintf(
+		"%s://%s/v2/%s/blobs/%s",
+		schema,
+		registry,
+		repo.Reference.Repository,
+		layer.Digest.String(),
+	)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", blobURL, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	if offset > 0 {
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
+	}
+	resp, err := repo.Client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK &&
+		resp.StatusCode != http.StatusPartialContent {
+		return "", fmt.Errorf("unexpected HTTP status: %s", resp.Status)
+	}
+
+	out, err := os.OpenFile(filepath.Clean(fileName),
+		os.O_CREATE|os.O_WRONLY|os.O_APPEND,
+		0600,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return fileName, nil
 }
 
-// extractAgent extracts agent tar
-func extractAgent(fileName string) error {
+// ExtractAgent extracts agent tar
+func ExtractAgent(fileName string) error {
 	file, err := os.Open(filepath.Clean(fileName))
 	if err != nil {
 		fmt.Println("Error opening file:", fileName, err)
@@ -501,11 +581,11 @@ func extractAgent(fileName string) error {
 
 		// Create parent directories if not exist
 
-		err = os.MkdirAll(filepath.Dir(filename), 0o755) // #nosec G301
+		err = os.MkdirAll(filepath.Dir(filename), 0o755) // #nosec G301 G703
 		if err != nil {
 			return err
 		}
-		file, err := os.Create(filepath.Clean(filename))
+		file, err := os.Create(filepath.Clean(filename)) // #nosec G703
 		if err != nil {
 			return err
 		}
@@ -519,7 +599,7 @@ func extractAgent(fileName string) error {
 		// Set execute permissions for the binaries
 
 		if header.Mode&0o111 != 0 {
-			err := os.Chmod(filename, 0o755) // #nosec G302
+			err := os.Chmod(filename, 0o755) // #nosec G302 G703
 			if err != nil {
 				return err
 			}
@@ -532,12 +612,12 @@ func extractAgent(fileName string) error {
 // InstallAgent downloads agent using downloadAgent.
 // It disables the systemd service first if it is running
 func (cc *ClusterConfig) installAgent(agentName, agentRepo, agentTag string) error {
-	fileName, err := cc.downloadAgent(agentName, agentRepo, agentTag)
+	fileName, err := cc.DownloadAgent(agentName, agentRepo, agentTag, "")
 	if err != nil {
 		return err
 	}
 
-	err = extractAgent(fileName)
+	err = ExtractAgent(fileName)
 	if err != nil {
 		return err
 	}
@@ -597,24 +677,27 @@ func (cc *ClusterConfig) SystemdInstall() error {
 			continue
 		}
 
-		logger.Print("Downloading Agent - %s | Image - %s", obj.AgentName, obj.AgentImage)
-		packageMeta := splitLast(obj.AgentImage, ":")
+		if !cc.SkipDownload {
+			logger.Print("Downloading Agent - %s | Image - %s", obj.AgentName, obj.AgentImage)
+			packageMeta := splitLast(obj.AgentImage, ":")
 
-		err = cc.installAgent(obj.AgentName, packageMeta[0], packageMeta[1])
-		if err != nil {
-			// fmt.Println(err)
-			return err
+			err = cc.installAgent(obj.AgentName, packageMeta[0], packageMeta[1])
+			if err != nil {
+				// fmt.Println(err)
+				return err
+			}
+
+			logger.Print("%s version %s downloaded successfully\n", obj.AgentName, packageMeta[1])
 		}
-
-		logger.Print("%s version %s downloaded successfully\n", obj.AgentName, packageMeta[1])
 	}
 
 	err = cc.placeServiceFiles()
 	if err != nil {
 		return err
 	}
-
-	logger.PrintSuccess("All agents downloaded successfully.")
+	if !cc.SkipDownload {
+		logger.PrintSuccess("All agents downloaded successfully.")
+	}
 
 	return nil
 }
@@ -770,7 +853,7 @@ func InstallAgent(agentName, agentRepo, agentTag string) error {
 		return err
 	}
 
-	err = extractAgent(fileName)
+	err = ExtractAgent(fileName)
 	if err != nil {
 		return err
 	}
@@ -809,6 +892,7 @@ func DownloadAgent(agentName, agentRepo, agentTag string) (string, error) {
 // could've used bindings from systemd-go but they require CGO, adding which
 // would make it impossible to run knoxctl in any environment
 func runJournalCTLCommand(args ...string) ([]byte, error) {
+	// #nosec G204 -- journalctl args are internally controlled and no shell is used
 	journalCTLCommand := exec.Command("journalctl", args...)
 
 	data, err := journalCTLCommand.CombinedOutput()
@@ -875,6 +959,7 @@ func readAndDumpDir(sourceDirPath, destDirPath string) error {
 			return nil
 		}
 
+		// #nosec G122 -- parameters are controlled
 		fileContent, err := os.ReadFile(filepath.Clean(path))
 		if err != nil {
 			return err
@@ -885,6 +970,7 @@ func readAndDumpDir(sourceDirPath, destDirPath string) error {
 			return nil
 		}
 
+		// #nosec G122 G703 G306 -- parameters are controlled
 		err = os.WriteFile(sysdumpFullPath, fileContent, 0o644) // #nosec G306 need perms for archiving
 		if err != nil {
 			return err
@@ -915,6 +1001,7 @@ func readAndDumpFile(sourceFilePath, destFilePath string) error {
 		return err
 	}
 
+	// #nosec G703 G306 -- parameters are controlled
 	err = os.WriteFile(destFilePath, sourceFileContent, 0o644) // #nosec G306 perms needed for archiving
 	if err != nil {
 		return err
