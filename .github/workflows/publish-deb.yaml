@@ -27,7 +27,7 @@ jobs:
       - name: Build .deb and upload to Nexus
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
-          NEXUS_URL: https://nexus.accuknox.com/repository/knoxctl/
+          NEXUS_URL: https://nexus.accuknox.com/
           NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
           TAG: ${{ inputs.tag_name || github.event.release.tag_name }}
@@ -119,7 +119,7 @@ jobs:
 
             curl --fail --show-error \
              -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
-             -X POST "https://nexus.accuknox.com/service/rest/v1/components?repository=knoxctl" \
+             -X POST "${NEXUS_URL%/}/service/rest/v1/components?repository=knoxctl" \
              -F "apt.asset=@${OUTPUT_DEB}"
 
             
@@ -127,7 +127,7 @@ jobs:
             
             curl -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
               -X POST \
-              "https://nexus.accuknox.com/service/rest/v1/apt/repositories/knoxctl/rebuild-index"
+              "${NEXUS_URL%/}/service/rest/v1/apt/repositories/knoxctl/rebuild-index"
 
             rm -f *.deb
             rm -rf extract_tmp "$PKGROOT" "$asset"
