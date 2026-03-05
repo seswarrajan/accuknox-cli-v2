@@ -114,13 +114,20 @@ jobs:
               exit 1
             fi
 
-            echo "Uploading $OUTPUT_DEB to Nexus"
-            curl -v -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
-              -X POST \
-              ${NEXUS_URL%/}/service/rest/v1/components?repository=Knox \
-              -F "apt.asset=@$OUTPUT_DEB"
+            echo "Uploading $OUTPUT_DEB to Nexus APT repo"
 
-            echo "Uploaded $OUTPUT_DEB"
+
+            curl --fail --show-error \
+             -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
+             -X POST "https://nexus.accuknox.com/service/rest/v1/components?repository=knoxctl" \
+             -F "apt.asset=@${OUTPUT_DEB}"
+
+            
+            echo "Rebuilding APT metadata"
+            
+            curl -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
+              -X POST \
+              "https://nexus.accuknox.com/service/rest/v1/apt/repositories/knoxctl/rebuild-index"
 
             rm -f *.deb
             rm -rf extract_tmp "$PKGROOT" "$asset"
