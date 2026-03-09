@@ -169,7 +169,20 @@ type ClusterConfig struct {
 	DeployDiscover bool `json:"deploy_discover,omitempty"`
 	SkipDownload   bool `json:"skip_download,omitempty"`
 
-	FromSource string `json:"from_source,omitempty"`
+	FromSource      string          `json:"from_source,omitempty"`
+	ImageScanConfig ImageScanConfig `json:"imagescan_config,omitempty"`
+	DeployImagescan bool            `json:"deploy_imagescan,omitempty"`
+}
+
+type ImageScanConfig struct {
+	tenantID    string
+	clusterName string
+	clusterID   string
+	authToken   string
+	schedule    string
+	url         string
+	label       string
+	allImages   bool
 }
 
 type AccessKey struct {
@@ -302,6 +315,7 @@ type TemplateConfigArgs struct {
 	DockerLogDriver        string `json:"docker_log_driver,omitempty"`
 	DockerLogRotateMaxSize string `json:"docker_log_rotate_max_size,omitempty"`
 	DockerLogRotateMaxFile string `json:"docker_log_rotate_max_file,omitempty"`
+	DockerComposeVersion   string `json:"docker_compose_version,omitempty"`
 
 	// kmux config paths for agents
 	PoliciesKmuxConfig   string `json:"policies_kmux_config,omitempty"`
@@ -403,11 +417,12 @@ type SystemdServiceObject struct {
 	PackageName string
 	ServiceName string
 
-	AgentDir              string
-	ConfigFilePath        string
-	ServiceTemplateString string
-	TimerTemplateString   string
-	ConfigTemplateString  string
+	AgentDir                string
+	ConfigFilePath          string
+	ServiceTemplateString   string
+	TimerTemplateString     string
+	ConfigTemplateString    string
+	EnvironmentFileTemplate string
 
 	// TODO: Package instead of just tag
 	AgentImage string

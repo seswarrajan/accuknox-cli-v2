@@ -7,7 +7,6 @@ volumes:
   {{- end }}
 
 services:
-
   {{- if .SpireEnabled }}
   spire-agent:
     profiles:
@@ -87,20 +86,49 @@ services:
       - "/sys/kernel/security:/sys/kernel/security:ro"
       - "/sys/kernel/debug:/sys/kernel/debug:ro"
       - "/media/root/etc/os-release:/media/root/etc/os-release:ro"
+      - "/usr/src:/usr/src:ro,z"
+
     restart: on-failure
     privileged: true
     networks:
       accuknox-net:
         aliases:
           - kubearmor-init
+  {{- if eq (printf "%.3s" .DockerComposeVersion) "v1." }}
+    entrypoint:
+      - sh
+      - -c
+      - |
+          echo "[kubearmor-init] Cleaning old status..."
+          rm -f /opt/kubearmor/BPF/init.status
 
+          echo "[kubearmor-init] Starting compile..."
+
+          /KubeArmor/compile.sh
+          rc=$$?
+
+          echo "$$rc" > /opt/kubearmor/BPF/init.status
+
+          if [ "$$rc" -eq 0 ]; then
+            echo "[kubearmor-init] Compile successful"
+          else
+            echo "[kubearmor-init] Compile failed"
+          fi
+
+          exit $$rc
+  {{- end }}
   kubearmor:
     profiles:
       - "kubearmor-only"
       - "kubearmor"
+    {{- if not (eq (printf "%.3s" .DockerComposeVersion) "v1.") }}
     depends_on:
       kubearmor-init:
         condition: service_completed_successfully
+    {{- else }}
+    depends_on:
+      - kubearmor-init
+    {{- end }}
     hostname: {{.Hostname}}
     container_name: kubearmor
     image: "{{.KubeArmorImage}}"
@@ -133,6 +161,8 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "/run/docker:/run/docker"
       - "/var/lib/docker:/var/lib/docker"
+      - "/usr/share/kubearmor:/usr/share/kubearmor:rw"
+      - "/var/run/kubearmor:/var/run/kubearmor:rw"
     restart: always
     ports:
       - "{{.KubeArmorPort}}:32767"
@@ -153,18 +183,54 @@ services:
         limits:
           cpus: '{{.KubeArmorCPUs}}'
           memory: {{.KubeArmorMemoryMax}}
+  {{- if eq (printf "%.3s" .DockerComposeVersion) "v1." }}
+    entrypoint:
+      - sh
+      - -c
+      - |
+          echo "[kubearmor] Waiting for kubearmor-init..."
 
+          timeout=120
+          elapsed=0
+
+          while [ ! -f /opt/kubearmor/BPF/init.status ]; do
+            sleep 2
+            elapsed=$$((elapsed+2))
+
+            if [ $$elapsed -ge $$timeout ]; then
+              echo "[kubearmor] Timeout waiting for init"
+              exit 1
+            fi
+          done
+
+          status=$$(cat /opt/kubearmor/BPF/init.status)
+
+          if [ "$$status" != "0" ]; then
+            echo "[kubearmor] Init failed"
+            exit 1
+          fi
+
+          echo "[kubearmor] Init completed successfully"
+          echo "[kubearmor] Starting kubearmor..."
+          exec /KubeArmor/kubearmor "$$@"
+      - --
+  {{- end }}
   kubearmor-vm-adapter:
     profiles:
       - "kubearmor-only"
       - "kubearmor"
     depends_on:
-      {{- if .SpireEnabled }}
-      wait-for-it:
-        condition: service_completed_successfully
-      {{- end }}
       kubearmor:
         condition: service_started
+    {{- if .SpireEnabled }}
+    {{- if eq (printf "%.3s" .DockerComposeVersion) "v1." }}
+      wait-for-it:
+        condition: service_started
+    {{- else }}
+      wait-for-it:
+        condition: service_completed_successfully
+    {{- end }}
+    {{- end }}
     container_name: kubearmor-vm-adapter
     image: "{{.KubeArmorVMAdapterImage}}"
     pull_policy: "{{.ImagePullPolicy}}"
@@ -233,12 +299,17 @@ services:
     profiles:
       - "accuknox-agents"
     depends_on:
-      {{- if .SpireEnabled }}
-      wait-for-it:
-        condition: service_completed_successfully
-      {{- end }}
       kubearmor-vm-adapter:
         condition: service_started
+    {{- if .SpireEnabled }}
+    {{- if eq (printf "%.3s" .DockerComposeVersion) "v1." }}
+      wait-for-it:
+        condition: service_started
+    {{- else }}
+      wait-for-it:
+        condition: service_completed_successfully
+    {{- end }}
+    {{- end }}
     container_name: summary-engine
     image: "{{.SumEngineImage}}"
     pull_policy: "{{.ImagePullPolicy}}"

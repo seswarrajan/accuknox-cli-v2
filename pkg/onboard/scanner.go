@@ -1,13 +1,18 @@
 package onboard
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"maps"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/Masterminds/sprig"
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
+	"github.com/accuknox/accuknox-cli-v2/pkg/imagescan"
+	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
 	"github.com/fatih/color"
 )
 
@@ -193,7 +198,7 @@ func (cc *ClusterConfig) InstallRRA() error {
 		// initialize sprig for templating
 		sprigFuncs := sprig.GenericFuncMap()
 		// create compose file
-		composeFilePath, err := copyOrGenerateFile(cc.UserConfigPath, configPath, "docker-compose_rra.yaml", sprigFuncs, rraComposeFileTemplate, configObject)
+		composeFilePath, err := copyOrGenerateFile(cc.UserConfigPath, configPath, fmt.Sprintf("docker-compose_%s.yaml", cm.RRA), sprigFuncs, rraComposeFileTemplate, configObject)
 		if err != nil {
 			return err
 		}
@@ -247,4 +252,166 @@ func (cc *ClusterConfig) InstallRRA() error {
 		Deletedir(cm.DownloadDir)
 	}
 	return nil
+}
+
+// Initialize Imagescan config and delete if it already exists
+func (cc *ClusterConfig) InitImageScan(authToken, url, tenantID, clusterID, clusterName, label, schedule string, allImages bool) error {
+
+	if cc.Mode == VMMode_Systemd {
+		var err error
+		schedule, err = ConvertCronToSystemd(schedule)
+		if err != nil {
+			logger.Error("error while converting cron into systemd timer: ", err)
+			return err
+		}
+	}
+
+	cc.ImageScanConfig = ImageScanConfig{
+		tenantID:    tenantID,
+		clusterName: clusterName,
+		clusterID:   clusterID,
+		authToken:   authToken,
+		schedule:    schedule,
+		url:         url,
+		label:       label,
+		allImages:   allImages,
+	}
+
+	cc.SystemdServiceObjects = append(cc.SystemdServiceObjects, SystemdServiceObject{
+		AgentName:               cm.Imagescan,
+		AgentImage:              cm.ImagescanBaseImage,
+		PackageName:             cm.Imagescan,
+		ServiceName:             cm.Imagescan + ".service",
+		AgentDir:                cm.ImageScanConfigPath,
+		ServiceTemplateString:   containerImageScannerFile,
+		TimerTemplateString:     containerImageScannerTimerFile,
+		EnvironmentFileTemplate: imagescanEnvVal,
+		LogRotateMaxFileSize:    cc.LogRotateMaxSize,
+		LogRotateMaxFile:        cc.LogRotateMaxFile,
+	},
+	)
+
+	cc.LogRotateTemplateString = logRotateFile
+
+	cc.TemplateFuncs = sprig.FuncMap()
+
+	// Stop existing running service
+	return StopSystemdService(cm.Imagescan+".service", true, false)
+}
+
+func (cc *ClusterConfig) InstallImagescan() error {
+	knoxctlPath, err := getKnoxctlPath()
+	if err != nil {
+		return fmt.Errorf("unable to indentify knoxctl path: %v", err)
+	}
+
+	var sockPaths []string
+	if cc.Mode == VMMode_Docker {
+		// Detect CRI paths(sockets) for mounting it into the container
+		runtimes := []string{"docker", "containerd", "cri-o", "nri"}
+		for _, r := range runtimes {
+			if _, criPaths, ok := imagescan.DiscoverRuntime("", r); ok {
+				for _, criPath := range criPaths {
+					criPath = strings.TrimPrefix(criPath, "unix://")
+					sockPaths = append(sockPaths, criPath)
+				}
+			}
+		}
+	}
+
+	args := map[string]any{
+		"Url":               cc.ImageScanConfig.url,
+		"AuthToken":         cc.ImageScanConfig.authToken,
+		"Label":             cc.ImageScanConfig.label,
+		"AllImages":         cc.ImageScanConfig.allImages,
+		"TenantID":          cc.ImageScanConfig.tenantID,
+		"ClusterID":         cc.ImageScanConfig.clusterID,
+		"ClusterName":       cc.ImageScanConfig.clusterName,
+		"EnvironmentFile":   cmp.Or(cc.UserConfigPath, filepath.Join(cm.ImageScanConfigPath, cm.Imagescan+".env")),
+		"ImagescanUnitName": cm.Imagescan + ".service",
+		"Schedule":          cc.ImageScanConfig.schedule,
+		"AgentName":         cm.Imagescan,
+		"BaseImage":         cm.ImagescanBaseImage,
+		"KnoxctlPath":       knoxctlPath,
+		"SockPaths":         sockPaths,
+	}
+
+	if cc.AdditionalArgs == nil {
+		cc.AdditionalArgs = make(map[string]any)
+	}
+
+	maps.Copy(cc.AdditionalArgs, args)
+
+	switch cc.Mode {
+	case VMMode_Systemd:
+		if err := cc.placeServiceFiles(); err != nil {
+			logger.Error("err while placing service file: %v\n", err)
+			Deletedir(cm.ImageScanConfigPath)
+			return err
+		}
+
+		// Create required environment files for the scan
+		cc.createEnvironmentFile()
+
+		err := StartSystemdService(cm.Imagescan + ".service")
+		if err != nil {
+			logger.Warn("failed to start service %s: %s\n", cm.Imagescan, err.Error())
+			return err
+		}
+
+	case VMMode_Docker:
+		var err error
+		cc.composeCmd, cc.composeVersion, err = GetComposeCommand()
+		if err != nil {
+			return err
+		}
+
+		configPath, err := createDefaultConfigPath()
+		if err != nil {
+			return err
+		}
+
+		// initialize sprig for templating
+		sprigFuncs := sprig.GenericFuncMap()
+
+		// create compose file
+		composeFilePath, err := copyOrGenerateFile(cc.UserConfigPath, configPath, fmt.Sprintf("docker-compose_%s.yaml", cm.Imagescan), sprigFuncs, accuknoxScannerComposeFileTemplate, cc.AdditionalArgs)
+		if err != nil {
+			return err
+		}
+
+		args := []string{"-f", composeFilePath, "--profile", "accuknox-agents"}
+
+		args = append(args, "up", "-d")
+
+		// run compose command
+		_, err = ExecComposeCommand(true, cc.DryRun, cc.composeCmd, args...)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
+}
+
+func (cc *ClusterConfig) createEnvironmentFile() {
+	for _, obj := range cc.SystemdServiceObjects {
+		if obj.EnvironmentFileTemplate != "" {
+			cc.TemplateFuncs = sprig.FuncMap()
+			_, err := copyOrGenerateFile(cc.UserConfigPath, obj.AgentDir, obj.AgentName+".env", cc.TemplateFuncs, obj.EnvironmentFileTemplate, cc.AdditionalArgs)
+			if err != nil {
+				logger.Error("err while creating env file for %s: %v\n", obj.AgentName, err)
+				continue
+			}
+		}
+	}
+}
+
+func getKnoxctlPath() (string, error) {
+	exePath, err := os.Executable()
+	if err != nil {
+		return exePath, err
+	}
+	return exePath, nil
 }

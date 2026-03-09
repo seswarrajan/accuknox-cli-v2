@@ -414,6 +414,14 @@ func (cc *ClusterConfig) placeServiceFiles() error {
 					return err
 				}
 
+				//place timer file if exists
+				if obj.TimerTemplateString != "" {
+					_, err = copyOrGenerateFile("", cm.SystemdDir, obj.AgentName+".timer", cc.TemplateFuncs, obj.TimerTemplateString, configArgs)
+					if err != nil {
+						return err
+					}
+				}
+
 				if cc.LogRotateTemplateString != "" {
 					logRotate := map[string]any{
 						"AgentDir":             obj.AgentDir,
@@ -754,8 +762,11 @@ func StopSystemdService(serviceName string, skipDeleteDisable, force bool) error
 		return fmt.Errorf("Failed to check service status: %s", err.Error())
 	}
 
-	// service not active, return
-	if property.Value.Value() != "active" && !force {
+	state, ok := property.Value.Value().(string)
+	if !ok {
+		return fmt.Errorf("failed to get %s service state", serviceName)
+	}
+	if state != "active" && state != "deactivating" && !force {
 		return nil
 	}
 
