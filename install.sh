@@ -131,7 +131,7 @@ tag_to_version() {
 			# tag doesn't contain patch version
 			temp_tag=${TAG#v}
 			tag_length=${#temp_tag}
-			if [[ $tag_length -le 3 ]]; then
+			if [ $tag_length -le 3 ]; then
 				TAG=$(get_patch_version "$OWNER/$REPO" $TAG)
 			fi
 
