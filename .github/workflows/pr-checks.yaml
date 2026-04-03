@@ -11,7 +11,7 @@ on:
 jobs:
 
   go-checks:
-    runs-on: ubuntu-latest
+    runs-on: runner
     env:
       GOEXPERIMENT: jsonv2
     steps:
@@ -50,7 +50,7 @@ jobs:
         run: make
 
   unit-tests:
-    runs-on: ubuntu-latest
+    runs-on: runner
     steps:
       - name: Checkout Source
         uses: actions/checkout@v3
