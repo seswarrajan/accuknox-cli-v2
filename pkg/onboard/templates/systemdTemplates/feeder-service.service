@@ -2,6 +2,20 @@
 Description=accuknox-feeder-service
 After=kubearmor-vm-adapter.service kubearmor-relay.service spire-agent.service
 
+{{- if ge .SystemdVersion 230 }}
+# limit to 4 restarts in 60 seconds
+# for newer systemd versions
+# https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#StartLimitIntervalSec=interval
+StartLimitIntervalSec=90
+StartLimitBurst=3
+{{- else if ge .SystemdVersion 220 }}
+# limit to 4 restarts in 60 seconds
+# for newer systemd versions
+# https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#StartLimitIntervalSec=interval
+StartLimitInterval=90
+StartLimitBurst=3
+{{- end }}
+
 [Service]
 User=root
 KillMode=control-group
@@ -25,7 +39,13 @@ Restart=always
 RestartSec=10
 
 CPUQuota={{ .CPUQuota | default "5%" }}
+{{- if gt .SystemdVersion 229 }}
 MemoryMax={{ .MemoryMax | default "100M" }}
+{{- end }}
+
+{{- if lt .SystemdVersion 230 }} 
+MemoryLimit={{ .MemoryMax | default "100M" }}
+{{- end }}
 
 {{- if gt .SystemdVersion 241 }}
 MemoryHigh={{ .MemoryHigh | default "80M" }}
@@ -35,7 +55,18 @@ MemoryHigh={{ .MemoryHigh | default "80M" }}
 CPUWeight=50
 {{- end }}
 
-OOMPolicy=kill
+{{- if ge .SystemdVersion 240 }}
+OOMPolicy=stop
+{{- end }}
+
+
+{{- if lt .SystemdVersion 220 }}
+# limit to 4 restarts in 60 seconds 
+# for older systemd versions
+# https://www.freedesktop.org/software/systemd/man/systemd.service.html
+StartLimitInterval=90
+StartLimitBurst=3
+{{- end }}
 
 [Install]
 WantedBy=multi-user.target
