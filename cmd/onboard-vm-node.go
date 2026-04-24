@@ -101,6 +101,10 @@ var joinNodeCmd = &cobra.Command{
 			}
 		}
 
+		if clusterName != "" && topicPrefix == "" {
+			topicPrefix = clusterName
+		}
+
 		vmConfigs, err := onboard.CreateClusterConfig(onboard.ClusterType_VM, userConfigPath, vmMode, imageVersions, releaseVersion,
 			nodeAddr, dryRun,
 			true, deployRMQ, imagePullPolicy, visibility, hostVisibility, sumEngineVisibility, audit, block, hostAudit, hostBlock,
