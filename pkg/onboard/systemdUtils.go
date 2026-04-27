@@ -12,22 +12,17 @@ import (
 	"maps"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/Masterminds/sprig"
 	cm "github.com/accuknox/accuknox-cli-v2/pkg/common"
 	"github.com/accuknox/accuknox-cli-v2/pkg/logger"
-	"github.com/coreos/go-systemd/v22/dbus"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"golang.org/x/mod/semver"
-	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content"
-	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
 )
 
@@ -453,7 +448,7 @@ func (cc *ClusterConfig) placeServiceFiles() error {
 func (cc *ClusterConfig) DownloadAgent(agentName, agentRepo, agentTag, downloadDir string) (string, error) {
 
 	if downloadDir == "" {
-		downloadDir = cm.DownloadDir
+		downloadDir = cm.GetDownloadDir()
 	}
 
 	if err := os.MkdirAll(downloadDir, 0750); err != nil {
@@ -717,99 +712,6 @@ func (cc *ClusterConfig) SystemdInstall() error {
 	return nil
 }
 
-func StartSystemdService(serviceName string) error {
-	if serviceName == "" {
-		return nil
-	}
-	ctx := context.Background()
-	// Connect to systemd dbus
-	conn, err := dbus.NewWithContext(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to connect to systemd: %v", err)
-	}
-	defer conn.Close()
-
-	// reload systemd config, equivalent to systemctl daemon-reload
-	if err := conn.ReloadContext(ctx); err != nil {
-		return fmt.Errorf("failed to reload systemd configuration: %v", err)
-	}
-
-	// enable service
-	_, _, err = conn.EnableUnitFilesContext(ctx, []string{serviceName}, false, true)
-	if err != nil {
-		return fmt.Errorf("failed to enable %s: %v", serviceName, err)
-	}
-
-	// Start the service
-	ch := make(chan string, 1)
-	if _, err := conn.RestartUnitContext(ctx, serviceName, "replace", ch); err != nil {
-		return fmt.Errorf("failed to start %s: %v", serviceName, err)
-	}
-	logger.Print("Started %s", serviceName)
-
-	return nil
-}
-
-func StopSystemdService(serviceName string, skipDeleteDisable, force bool) error {
-	ctx := context.Background()
-	conn, err := dbus.NewWithContext(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to connect to systemd: %v", err)
-	}
-	defer conn.Close()
-
-	stopChan := make(chan string, 1)
-
-	property, err := conn.GetUnitPropertyContext(ctx, serviceName, "ActiveState")
-	if err != nil {
-		return fmt.Errorf("Failed to check service status: %s", err.Error())
-	}
-
-	state, ok := property.Value.Value().(string)
-	if !ok {
-		return fmt.Errorf("failed to get %s service state", serviceName)
-	}
-	if state != "active" && state != "deactivating" && !force {
-		return nil
-	}
-
-	if _, err := conn.StopUnitContext(ctx, serviceName, "replace", stopChan); err != nil {
-		if !strings.Contains(err.Error(), "not loaded") {
-			return fmt.Errorf("Failed to stop existing %s service: %v\n", serviceName, err)
-		}
-	} else {
-		logger.Info1("Stopping existing %s...", serviceName)
-		<-stopChan
-		logger.Info1("%s stopped successfully.", serviceName)
-	}
-
-	if !skipDeleteDisable {
-		if _, err := conn.DisableUnitFilesContext(ctx, []string{serviceName}, false); err != nil {
-			if !strings.Contains(err.Error(), "does not exist") {
-				logger.Error("Failed to disable %s : %v", serviceName, err)
-				return err
-			}
-		} else {
-			logger.Info1("Disabled %s", serviceName)
-		}
-
-		svcFilePath := cm.SystemdDir + serviceName
-		if err := os.Remove(svcFilePath); err != nil {
-			if !os.IsNotExist(err) {
-				logger.Error("Failed to delete %s file: %v", serviceName, err)
-				return err
-			}
-		}
-
-		// reload systemd config, equivalent to systemctl daemon-reload
-		if err := conn.ReloadContext(ctx); err != nil {
-			return fmt.Errorf("failed to reload systemd configuration: %v", err)
-		}
-	}
-
-	return nil
-}
-
 func Deletedir(dirName string) {
 	//	Clean Up
 	err := os.RemoveAll(dirName)
@@ -863,78 +765,6 @@ func CheckInstalledSystemdServices() ([]string, error) {
 	}
 
 	return installedAgents, nil
-}
-
-func InstallAgent(agentName, agentRepo, agentTag string) error {
-	fileName, err := DownloadAgent(agentName, agentRepo, agentTag)
-	if err != nil {
-		return err
-	}
-
-	err = ExtractAgent(fileName)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// downloadAgent downloads agents as OCI artifacts
-func DownloadAgent(agentName, agentRepo, agentTag string) (string, error) {
-	fs, err := file.New(cm.DownloadDir)
-	if err != nil {
-		return "", err
-	}
-	defer fs.Close()
-
-	// 1. Connect to a remote repository
-	ctx := context.Background()
-	repo, err := remote.NewRepository(agentRepo)
-	if err != nil {
-		return "", err
-	}
-
-	// repo.Client = cc.ORASClient
-	// repo.PlainHTTP = cc.PlainHTTP
-
-	_, err = oras.Copy(ctx, repo, agentTag, fs, agentTag, oras.DefaultCopyOptions)
-	if err != nil {
-		return "", err
-	}
-
-	filepath := path.Join(cm.DownloadDir, agentName+"_"+agentTag+".tar.gz")
-	return filepath, nil
-}
-
-// wraps around journalctl
-// could've used bindings from systemd-go but they require CGO, adding which
-// would make it impossible to run knoxctl in any environment
-func runJournalCTLCommand(args ...string) ([]byte, error) {
-	// #nosec G204 -- journalctl args are internally controlled and no shell is used
-	journalCTLCommand := exec.Command("journalctl", args...)
-
-	data, err := journalCTLCommand.CombinedOutput()
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
-func DumpSystemdLogs(sysdumpDir string, services []string) {
-	for _, service := range services {
-		logs, err := runJournalCTLCommand("--no-pager", "-u", service)
-		if err != nil {
-			logger.Warn("Error while getting logs from %s: %s", service, err.Error())
-		} else {
-			filename := filepath.Join(sysdumpDir, service+".log")
-			err := os.WriteFile(filename, logs, 0o644) // #nosec G306 need perms for archiving
-			if err != nil {
-				logger.Warn("Error while writing logs to file %s: %s", filename, err.Error())
-				continue
-			}
-		}
-	}
 }
 
 // takes in full paths, reads files from source recursively and dumps them
@@ -1089,28 +919,6 @@ func ConvertCronToSystemd(schedule string) (string, error) {
 	return finalSchedule, nil
 }
 
-func GetSystemdServiceStatus(name string) (string, error) {
-	ctx := context.Background()
-	status := ""
-	// Connect to systemd dbus
-	conn, err := dbus.NewWithContext(ctx)
-	if err != nil {
-		return "", fmt.Errorf("failed to connect to systemd: %v", err)
-	}
-	defer conn.Close()
-
-	props, err := conn.GetUnitPropertiesContext(ctx, name)
-	if err != nil {
-		return "", fmt.Errorf("failed to get properties for service %s: %v", name, err)
-	}
-	status, ok := props["ActiveState"].(string)
-	if !ok {
-		return "", fmt.Errorf("could not interpret ActiveState for %s", name)
-	}
-
-	return status, nil
-}
-
 func ResetRestartCount(exclude map[string]bool) error {
 	pseudoCC := new(ClusterConfig)
 	pseudoCC.CreateSystemdServiceObjects()
@@ -1127,43 +935,3 @@ func ResetRestartCount(exclude map[string]bool) error {
 	return nil
 }
 
-func ResetRestartCounter(service string) error {
-	if service == "" {
-		return nil
-	}
-	ctx := context.Background()
-
-	dConn, err := dbus.NewWithContext(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to connect to systemd: %v", err)
-	}
-	defer dConn.Close()
-
-	err = dConn.ResetFailedUnitContext(ctx, service)
-	if err != nil {
-		fmt.Printf("failed to reset restart counter for %s: %v\n", service, err)
-		return nil
-	}
-
-	err = dConn.ReloadContext(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to reload systemd configuration: %v", err)
-	}
-
-	ch := make(chan string, 1)
-	_, err = dConn.StartUnitContext(ctx, service, "replace", ch)
-	if err != nil {
-		return fmt.Errorf("failed to start %s: %v", service, err)
-	}
-
-	select {
-	case msg := <-ch:
-		if msg != "done" {
-			return fmt.Errorf("failed to start %s: %v", service, err)
-		}
-	case <-time.After(20 * time.Second):
-		return fmt.Errorf("timeout waiting for %s to start", service)
-	}
-
-	return nil
-}

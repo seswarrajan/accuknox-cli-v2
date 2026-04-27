@@ -1,4 +1,11 @@
 # Binaries for programs and plugins
+pkg/cbom/cbomkit-theia-bin
+pkg/tools/bins/imgscan
+pkg/vm/rra-agent
+*.key
+*.pub
+.DS_Store
+download-tools*
 *.exe
 *.exe~
 *.dll
@@ -7,6 +14,7 @@
 kubearmor
 accuknoxcli
 out/
+dist/
 knoxctl_out/*
 .vscode
 .idea
@@ -33,8 +41,8 @@ knoxctl
 *.pdf
 *.json
 *.md
-*.yaml
+#*.yaml
 !docker-compose_rra.yaml
-!docker-compose_image-scanner.yaml 
+!docker-compose_image-scanner.yaml
 rra
 accuknox/

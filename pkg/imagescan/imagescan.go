@@ -1,10 +1,10 @@
+//go:build !windows
+
 package imagescan
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"syscall"
 
 	"github.com/accuknox/kubeshield/api/v1beta1"
 	kubesheildDiscovery "github.com/accuknox/kubeshield/pkg/discovery"
@@ -23,19 +23,17 @@ func DiscoverAndScan(conf kubesheildScanner.ScanConfig, hostName, runtime string
 
 	defer func() {
 		// Ignoring EINVAL errors based on https://github.com/uber-go/zap/issues/328#issuecomment-284337436
-		if err := zapLogger.Sync(); err != nil && !errors.Is(err, syscall.EINVAL) {
+		if err := zapLogger.Sync(); err != nil && !isZapSyncError(err) {
 			fmt.Printf("error: %v\n", err)
 		}
 	}()
 
-	// Install trivy if it is not exists
+	// Resolve and expose the embedded trivy binary if not already in PATH.
 	if !IsTrivyInstalled() {
 		if err := installTrivy(); err != nil {
-			return fmt.Errorf("error while installing container image scanner: %v", err)
+			return fmt.Errorf("error while resolving container image scanner: %v", err)
 		}
-		zapLogger.Info("Dowloaded container image scanner successfully")
-		// Remove trivy binary, if it is installed by knoxctl
-		defer cleanupInstalledBinaryPath()
+		zapLogger.Info("Container image scanner ready")
 	}
 
 	conf.Images = discoverImages(hostName, runtime, onlyRunningContainers, onlyImages, zapLogger.Sugar())
