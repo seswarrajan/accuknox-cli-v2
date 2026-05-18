@@ -80,6 +80,10 @@ var cpNodeCmd = &cobra.Command{
 			return fmt.Errorf("SPIRE host is required")
 		}
 
+		if clusterName != "" && topicPrefix == "" {
+			topicPrefix = clusterName
+		}
+
 		var configDumpPath string
 		switch vmMode {
 		case onboard.VMMode_Systemd:
