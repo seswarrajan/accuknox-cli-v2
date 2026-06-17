@@ -140,23 +140,8 @@ services:
     container_name: kubearmor
     image: "{{.KubeArmorImage}}"
     pull_policy: "{{.ImagePullPolicy}}"
-    command:
-      - "-k8s=false"
-      - "-enableKubeArmorPolicy"
-      - "-enableKubeArmorHostPolicy"
-      - "-visibility={{.KubeArmorVisibility}}"
-      - "-hostVisibility={{.KubeArmorHostVisibility}}"
-      - "-criSocket=unix:///var/run/docker.sock"
-      - "-enableKubeArmorStateAgent"
-      - "-defaultFilePosture={{.KubeArmorFilePosture}}"
-      - "-defaultNetworkPosture={{.KubeArmorNetworkPosture}}"
-      - "-defaultCapabilitiesPosture={{.KubeArmorCapPosture}}"
-      - "-hostDefaultFilePosture={{.KubeArmorHostFilePosture}}"
-      - "-hostDefaultNetworkPosture={{.KubeArmorHostNetworkPosture}}"
-      - "-hostDefaultCapabilitiesPosture={{.KubeArmorHostCapPosture}}"
-      - "-alertThrottling={{.KubeArmorAlertThrottling}}"
-      - "-maxAlertPerSec={{.KubeArmorMaxAlertsPerSec}}"
-      - "-throttleSec={{.KubeArmorThrottleSec}}"
+    environment:
+      KUBEARMOR_CFG: "/opt/kubearmor/config/kubearmor_config.yaml"
     labels:
       app: kubearmor
     volumes:
@@ -170,6 +155,7 @@ services:
       - "/var/lib/docker:/var/lib/docker"
       - "/usr/share/kubearmor:/usr/share/kubearmor:rw"
       - "/var/run/kubearmor:/var/run/kubearmor:rw"
+      - "{{.ConfigPath}}/kubearmor:/opt/kubearmor/config:ro"
     restart: always
     network_mode: "host"
     pid: "host"
@@ -278,6 +264,8 @@ services:
     image: "{{.KubeArmorVMAdapterImage}}"
     user: "0:0"
     pull_policy: "{{.ImagePullPolicy}}"
+    environment:
+      KUBEARMOR_CFG: "/opt/kubearmor/config/kubearmor_config.yaml"
     command:
       - "--kubearmor-addr={{.KubeArmorURL}}"
       {{- if trimPrefix "v" .ReleaseVersion | semverCompare ">0.9.1" }}
@@ -286,6 +274,8 @@ services:
       {{- if trimPrefix "v" .ReleaseVersion | semverCompare ">0.12.0" }}
       - "--agents-version-file=/opt/agents-version"
       {{- end }}
+      - "--policy-list-enable={{.EnablePoliciesList}}"
+      - "--policy-list-relay-frequency={{.PoliciesListRefresh}}"
       {{- if or .TlsEnabled .RMQEnabled }}
       - "--tls"
       - "--policy-topic={{.PoliciesTopic}}"
@@ -296,6 +286,10 @@ services:
       - "--kmux-config-state=/opt/kubearmor-vm-adapter/{{.StateKmuxConfig}}"
       - "--kmux-config-alerts=/opt/kubearmor-vm-adapter/{{.AlertsKmuxConfig}}"
       - "--kmux-config-logs=/opt/kubearmor-vm-adapter/{{.LogsKmuxConfig}}"
+      {{- if .EnablePoliciesList }}
+      - "--kmux-policy-list=/opt/kubearmor-vm-adapter/{{.PoliciesListKmuxConfig}}"
+      - "--policy-list-topic={{.PoliciesListTopic}}"
+      {{- end }}
       {{- else }}
       - "--relay-server-addr={{.RelayServerURL}}"
       - "--sia-addr={{.SIAAddr}}"
@@ -312,6 +306,7 @@ services:
     restart: always
     volumes:
       - "{{.ConfigPath}}:/opt:rw"
+      -  "{{.ConfigPath}}/kubearmor:/opt/kubearmor/config:rw"
     networks:
       accuknox-net:
         aliases:
