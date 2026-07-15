@@ -2178,7 +2178,7 @@
       "sumengine_image": "public.ecr.aws/k9v9d5v2/discovery-engine-sumengine",
       "hardening_agent_tag": "v0.3.23",
       "hardening_agent_image": "public.ecr.aws/k9v9d5v2/discovery-engine-hardening",
-      "rra_tag": "v0.5.2",
+      "rra_tag": "v0.5.3",
       "rra_image": "accuknox/rra"
     }
   }
